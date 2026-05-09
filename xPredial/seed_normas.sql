@@ -1,0 +1,22 @@
+-- seed_normas.sql — Catálogo de normas ABNT relevantes para gestão predial
+INSERT OR IGNORE INTO normas (codigo, titulo, orgao, ano, descricao) VALUES
+  ('NBR 5674:2012',   'Manutenção de edificações — Requisitos para o sistema de gestão de manutenção', 'ABNT', 2012,
+   'Define requisitos para o sistema de gestão de manutenção de edificações, incluindo planejamento, execução e controle de atividades de manutenção.'),
+  ('NBR 16747:2020',  'Inspeção predial — Diretrizes, conceitos, terminologia e procedimento', 'ABNT', 2020,
+   'Estabelece diretrizes, conceitos, terminologia e procedimentos para inspeção predial de edificações.'),
+  ('NBR 15575:2013',  'Edificações habitacionais — Desempenho', 'ABNT', 2013,
+   'Norma de desempenho para edificações residenciais. Define requisitos e critérios com base em requisitos do usuário.'),
+  ('NBR 16280:2015',  'Reforma em edificações — Sistema de gestão de reformas — Requisitos', 'ABNT', 2015,
+   'Estabelece requisitos para o sistema de gestão de reformas em edificações existentes.'),
+  ('NBR 14037:2011',  'Diretrizes para elaboração de manuais de uso, operação e manutenção das edificações', 'ABNT', 2011,
+   'Define diretrizes para elaboração e apresentação do manual de uso, operação e manutenção de edificações entregues ao usuário.'),
+  ('NBR 9050:2020',   'Acessibilidade a edificações, mobiliário, espaços e equipamentos urbanos', 'ABNT', 2020,
+   'Estabelece critérios e parâmetros técnicos a serem observados quanto ao projeto, construção, instalação e adaptação do meio urbano e rural para acessibilidade.'),
+  ('NBR 6118:2014',   'Projeto de estruturas de concreto — Procedimento', 'ABNT', 2014,
+   'Fixa as exigências e os princípios gerais que devem ser observados no projeto de estruturas de concreto simples, armado e protendido.'),
+  ('NBR 13752:1996',  'Perícias de engenharia na construção civil e imóveis urbanos — Procedimento', 'ABNT', 1996,
+   'Estabelece procedimento para realização de perícias de engenharia em construção civil e imóveis urbanos.'),
+  ('NR-19',           'Explosivos — Norma Regulamentadora do Ministério do Trabalho', 'MTE', 2011,
+   'Regulamenta a fabricação, utilização, transporte e armazenamento de explosivos. Aplicável aos paióis de armamento.'),
+  ('IBAPE-NA:2012',   'Norma de Inspeção Predial Nacional', 'IBAPE', 2012,
+   'Define roteiro prático para elaboração da inspeção predial, com classificação de irregularidades por grau de risco e uso da Matriz GUT.');

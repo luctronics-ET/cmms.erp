@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!--
+  ╔══════════════════════════════════════════════════════════════════════╗
+  ║  ATIVO-TEMPLATE.HTML — Template de módulo de gestão de ativos       ║
+  ║  Copie este arquivo e personalize as seções marcadas com CUSTOMIZAR  ║
+  ║                                                                      ║
+  ║  Passos:                                                             ║
+  ║  1. Renomeie o arquivo (ex: ar-condicionado.html, eletrica.html)     ║
+  ║  2. Altere <title> e sb-org / sb-sub                                 ║
+  ║  3. Preencha TIPOS com os tipos de equipamento do módulo             ║
+  ║  4. Preencha UNIDADES_DEFAULT com o inventário inicial               ║
+  ║  5. Preencha PECAS_DEFAULT com peças e insumos do módulo             ║
+  ║  6. Mude SK e SE para chaves únicas deste módulo                     ║
+  ║  7. Ajuste o checklist pré-uso conforme o equipamento                ║
+  ║  8. Ajuste as categorias de peças no modal m-peca                    ║
+  ╚══════════════════════════════════════════════════════════════════════╝
+-->
+<title>CMASM · Elétrica – Gestão de Manutenção</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2230;--bg4:#212840;
+  --bd:#2d3550;--bd2:#3d4a70;
+  --tx:#e2e8f0;--tx2:#8892b0;--tx3:#4a5580;
+  --or:#f97316;--or2:#ea6c00;--or-bg:#180e00;
+  --gn:#22c55e;--gn-bg:#051a0d;
+  --bl:#3b82f6;--bl-bg:#030f28;
+  --rd:#ef4444;--rd-bg:#1a0000;
+  --am:#f59e0b;--am-bg:#160f00;
+  --tl:#14b8a6;--tl-bg:#001814;
+  --pu:#a855f7;--pu-bg:#100618;
+  --font:'Outfit',sans-serif;--mono:'Fira Code',monospace;--head:'Syne',sans-serif;
+}
+html.light{
+  --bg:#f0f4fb;--bg2:#fff;--bg3:#eef1f8;--bg4:#e2e8f2;
+  --bd:#d0d8ee;--bd2:#b0bedd;--tx:#1a2040;--tx2:#4a5580;--tx3:#8892b0;
+  --or:#c2410c;--or-bg:#fff4ed;--gn:#15803d;--gn-bg:#f0fdf4;
+  --bl:#1d4ed8;--bl-bg:#eff6ff;--rd:#b91c1c;--rd-bg:#fef2f2;
+  --am:#b45309;--am-bg:#fffbeb;--tl:#0d9488;--tl-bg:#f0fdfa;--pu:#7c3aed;--pu-bg:#faf5ff;
+}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:13px;overflow:hidden}
+#shell{display:flex;height:100vh;overflow:hidden}
+/* SIDEBAR */
+#sb{width:230px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:13px 13px 10px;border-bottom:1px solid var(--bd)}
+.sb-brand{display:flex;align-items:center;gap:9px}
+.sb-logo{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--or),#c2410c);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:17px}
+.sb-org{font-family:var(--head);font-size:13px;font-weight:800;color:var(--tx)}
+.sb-sub{font-size:9px;color:var(--tx3);font-family:var(--mono);margin-top:1px}
+.sb-nav{flex:1;overflow-y:auto;padding:4px 0}
+.sb-lbl{padding:9px 12px 3px;font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--tx3);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.sb-lbl button{font-size:10px;background:none;border:none;color:var(--or);cursor:pointer;font-family:var(--font);font-weight:600}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 12px;border:none;background:none;color:var(--tx2);cursor:pointer;width:100%;text-align:left;font-family:var(--font);font-size:12px;font-weight:500;border-left:2px solid transparent;transition:all .12s}
+.sb-item:hover{background:var(--bg3);color:var(--tx)}
+.sb-item.active{background:var(--or-bg);color:var(--or);border-left-color:var(--or)}
+.sb-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sb-item .lbl{flex:1;font-size:11px}
+.sb-item .tag2{font-size:9px;font-family:var(--mono);color:var(--tx3);margin-left:auto}
+.sb-badge{padding:1px 5px;border-radius:9999px;font-size:9px;font-weight:700;background:var(--rd);color:#fff;margin-left:2px}
+.sb-badge.warn{background:var(--am)}
+.sb-footer{padding:10px 12px;border-top:1px solid var(--bd)}
+.sb-btn{display:flex;align-items:center;gap:6px;width:100%;padding:6px 10px;border-radius:7px;border:1px solid var(--bd2);background:var(--bg3);color:var(--tx2);cursor:pointer;font-family:var(--font);font-size:11px;font-weight:600;margin-top:5px;transition:all .15s}
+.sb-btn:hover{background:var(--bg4)}
+/* MAIN */
+#main{flex:1;overflow-y:auto;background:var(--bg)}
+.tbar{display:flex;align-items:center;gap:10px;padding:11px 20px;border-bottom:1px solid var(--bd);background:var(--bg2);position:sticky;top:0;z-index:10}
+.tbar-t{font-family:var(--head);font-size:15px;font-weight:800;color:var(--tx);letter-spacing:-.02em}
+.tbar-s{font-size:10px;color:var(--tx3);font-family:var(--mono);margin-top:2px}
+.sp{flex:1}
+.pill{padding:3px 9px;border-radius:9999px;font-size:10px;font-weight:600;font-family:var(--mono);border:1px solid currentColor}
+.po{color:var(--or);background:var(--or-bg);border-color:var(--or)}
+.pg{color:var(--gn);background:var(--gn-bg);border-color:var(--gn)}
+.pr{color:var(--rd);background:var(--rd-bg);border-color:var(--rd)}
+.pb{color:var(--bl);background:var(--bl-bg);border-color:var(--bl)}
+.pa{color:var(--am);background:var(--am-bg);border-color:var(--am)}
+.pt{color:var(--tl);background:var(--tl-bg);border-color:var(--tl)}
+/* LAYOUT */
+#content{padding:18px}
+.grid{display:grid;gap:13px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:9px;padding:15px}
+.card-sm{padding:11px 13px}
+.ct{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--tx3);text-transform:uppercase;margin-bottom:9px}
+.st{font-family:var(--head);font-size:13px;font-weight:700;color:var(--tx);margin-bottom:11px;display:flex;align-items:center;gap:7px}
+.st::after{content:'';flex:1;height:1px;background:var(--bd)}
+.kpi{font-family:var(--head);font-size:22px;font-weight:800;letter-spacing:-.03em}
+.kl{font-size:10px;color:var(--tx3);margin-top:3px}
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{padding:7px 9px;text-align:left;font-size:9px;font-weight:600;letter-spacing:.07em;color:var(--tx3);text-transform:uppercase;border-bottom:1px solid var(--bd);white-space:nowrap;background:var(--bg3)}
+td{padding:7px 9px;border-bottom:1px solid var(--bd);vertical-align:middle}
+tr:hover td{background:var(--bg3)}
+.nr{text-align:right;font-family:var(--mono)}.ct2{text-align:center}
+/* BADGES */
+.tag{display:inline-flex;align-items:center;padding:2px 6px;border-radius:9999px;font-size:9px;font-weight:700;letter-spacing:.05em;font-family:var(--mono)}
+.tv{color:var(--rd);background:var(--rd-bg)}.tu{color:var(--am);background:var(--am-bg)}
+.tp{color:var(--bl);background:var(--bl-bg)}.to{color:var(--gn);background:var(--gn-bg)}
+.tn{color:var(--tl);background:var(--tl-bg)}
+/* PROGRESS */
+.bt{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;min-width:50px}
+.bf{height:100%;border-radius:3px;transition:width .4s}
+/* CONTROLS */
+.cr{display:flex;align-items:center;gap:9px;margin-bottom:13px;flex-wrap:wrap}
+.bg{display:flex;border:1px solid var(--bd);border-radius:7px;overflow:hidden}
+.bg button{padding:5px 12px;border:none;background:none;color:var(--tx2);cursor:pointer;font-family:var(--font);font-size:11px;font-weight:600;transition:all .12s;border-right:1px solid var(--bd)}
+.bg button:last-child{border-right:none}
+.bg button.sel{background:var(--or);color:#fff}
+.bg button:not(.sel):hover{background:var(--bg3);color:var(--tx)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:7px;border:none;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:600;transition:all .12s}
+.bp{background:var(--or);color:#fff}.bp:hover{background:var(--or2)}
+.bs{background:var(--gn);color:#fff}
+.bd{background:var(--rd);color:#fff}
+.bg2{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd)}.bg2:hover{background:var(--bg4)}
+.bsm{padding:4px 9px;font-size:11px}
+/* FORMS */
+.f{margin-bottom:11px}
+.f label{display:block;font-size:10px;font-weight:600;color:var(--tx2);margin-bottom:4px;letter-spacing:.04em;text-transform:uppercase}
+.inp,.sel,.txa{width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--bd);border-radius:7px;font-size:12px;font-family:var(--font);outline:none;background:var(--bg3);color:var(--tx);transition:border-color .12s}
+.inp:focus,.sel:focus,.txa:focus{border-color:var(--or);box-shadow:0 0 0 3px var(--or-bg)}
+.txa{resize:vertical;min-height:60px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+/* MODAL */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;display:none;align-items:center;justify-content:center;padding:14px}
+.mbg.open{display:flex;animation:fi .15s ease}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.mbox{background:var(--bg2);border-radius:11px;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 48px rgba(0,0,0,.6);border:1px solid var(--bd)}
+.mbox.wide{max-width:620px}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:13px 17px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--bg2);z-index:1}
+.mh h3{font-family:var(--head);font-size:14px;font-weight:700;color:var(--tx)}
+.mc{background:none;border:none;cursor:pointer;color:var(--tx3);font-size:18px;line-height:1;padding:2px}
+.mb{padding:17px}
+/* ALERTS */
+.al{border-radius:7px;padding:9px 13px;font-size:11px;margin-bottom:11px;border:1px solid transparent}
+.alw{background:var(--am-bg);border-color:var(--am);color:var(--am)}
+.ali{background:var(--bl-bg);border-color:var(--bl);color:var(--bl)}
+.alo{background:var(--gn-bg);border-color:var(--gn);color:var(--gn)}
+.alr{background:var(--rd-bg);border-color:var(--rd);color:var(--rd)}
+/* CKL */
+.ckl{background:var(--bg3);border-radius:7px;padding:11px;border:1px solid var(--bd)}
+.ck{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:11px;color:var(--tx2);cursor:pointer}
+.ck input[type=checkbox]{width:13px;height:13px;accent-color:var(--or)}
+/* MISC */
+.mono{font-family:var(--mono)}.mu{color:var(--tx3)}.bo{font-weight:700}
+.or{color:var(--or)}.gn{color:var(--gn)}.rd{color:var(--rd)}.bl{color:var(--bl)}.am{color:var(--am)}.tl{color:var(--tl)}
+.bch{display:flex;flex-direction:column;gap:6px}
+.br{display:flex;align-items:center;gap:7px}
+.bl2{font-size:10px;color:var(--tx2);width:120px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt2{flex:1;height:13px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.bb{height:100%;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px}
+.bb span{font-size:9px;font-weight:700;font-family:var(--mono);color:#fff}
+.bv{width:75px;text-align:right;font-size:10px;font-family:var(--mono);color:var(--tx3);flex-shrink:0}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:3px}
+.fade{animation:fa .25s ease}
+@keyframes fa{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media print{#sb,.tbar .btn,.sb-btn{display:none!important}#main{overflow:visible}html,body{overflow:visible;height:auto}}
+</style>
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/erp-module-shell.css">
+</head>
+<body class="erp-module-body">
+<div id="shell">
+
+<!-- SIDEBAR -->
+<aside id="sb">
+  <div class="sb-head">
+    <div class="sb-brand">
+      <div class="sb-logo">⚡</div>
+      <div>
+        <div class="sb-org">CMASM</div>
+        <div class="sb-sub">Elétrica · Manutenção</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-nav" id="sb-nav"></div>
+
+  <div class="sb-footer">
+    <div style="font-size:9px;color:var(--tx3);font-family:var(--mono)" id="sb-date"></div>
+    <div style="font-size:9px;color:var(--tx3);font-family:var(--mono);margin-top:1px">UASG 744030 · CMASM</div>
+    <button class="sb-btn" onclick="toggleTheme()"><span id="tic">☀️</span><span id="tlb">Modo claro</span></button>
+    <button class="sb-btn" onclick="exportData()">💾 Exportar backup</button>
+    <label class="sb-btn">📂 Importar backup<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div id="main"><div id="content"></div></div>
+
+<!-- MODAL: Novo/Editar Unidade -->
+<div class="mbg" id="m-unit">
+  <div class="mbox">
+    <div class="mh"><h3 id="m-unit-t">Nova Unidade</h3><button class="mc" onclick="cm('m-unit')">✕</button></div>
+    <div class="mb">
+      <div class="f"><label>Identificação / Nome *</label><input class="inp" id="u-nome" placeholder="Ex: AC-01 ou Evaporadora Sala 01"></div>
+      <div class="f"><label>Patrimônio / Nº série</label><input class="inp" id="u-pat" placeholder="Opcional"></div>
+      <div class="f"><label>Horímetro inicial (h)</label><input class="inp" type="number" id="u-hor" min="0" step="0.1" placeholder="0" value="0"></div>
+      <div class="f"><label>Observação</label><textarea class="txa" id="u-obs" placeholder="Localização, modelo, observações…" style="min-height:45px"></textarea></div>
+      <button class="btn bp" onclick="salvarUnit()">Salvar unidade</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Registrar Uso -->
+<div class="mbg" id="m-uso">
+  <div class="mbox">
+    <div class="mh"><h3 id="m-uso-t">Registrar Uso</h3><button class="mc" onclick="cm('m-uso')">✕</button></div>
+    <div class="mb">
+      <div class="fg">
+        <div class="f"><label>Data *</label><input class="inp" type="date" id="u-data"></div>
+        <div class="f"><label>Horas trabalhadas *</label><input class="inp" type="number" id="u-h" min="0.1" step="0.1" placeholder="0.0"></div>
+      </div>
+      <div class="fg">
+        <!-- CUSTOMIZAR: substituir Combustível pelo recurso consumível do módulo (ex: refrigerante, gás, energia) -->
+        <div class="f"><label>Consumo (un.)</label><input class="inp" type="number" id="u-c" min="0" step="0.5" placeholder="0.0"></div>
+        <div class="f"><label>Operador *</label>
+          <select class="sel" id="u-op"><option value="">Selecionar…</option>
+            <!-- CUSTOMIZAR: lista de operadores do módulo -->
+            <option>Equipe Elétrica</option>
+            <option>Serviço Terceirizado</option>
+            <option>[Outro]</option>
+          </select>
+        </div>
+      </div>
+      <div class="f"><label>Observações</label><textarea class="txa" id="u-obs2"></textarea></div>
+      <div class="ckl" style="margin-bottom:11px">
+        <!-- CUSTOMIZAR: checklist de pré-uso para este tipo de equipamento -->
+        <div style="font-size:10px;font-weight:600;color:var(--tx3);margin-bottom:5px">✅ Checklist pré-uso</div>
+        <label class="ck"><input type="checkbox" id="ck1"> Alimentação e tensão verificadas</label>
+        <label class="ck"><input type="checkbox" id="ck2"> Proteções/disjuntores em condição normal</label>
+        <label class="ck"><input type="checkbox" id="ck3"> Sem aquecimento anormal ou odor de queima</label>
+      </div>
+      <div id="uso-alerta" style="display:none"></div>
+      <button class="btn bp" onclick="salvarUso()">➕ Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Registrar Manutenção -->
+<div class="mbg" id="m-manut">
+  <div class="mbox wide">
+    <div class="mh"><h3 id="m-manut-t">Registrar Manutenção</h3><button class="mc" onclick="cm('m-manut')">✕</button></div>
+    <div class="mb">
+      <div class="ali" id="m-manut-hor" style="margin-bottom:12px"></div>
+      <div style="font-size:10px;color:var(--tx2);margin-bottom:8px">Marque os serviços realizados:</div>
+      <div id="m-manut-itens" style="display:flex;flex-direction:column;gap:6px;margin-bottom:13px"></div>
+      <div class="fg">
+        <div class="f"><label>Responsável técnico *</label>
+          <select class="sel" id="m-resp"><option value="">Selecionar…</option>
+            <!-- CUSTOMIZAR: lista de responsáveis técnicos -->
+            <option>Equipe Elétrica</option>
+            <option>Empresa Contratada</option>
+          </select>
+        </div>
+        <div class="f"><label>Data</label><input class="inp" type="date" id="m-data"></div>
+      </div>
+      <div class="f"><label>Observações / materiais utilizados</label><textarea class="txa" id="m-obs"></textarea></div>
+      <button class="btn bs" onclick="salvarManut()" id="btn-sm">✓ Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Manutenção (histórico) -->
+<div class="mbg" id="m-editmanut">
+  <div class="mbox">
+    <div class="mh"><h3>Editar Registro de Manutenção</h3><button class="mc" onclick="cm('m-editmanut')">✕</button></div>
+    <div class="mb">
+      <div class="fg">
+        <div class="f"><label>Data</label><input class="inp" type="date" id="em-data"></div>
+        <div class="f"><label>Horímetro (h)</label><input class="inp" type="number" id="em-h" step="0.1"></div>
+      </div>
+      <div class="f"><label>Responsável</label><input class="inp" id="em-resp"></div>
+      <div class="f"><label>Observações</label><textarea class="txa" id="em-obs"></textarea></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bp" onclick="salvarEditManut()">Salvar</button>
+        <button class="btn bd" onclick="removerManut()">🗑 Remover</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Registro de Uso -->
+<div class="mbg" id="m-edituso">
+  <div class="mbox">
+    <div class="mh"><h3>Editar Registro de Uso</h3><button class="mc" onclick="cm('m-edituso')">✕</button></div>
+    <div class="mb">
+      <div class="fg">
+        <div class="f"><label>Data</label><input class="inp" type="date" id="eu-data"></div>
+        <div class="f"><label>Horas (h)</label><input class="inp" type="number" id="eu-h" step="0.1"></div>
+      </div>
+      <div class="fg">
+        <div class="f"><label>Consumo (un.)</label><input class="inp" type="number" id="eu-c" step="0.5"></div>
+        <div class="f"><label>Operador</label><input class="inp" id="eu-op"></div>
+      </div>
+      <div class="f"><label>Observações</label><textarea class="txa" id="eu-obs"></textarea></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bp" onclick="salvarEditUso()">Salvar</button>
+        <button class="btn bd" onclick="removerUso()">🗑 Remover</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Estoque Ajuste -->
+<div class="mbg" id="m-est">
+  <div class="mbox">
+    <div class="mh"><h3>Ajustar Estoque</h3><button class="mc" onclick="cm('m-est')">✕</button></div>
+    <div class="mb">
+      <div class="f"><label>Peça</label><div id="est-nm" style="font-weight:600;color:var(--tx);padding:5px 0"></div></div>
+      <div class="fg">
+        <div class="f"><label>Qtd. atual</label><div id="est-at" style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--or);padding:5px 0"></div></div>
+        <div class="f"><label>Nova quantidade</label><input class="inp" type="number" id="est-nv" min="0" step="1"></div>
+      </div>
+      <div class="fg">
+        <div class="f"><label>Motivo</label>
+          <select class="sel" id="est-mo">
+            <option value="compra">Compra / recebimento</option>
+            <option value="uso">Uso em manutenção</option>
+            <option value="inventario">Inventário / correção</option>
+            <option value="perda">Perda / descarte</option>
+          </select>
+        </div>
+        <div class="f"><label>Observação</label><input class="inp" id="est-ob" placeholder="Opcional"></div>
+      </div>
+      <button class="btn bp" onclick="salvarEst()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nova/Editar Peça -->
+<div class="mbg" id="m-peca">
+  <div class="mbox">
+    <div class="mh"><h3 id="m-peca-t">Nova Peça</h3><button class="mc" onclick="cm('m-peca')">✕</button></div>
+    <div class="mb">
+      <div class="f"><label>Descrição *</label><input class="inp" id="p-desc" placeholder="Nome/descrição da peça ou insumo"></div>
+      <div class="fg">
+        <div class="f"><label>Unidade</label>
+          <select class="sel" id="p-un">
+            <option>UN</option><option>L</option><option>KG</option><option>m</option>
+            <option>cx</option><option>kit</option><option>par</option><option>RL</option>
+          </select>
+        </div>
+        <div class="f"><label>Categoria</label>
+          <select class="sel" id="p-cat">
+            <!-- CUSTOMIZAR: categorias de peças para este módulo -->
+            <option value="consumivel">Consumível</option>
+            <option value="sobressalente">Sobressalente</option>
+            <option value="eletric">Elétrico</option>
+            <option value="quimico">Químico / Limpeza</option>
+            <option value="ferr">Ferramenta</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <div class="f"><label>Preço unitário (R$)</label><input class="inp" type="number" id="p-pr" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="f"><label>Qtd. inicial</label><input class="inp" type="number" id="p-qt" min="0" step="1" placeholder="0" value="0"></div>
+      </div>
+      <div class="f"><label>Observação</label><input class="inp" id="p-ob" placeholder="Compatibilidade, referência OEM, etc."></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn bp" onclick="salvarPeca()">Salvar peça</button>
+        <button class="btn bd" id="btn-del-peca" style="display:none" onclick="removerPeca()">🗑 Remover</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// CUSTOMIZAR — TIPOS DE EQUIPAMENTO (planos de manutenção)
+// ══════════════════════════════════════════════════════════════════════
+// Estrutura de cada tipo:
+//   CHAVE: { nome, cor (hex), emoji, plano: [{id, iv (horas entre manut.), n (nome), its (materiais)}] }
+//
+// Exemplo para ar-condicionado:
+//   SPLIT_12K: {
+//     nome: 'Split 12.000 BTU', cor: '#3b82f6', emoji: '❄️',
+//     plano: [
+//       {id:'p01', iv:500,  n:'Limpar filtros de ar',           its:['Spray bactericida AC']},
+//       {id:'p02', iv:2000, n:'Verificar gás refrigerante',     its:[]},
+//       {id:'p03', iv:4000, n:'Revisão geral + troca de peças', its:['Capacitor','Sensor NTC']},
+//     ]
+//   }
+const TIPOS = {
+  GERADOR:{
+    nome:'Gerador', cor:'#f59e0b', emoji:'⚡',
+    plano:[
+      {id:'ge01', iv:250, n:'Troca de óleo e filtro', its:['Óleo 15W-40','Filtro de óleo']},
+      {id:'ge02', iv:500, n:'Inspeção elétrica e banco de baterias', its:['Terminal elétrico','Bateria selada']},
+    ]
+  },
+  QGBT:{
+    nome:'QGBT / Painel principal', cor:'#3b82f6', emoji:'🧰',
+    plano:[
+      {id:'qb01', iv:180, n:'Inspeção termográfica e reaperto', its:['Abraçadeira','Terminal elétrico']},
+      {id:'qb02', iv:720, n:'Limpeza técnica e revisão de barramentos', its:['Limpador dielétrico']},
+    ]
+  },
+  NOBREAK:{
+    nome:'Nobreak / UPS', cor:'#14b8a6', emoji:'🔋',
+    plano:[
+      {id:'nb01', iv:180, n:'Teste de autonomia e alarmes', its:['Bateria selada']},
+      {id:'nb02', iv:720, n:'Inspeção eletrônica e ventilação', its:['Fusível']},
+    ]
+  },
+  ILUMINACAO:{
+    nome:'Iluminação / refletor', cor:'#22c55e', emoji:'💡',
+    plano:[
+      {id:'il01', iv:120, n:'Inspeção de luminárias e circuito', its:['Lâmpada LED','Reator/driver']},
+    ]
+  },
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// CUSTOMIZAR — INVENTÁRIO INICIAL
+// ══════════════════════════════════════════════════════════════════════
+// Formato: {id, tipo (chave de TIPOS), nome, pat, obs, ativo}
+const UNIDADES_DEFAULT = [
+  // Geradores
+  {id:'u01', tipo:'GERADOR', nome:'GER-01', pat:'', obs:'Gerador principal do CMASM — Sala de máquinas', ativo:true},
+  {id:'u02', tipo:'GERADOR', nome:'GER-02', pat:'', obs:'Gerador emergencial — Bloco Operacional', ativo:true},
+  {id:'u03', tipo:'GERADOR', nome:'GER-03', pat:'', obs:'Gerador do Paiol de Munição', ativo:true},
+  // Painéis QGBT
+  {id:'u04', tipo:'QGBT', nome:'QGBT-01', pat:'', obs:'Painel geral de baixa tensão — Subestação principal', ativo:true},
+  {id:'u05', tipo:'QGBT', nome:'QGBT-02', pat:'', obs:'Painel de distribuição — Bloco Administrativo', ativo:true},
+  {id:'u06', tipo:'QGBT', nome:'QGBT-03', pat:'', obs:'Painel de força — Galpão de manutenção', ativo:true},
+  {id:'u07', tipo:'QGBT', nome:'QGBT-04', pat:'', obs:'Painel de emergência — Centro de controle', ativo:true},
+  // Nobreaks / UPS
+  {id:'u08', tipo:'NOBREAK', nome:'UPS-01', pat:'', obs:'Nobreak sala de servidores — 10 kVA', ativo:true},
+  {id:'u09', tipo:'NOBREAK', nome:'UPS-02', pat:'', obs:'Nobreak central de monitoramento — 3 kVA', ativo:true},
+  {id:'u10', tipo:'NOBREAK', nome:'UPS-03', pat:'', obs:'Nobreak sala de operações — 6 kVA', ativo:true},
+  // Iluminação especial
+  {id:'u11', tipo:'ILUMINACAO', nome:'ILU-01', pat:'', obs:'Refletores exteriores — pátio principal', ativo:true},
+  {id:'u12', tipo:'ILUMINACAO', nome:'ILU-02', pat:'', obs:'Iluminação de emergência — corredores', ativo:true},
+  {id:'u13', tipo:'ILUMINACAO', nome:'ILU-03', pat:'', obs:'Torre de iluminação — área do cais', ativo:true},
+];
+
+const HISTORICO_DEFAULT = {};
+
+// ══════════════════════════════════════════════════════════════════════
+// CUSTOMIZAR — PEÇAS E INSUMOS
+// ══════════════════════════════════════════════════════════════════════
+// Formato: {id, d (descrição), un (unidade), cat (categoria), pr (preço unitário)}
+const PECAS_DEFAULT = [
+  {id:'pe01', d:'Óleo 15W-40', un:'L', cat:'lubrificante', pr:42.00},
+  {id:'pe02', d:'Filtro de óleo', un:'UN', cat:'mecanico', pr:28.00},
+  {id:'pe03', d:'Terminal elétrico', un:'UN', cat:'eletric', pr:2.50},
+  {id:'pe04', d:'Bateria selada', un:'UN', cat:'eletric', pr:380.00},
+  {id:'pe05', d:'Fusível', un:'UN', cat:'eletric', pr:8.00},
+  {id:'pe06', d:'Lâmpada LED', un:'UN', cat:'iluminacao', pr:18.00},
+  {id:'pe07', d:'Reator/driver', un:'UN', cat:'eletric', pr:35.00},
+  {id:'pe08', d:'Limpador dielétrico', un:'UN', cat:'quimico', pr:26.00},
+];
+
+// ══════════════════════════════════════════════════════════════════════
+// CUSTOMIZAR — CHAVES DE ARMAZENAMENTO LOCAL
+// Use chaves únicas para cada módulo (evita conflito entre módulos)
+// ══════════════════════════════════════════════════════════════════════
+const SK='eletrica_state';
+const SE='eletrica_est';
+
+// ══════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════
+function uid(){return 'u'+Date.now()+'_'+Math.random().toString(36).slice(2,7);}
+
+function loadState(){
+  try{
+    const r=localStorage.getItem(SK);
+    if(r){
+      const s=JSON.parse(r);
+      s.unidades.forEach(u=>{if(!s.hist[u.id])s.hist[u.id]={hor:0,regs:[],manut:[],ulm:{}};});
+      return s;
+    }
+  }catch(_){}
+  const hist={};
+  UNIDADES_DEFAULT.forEach(u=>{hist[u.id]={hor:0,regs:[],manut:[],ulm:{}};});
+  return{unidades:[...UNIDADES_DEFAULT],hist};
+}
+
+function loadEst(){
+  try{
+    const r=localStorage.getItem(SE);
+    if(r){
+      const saved=JSON.parse(r);
+      const merged=PECAS_DEFAULT.map(p=>({...p,qt:saved[p.id]?.qt||0,movs:saved[p.id]?.movs||[]}));
+      Object.keys(saved).forEach(k=>{
+        if(k.startsWith('_u_')&&!merged.find(m=>m.id===k)){
+          merged.push(saved[k]);
+        }
+      });
+      return merged;
+    }
+  }catch(_){}
+  return PECAS_DEFAULT.map(p=>({...p,qt:0,movs:[]}));
+}
+
+function saveState(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(_){}}
+function saveEst(){
+  const obj={};
+  EST.forEach(p=>{obj[p.id]={qt:p.qt,movs:p.movs.slice(-30)};if(p._user)obj[p.id]={...p,movs:p.movs.slice(-30)};});
+  try{localStorage.setItem(SE,JSON.stringify(obj));}catch(_){}
+}
+
+let S=loadState();
+let EST=loadEst();
+
+let CUR={page:'dash',uid:null,subtab:'status',editManutId:null,editRegId:null,editPecaId:null,editUnitId:null};
+
+// ══════════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════════
+const fH=h=>`${Number(h).toFixed(1)} h`;
+const fR=v=>`R$ ${Number(v).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.')}`;
+const fD=iso=>{if(!iso)return'–';return new Date(iso).toLocaleDateString('pt-BR');};
+const fDT=iso=>{if(!iso)return'–';return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});};
+const today=()=>new Date().toISOString().slice(0,10);
+const H=id=>S.hist[id]||{hor:0,regs:[],manut:[],ulm:{}};
+const T=tid=>TIPOS[tid];
+
+const SL={vencida:'VENCIDA',urgente:'URGENTE',proxima:'PRÓXIMA',ok:'EM DIA'};
+const SC={vencida:'var(--rd)',urgente:'var(--am)',proxima:'var(--bl)',ok:'var(--gn)'};
+const SC2={vencida:'tv',urgente:'tu',proxima:'tp',ok:'to'};
+
+function calcProx(uid){
+  const u=S.unidades.find(x=>x.id===uid); if(!u)return[];
+  const t=T(u.tipo); if(!t)return[];
+  const h=H(uid);
+  return t.plano.map(m=>{
+    const ult=h.ulm[m.id]||0;
+    const prox2=ult===0?m.iv:(Math.floor(ult/m.iv)+1)*m.iv;
+    const falt=prox2-h.hor;
+    const pct=Math.min(100,((h.hor-ult)/m.iv)*100);
+    const st=falt<=0?'vencida':falt<=m.iv*.15?'urgente':falt<=m.iv*.30?'proxima':'ok';
+    return{...m,ult,prox:prox2,falt,pct,st};
+  });
+}
+
+function badge(st,txt){return`<span class="tag ${SC2[st]}">${txt||SL[st]}</span>`;}
+
+function allAlerts(){
+  const a=[];
+  S.unidades.filter(u=>u.ativo).forEach(u=>{
+    calcProx(u.id).forEach(p=>{if(p.st!=='ok')a.push({u,p});});
+  });
+  return a.sort((a,b)=>a.p.falt-b.p.falt);
+}
+
+function byTipo(){
+  const m={};
+  S.unidades.filter(u=>u.ativo).forEach(u=>{
+    if(!m[u.tipo])m[u.tipo]=[];
+    m[u.tipo].push(u);
+  });
+  return m;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════════════════════════════
+function buildSidebar(){
+  document.getElementById('sb-date').textContent='Hoje: '+new Date().toLocaleDateString('pt-BR');
+  const alerts=allAlerts();
+  const venc=alerts.filter(a=>a.p.st==='vencida').length;
+
+  const navItems=[
+    {page:'dash',   ico:'📊', lbl:'Dashboard',  badge:venc>0?venc:0},
+    {page:'frota',  ico:'📋', lbl:'Equipamentos', badge:0},
+    {page:'estoque',ico:'📦', lbl:'Estoque',     badge:EST.filter(p=>p.qt===0).length},
+    {page:'rel',    ico:'📄', lbl:'Relatório',   badge:0},
+  ];
+
+  const bt=byTipo();
+  let html=`<div class="sb-lbl">Menu</div>`;
+  navItems.forEach(n=>{
+    const isA=CUR.page===n.page&&!CUR.uid;
+    const bdg=n.badge>0?`<span class="sb-badge${n.page==='estoque'?' warn':''}">${n.badge}</span>`:'';
+    html+=`<button class="sb-item${isA?' active':''}" onclick="nav('${n.page}')">
+      <span style="font-size:13px">${n.ico}</span>
+      <span class="lbl">${n.lbl}</span>${bdg}
+    </button>`;
+  });
+
+  Object.keys(TIPOS).forEach(tid=>{
+    const us=bt[tid]||[];
+    if(!us.length)return;
+    const t=TIPOS[tid];
+    html+=`<div class="sb-lbl">${t.emoji} ${t.nome.split(' ').slice(0,2).join(' ')}
+      <button onclick="abrirNovaUnit('${tid}')">+ nova</button>
+    </div>`;
+    us.forEach(u=>{
+      const h=H(u.id);
+      const vc=calcProx(u.id).filter(p=>p.st==='vencida').length;
+      const ur=calcProx(u.id).filter(p=>p.st==='urgente').length;
+      const isA=CUR.uid===u.id;
+      html+=`<button class="sb-item${isA?' active':''}" onclick="navUnit('${u.id}')">
+        <div class="dot" style="background:${t.cor}"></div>
+        <span class="lbl">${u.nome}</span>
+        <span class="tag2 mono">${h.hor.toFixed(0)}h</span>
+        ${vc>0?`<span class="sb-badge">${vc}</span>`:ur>0?`<span class="sb-badge warn">${ur}</span>`:''}
+      </button>`;
+    });
+  });
+
+  document.getElementById('sb-nav').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════════════════
+function nav(page){CUR={...CUR,page,uid:null};render();}
+function navUnit(uid){CUR={...CUR,page:'unit',uid,subtab:'status'};render();}
+function setTab(t){CUR.subtab=t;renderUnit();}
+
+function render(){
+  buildSidebar();
+  const c=document.getElementById('content');
+  c.classList.add('fade');
+  setTimeout(()=>c.classList.remove('fade'),300);
+  if(CUR.uid)renderUnit();
+  else if(CUR.page==='dash')renderDash();
+  else if(CUR.page==='frota')renderFrota();
+  else if(CUR.page==='estoque')renderEstoque();
+  else if(CUR.page==='rel')renderRel();
+}
+
+function tbar(t,s,pills=''){
+  return`<div class="tbar"><a class="tb-home" href="cmasm-erp.html">⇚ xCMASM</a><div><div class="tbar-t">${t}</div>${s?`<div class="tbar-s">${s}</div>`:''}</div><div class="sp"></div>${pills}</div>`;
+}
+function kpi(l,v,c){return`<div class="card card-sm" style="border-left:4px solid ${c}"><div class="ct">${l}</div><div class="kpi" style="color:${c}">${v}</div></div>`;}
+
+// ══════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════════════
+function renderDash(){
+  const alerts=allAlerts();
+  const uns=S.unidades.filter(u=>u.ativo);
+  const tH=uns.reduce((s,u)=>s+H(u.id).hor,0);
+  const tM=uns.reduce((s,u)=>s+H(u.id).manut.length,0);
+  const tC=uns.reduce((s,u)=>s+H(u.id).regs.reduce((r,x)=>r+(x.c||0),0),0);
+  const recent=uns.flatMap(u=>H(u.id).regs.map(r=>({...r,un:u,tid:u.tipo})))
+    .sort((a,b)=>new Date(b.dt)-new Date(a.dt)).slice(0,8);
+
+  const nomeModulo=document.querySelector('.sb-sub')?.textContent||'Módulo';
+
+  document.getElementById('content').innerHTML=tbar('Dashboard',
+    `${nomeModulo} · ${uns.length} unidades ativas · ${Object.keys(TIPOS).length} tipos de equipamento`,
+    `<span class="pill po">${uns.length} unidades</span>
+     <span class="pill pr" style="margin-left:4px">${alerts.filter(a=>a.p.st==='vencida').length} vencidas</span>`)+`
+  <div id="content" style="padding:18px">
+  <div class="grid g4" style="margin-bottom:16px">
+    ${kpi('Horas frota total',fH(tH),'var(--tl)')}
+    ${kpi('Manutenções',tM,'var(--gn)')}
+    ${kpi('Alertas ativos',alerts.length,'var(--rd)')}
+    ${kpi('Peças zeradas',EST.filter(p=>p.qt===0).length,'var(--am)')}
+  </div>
+  <div class="grid g2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="ct">Status por tipo de equipamento</div>
+      ${Object.keys(TIPOS).length===0
+        ?`<div class="al ali">Configure os tipos em <strong>TIPOS</strong> no script para ver o status aqui.</div>`
+        :Object.keys(TIPOS).map(tid=>{
+          const t=TIPOS[tid];
+          const us=S.unidades.filter(u=>u.ativo&&u.tipo===tid);
+          if(!us.length)return'';
+          const vc=us.reduce((s,u)=>s+calcProx(u.id).filter(p=>p.st==='vencida').length,0);
+          const ur=us.reduce((s,u)=>s+calcProx(u.id).filter(p=>p.st==='urgente').length,0);
+          const hT=us.reduce((s,u)=>s+H(u.id).hor,0);
+          const st=vc>0?'vencida':ur>0?'urgente':'ok';
+          return`<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--bg3);border-radius:7px;margin-bottom:6px;border:1px solid var(--bd);cursor:pointer" onclick="nav('frota')">
+            <div style="width:9px;height:9px;border-radius:50%;background:${t.cor};flex-shrink:0"></div>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:600;color:var(--tx)">${t.emoji} ${t.nome} <span class="mu" style="font-size:10px">(${us.length} un.)</span></div>
+              <div style="font-size:10px;color:var(--tx3);font-family:var(--mono)">${fH(hT)} frota</div>
+            </div>
+            ${badge(st)}${(vc+ur)>0?`<span style="font-size:11px;color:${SC[st]};font-weight:700">${vc+ur}</span>`:''}
+          </div>`;
+        }).join('')}
+    </div>
+    <div class="card">
+      <div class="ct">Alertas de manutenção</div>
+      ${alerts.length===0
+        ?`<div style="text-align:center;padding:18px 0;color:var(--gn)"><div style="font-size:26px;margin-bottom:5px">✓</div><div style="font-size:12px">Tudo em dia!</div></div>`
+        :alerts.slice(0,9).map(a=>{
+          const t=T(a.u.tipo);
+          return`<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:${a.p.st==='vencida'?'var(--rd-bg)':'var(--am-bg)'};border-radius:6px;border-left:3px solid ${SC[a.p.st]};margin-bottom:5px;cursor:pointer" onclick="navUnit('${a.u.id}')">
+            <div style="width:6px;height:6px;border-radius:50%;background:${t.cor};flex-shrink:0"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.u.nome} – ${a.p.n}</div>
+              <div style="font-size:10px;color:var(--tx3);font-family:var(--mono)">${a.p.st==='vencida'?`Vencida há ${Math.abs(a.p.falt).toFixed(0)} h`:`Faltam ${a.p.falt.toFixed(0)} h`}</div>
+            </div>
+            ${badge(a.p.st)}
+          </div>`;
+        }).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Últimos registros de uso</div>
+    ${recent.length===0?`<p class="mu" style="font-size:12px">Nenhum registro ainda. Selecione uma unidade e registre o primeiro uso.</p>`:`
+    <div class="tw"><table>
+      <thead><tr>
+        <th>Unidade</th><th>Data/Hora</th><th>Operador</th>
+        <th class="nr">Horas</th><th class="nr">Consumo</th><th>Obs.</th>
+      </tr></thead><tbody>
+      ${recent.map(r=>{
+        const t=T(r.tid);
+        return`<tr style="cursor:pointer" onclick="navUnit('${r.un.id}')">
+          <td><div style="display:flex;align-items:center;gap:6px"><div style="width:7px;height:7px;border-radius:50%;background:${t.cor}"></div><span style="font-weight:600">${r.un.nome}</span></div></td>
+          <td class="mu">${fDT(r.dt)}</td><td>${r.op}</td>
+          <td class="nr bl bo mono">${fH(r.h)}</td>
+          <td class="nr am mono">${r.c||0}</td>
+          <td class="mu" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.obs||'–'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// FROTA / EQUIPAMENTOS
+// ══════════════════════════════════════════════════════════════════════
+function renderFrota(){
+  const uns=S.unidades.filter(u=>u.ativo);
+  document.getElementById('content').innerHTML=tbar('Equipamentos',
+    `${uns.length} unidades ativas em ${Object.keys(TIPOS).length} tipos de equipamento`)+`
+  <div style="padding:18px">
+  ${Object.keys(TIPOS).length===0
+    ?`<div class="card"><div class="al ali">Configure os tipos em <strong>TIPOS</strong> no script para ver os equipamentos aqui.</div></div>`
+    :Object.keys(TIPOS).map(tid=>{
+      const t=TIPOS[tid];
+      const us=S.unidades.filter(u=>u.ativo&&u.tipo===tid);
+      if(!us.length)return'';
+      return`<div class="st">${t.emoji} ${t.nome} <span class="mu" style="font-size:11px;font-family:var(--mono)">${us.length} unidade(s)</span></div>
+      <div class="card" style="margin-bottom:18px"><div class="tw"><table>
+        <thead><tr>
+          <th>Unidade</th><th>Patrimônio</th><th class="nr">Horímetro</th>
+          <th class="nr">Registros</th><th class="nr">Manut.</th><th class="nr">Consumo</th>
+          <th class="ct2">Vencidas</th><th class="ct2">Urgentes</th>
+          <th>Últ. manutenção</th><th></th>
+        </tr></thead><tbody>
+        ${us.map(u=>{
+          const h=H(u.id);
+          const pr=calcProx(u.id);
+          const vc=pr.filter(p=>p.st==='vencida').length;
+          const ur=pr.filter(p=>p.st==='urgente').length;
+          const cT=h.regs.reduce((s,r)=>s+(r.c||0),0);
+          const ult=h.manut.length?[...h.manut].sort((a,b)=>new Date(b.data)-new Date(a.data))[0]:null;
+          return`<tr>
+            <td style="font-weight:600;color:var(--tx)">${u.nome}${u.pat?`<span class="mu" style="font-size:10px;margin-left:6px">#${u.pat}</span>`:''}</td>
+            <td class="mu">${u.pat||'—'}</td>
+            <td class="nr bl mono bo">${fH(h.hor)}</td>
+            <td class="nr mu">${h.regs.length}</td>
+            <td class="nr mu">${h.manut.length}</td>
+            <td class="nr am">${cT.toFixed(1)}</td>
+            <td class="ct2">${vc>0?badge('vencida',vc):'–'}</td>
+            <td class="ct2">${ur>0?badge('urgente',ur):'–'}</td>
+            <td class="mu" style="font-size:10px">${ult?`${fD(ult.data)} · ${fH(ult.h)}`:'Nunca'}</td>
+            <td><button class="btn bg2 bsm" onclick="navUnit('${u.id}')">Ver →</button></td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table></div></div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// UNIDADE INDIVIDUAL
+// ══════════════════════════════════════════════════════════════════════
+function renderUnit(){
+  if(!CUR.uid)return;
+  const u=S.unidades.find(x=>x.id===CUR.uid);
+  if(!u)return;
+  const t=T(u.tipo);
+  const h=H(u.id);
+  const pr=calcProx(u.id);
+  const vc=pr.filter(p=>p.st==='vencida').length;
+  const ur=pr.filter(p=>p.st==='urgente').length;
+
+  const tabs=[['status','📊 Status'],['uso','⏱ Registrar Uso'],['manut','🔧 Manutenção'],['hist','📋 Histórico'],['comb','📈 Consumo']];
+
+  document.getElementById('content').innerHTML=tbar(
+    `${t.emoji} ${u.nome}`,
+    `${t.nome} · ${u.pat?'Pat. '+u.pat+' · ':''}${fH(h.hor)} no horímetro`,
+    `${vc>0?`<span class="pill pr" style="margin-right:4px">${vc} vencida${vc>1?'s':''}</span>`:''}
+     ${ur>0?`<span class="pill pa" style="margin-right:4px">${ur} urgente${ur>1?'s':''}</span>`:''}
+     <button class="btn bg2 bsm" onclick="abrirEditUnit('${u.id}')" style="margin-left:4px">✎ Editar</button>`)+`
+  <div style="padding:18px">
+  <div style="display:flex;gap:3px;margin-bottom:16px;background:var(--bg2);padding:4px;border-radius:8px;width:fit-content;border:1px solid var(--bd)">
+    ${tabs.map(([id,lbl])=>`<button onclick="setTab('${id}')" style="display:flex;align-items:center;gap:4px;padding:5px 11px;border-radius:6px;border:none;cursor:pointer;font-family:var(--font);font-weight:600;font-size:11px;transition:all .12s;background:${CUR.subtab===id?'var(--or)':'transparent'};color:${CUR.subtab===id?'#fff':'var(--tx2)'}">${lbl}</button>`).join('')}
+  </div>
+  <div id="unit-sub"></div>
+  </div>`;
+
+  renderUnitSub(u,h,pr,t);
+}
+
+function renderUnitSub(u,h,pr,t){
+  const d=document.getElementById('unit-sub');if(!d)return;
+  const tab=CUR.subtab;
+  if(tab==='status') d.innerHTML=subStatus(u,h,pr,t);
+  else if(tab==='uso') d.innerHTML=subUso(u,h,pr);
+  else if(tab==='manut') d.innerHTML=subManut(u,h,pr,t);
+  else if(tab==='hist') d.innerHTML=subHist(u,h);
+  else if(tab==='comb') d.innerHTML=subComb(u,h);
+}
+
+function subStatus(u,h,pr,t){
+  const cT=h.regs.reduce((s,r)=>s+(r.c||0),0);
+  return`<div class="grid g2">
+  <div class="card">
+    <div class="ct">Plano de Manutenção Preventiva</div>
+    ${pr.length===0?`<div class="al ali">Nenhum plano configurado para este tipo de equipamento.</div>`
+      :pr.map(p=>`
+    <div style="padding:9px 11px;border-radius:7px;border:1px solid ${SC[p.st]}22;background:${p.st==='vencida'?'var(--rd-bg)':p.st==='urgente'?'var(--am-bg)':'var(--bg3)'};margin-bottom:7px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:600;color:var(--tx)">${p.n}</span>
+        ${badge(p.st)}
+      </div>
+      <div class="bt"><div class="bf" style="width:${Math.min(100,p.pct)}%;background:${SC[p.st]}"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--tx3);font-family:var(--mono)">
+        <span>Última: ${p.ult>0?`${p.ult.toFixed(0)} h`:'Nunca'} · A cada ${p.iv} h</span>
+        <span style="color:${SC[p.st]};font-weight:600">${p.st==='vencida'?`⚠ Vencida há ${Math.abs(p.falt).toFixed(0)} h`:`Próx. ${p.prox.toFixed(0)} h (faltam ${p.falt.toFixed(0)} h)`}</span>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div style="display:flex;flex-direction:column;gap:11px">
+    ${kpi('Horímetro total',fH(h.hor),'var(--tl)')}
+    ${kpi('Manutenções',h.manut.length,'var(--gn)')}
+    ${kpi('Registros de uso',h.regs.length,'var(--bl)')}
+    ${kpi('Consumo total',cT.toFixed(1)+' un.','var(--am)')}
+    <div class="card">
+      <div class="ct">Últimas manutenções</div>
+      ${h.manut.length===0?'<p class="mu" style="font-size:11px">Nenhuma registrada.</p>'
+        :[...h.manut].reverse().slice(0,3).map(m=>`
+        <div style="padding:5px 0;border-bottom:1px solid var(--bd);font-size:11px">
+          <div style="font-weight:600;color:var(--tx)">${fD(m.data)} – ${m.resp}</div>
+          <div class="mu" style="margin-top:1px">${m.itens.slice(0,3).join(', ')}${m.itens.length>3?'…':''}</div>
+        </div>`).join('')}
+    </div>
+    ${u.obs?`<div class="al ali">📝 ${u.obs}</div>`:''}
+  </div>
+  </div>`;
+}
+
+function subUso(u,h,pr){
+  const r=[...h.regs].reverse().slice(0,6);
+  return`<div style="max-width:520px">
+  <div class="card" style="margin-bottom:13px">
+    <div class="ct">Registrar Saída para Uso</div>
+    <div class="fg">
+      <div class="f"><label>Data *</label><input class="inp" id="uu-data" type="date" value="${today()}"></div>
+      <div class="f"><label>Horas trabalhadas *</label><input class="inp" id="uu-h" type="number" min="0.1" step="0.1" placeholder="0.0"></div>
+    </div>
+    <div class="fg">
+      <div class="f"><label>Consumo (un.)</label><input class="inp" id="uu-c" type="number" min="0" step="0.5" placeholder="0.0"></div>
+      <div class="f"><label>Operador *</label>
+        <select class="sel" id="uu-op"><option value="">Selecionar…</option>
+          <!-- CUSTOMIZAR: operadores -->
+          <option>[Operador 1]</option>
+          <option>[Operador 2]</option>
+          <option>[Outro]</option>
+        </select>
+      </div>
+    </div>
+    <div class="f"><label>Observações</label><textarea class="txa" id="uu-obs" placeholder="Condições de operação, ocorrências…"></textarea></div>
+    <div class="ckl" style="margin-bottom:11px">
+      <!-- CUSTOMIZAR: checklist pré-uso para este equipamento -->
+      <div style="font-size:10px;font-weight:600;color:var(--tx3);margin-bottom:5px">✅ Checklist pré-uso</div>
+      <label class="ck"><input type="checkbox" id="ck1"> [Item de verificação 1]</label>
+      <label class="ck"><input type="checkbox" id="ck2"> [Item de verificação 2]</label>
+      <label class="ck"><input type="checkbox" id="ck3"> [Item de verificação 3]</label>
+    </div>
+    ${pr.filter(p=>p.st==='vencida'||p.st==='urgente').length>0
+      ?`<div class="al alw" style="margin-bottom:11px">⚠️ Esta unidade tem manutenções ${pr.filter(p=>p.st==='vencida').length>0?'VENCIDAS':'URGENTES'}. Verifique antes de operar.</div>`:''}
+    <button class="btn bp" onclick="regUso('${u.id}')">➕ Registrar Uso</button>
+  </div>
+  <div class="card">
+    <div class="ct">Registros Recentes</div>
+    ${r.length===0?'<p class="mu" style="font-size:11px">Nenhum registro.</p>'
+      :r.map(rg=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd);font-size:12px">
+        <div><span style="font-weight:600;color:var(--tx)">${fD(rg.dt)}</span><span class="mu" style="margin-left:7px">${rg.op}</span></div>
+        <div style="display:flex;gap:13px;align-items:center">
+          <span class="bl bo mono">${fH(rg.h)}</span>
+          <span class="am mono">${rg.c||0}</span>
+          <button class="btn bg2 bsm" style="padding:2px 7px" onclick="abrirEditUso('${u.id}','${rg.id}')">✎</button>
+        </div>
+      </div>`).join('')}
+  </div>
+  </div>`;
+}
+
+function subManut(u,h,pr,t){
+  return`<div class="grid g2">
+  <div class="card">
+    <div class="ct">Registrar Manutenção Executada</div>
+    <div class="ali" style="margin-bottom:11px">Horímetro atual: <strong style="color:var(--bl)">${fH(h.hor)}</strong> — Marque os serviços realizados</div>
+    ${pr.length===0?`<div class="al ali">Nenhum plano configurado para este tipo de equipamento.</div>`
+      :pr.map(p=>`<label id="ml-${p.id}" style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:7px;cursor:pointer;border:2px solid var(--bd);background:var(--bg3);margin-bottom:6px;transition:all .1s">
+      <input type="checkbox" id="mc-${p.id}" onchange="toggleMC('${p.id}')" style="width:14px;height:14px;accent-color:var(--or)">
+      <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--tx)">${p.n}</div><div style="font-size:10px;color:var(--tx3)">A cada ${p.iv} h</div></div>
+      ${badge(p.st)}
+    </label>`).join('')}
+    <div class="fg" style="margin-top:10px">
+      <div class="f"><label>Responsável *</label>
+        <select class="sel" id="um-resp"><option value="">Selecionar…</option>
+          <!-- CUSTOMIZAR: responsáveis técnicos -->
+          <option>[Técnico 1]</option>
+          <option>[Técnico 2]</option>
+        </select>
+      </div>
+      <div class="f"><label>Data</label><input class="inp" type="date" id="um-data" value="${today()}"></div>
+    </div>
+    <div class="f"><label>Observações / materiais utilizados</label><textarea class="txa" id="um-obs" placeholder="Peças substituídas, observações técnicas…"></textarea></div>
+    <button class="btn bs" id="btn-reg-manut" onclick="regManut('${u.id}')">✓ Registrar Manutenção</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:11px">
+    <div class="card">
+      <div class="ct">📦 Materiais – urgentes / vencidos</div>
+      ${[...new Set(pr.filter(p=>p.st==='vencida'||p.st==='urgente').flatMap(p=>p.its))].length===0
+        ?'<p class="mu" style="font-size:11px">Nenhum urgente.</p>'
+        :[...new Set(pr.filter(p=>p.st==='vencida'||p.st==='urgente').flatMap(p=>p.its))].map(i=>`
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px">
+          <span class="or">▸</span>${i}
+        </div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="ct">🔜 Próximas manutenções</div>
+      ${pr.filter(p=>p.st!=='vencida').slice(0,5).map(p=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd);font-size:11px">
+        <span style="font-weight:500;color:var(--tx)">${p.n}</span>
+        ${badge(p.st,`${p.prox.toFixed(0)} h`)}
+      </div>`).join('')}
+    </div>
+  </div>
+  </div>`;
+}
+
+function subHist(u,h){
+  const manut=[...h.manut].reverse();
+  return`<div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+      <div class="ct" style="margin-bottom:0">Histórico Completo de Manutenções</div>
+    </div>
+    ${manut.length===0?'<p class="mu">Nenhuma manutenção registrada.</p>':`
+    <div class="tw"><table>
+      <thead><tr>
+        <th>Data</th><th class="nr">Horímetro</th><th>Responsável</th>
+        <th>Serviços realizados</th><th>Observações</th><th></th>
+      </tr></thead><tbody>
+      ${manut.map(m=>`<tr>
+        <td style="font-weight:600;color:var(--tx)">${fD(m.data)}</td>
+        <td class="nr bl mono">${fH(m.h)}</td>
+        <td>${m.resp}</td>
+        <td>${m.itens.map(i=>`<span class="tag tn" style="margin:1px">${i}</span>`).join(' ')}</td>
+        <td class="mu" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.obs||'–'}</td>
+        <td><button class="btn bg2 bsm" style="padding:2px 7px" onclick="abrirEditManut('${u.id}','${m.id}')">✎</button></td>
+      </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>`;
+}
+
+function subComb(u,h){
+  const regs=h.regs.filter(r=>r.c>0);
+  const tC=regs.reduce((s,r)=>s+r.c,0);
+  const tH=regs.reduce((s,r)=>s+r.h,0);
+  const byOp={};
+  regs.forEach(r=>{if(!byOp[r.op])byOp[r.op]={c:0,h:0};byOp[r.op].c+=r.c;byOp[r.op].h+=r.h;});
+  const ops=Object.entries(byOp).sort((a,b)=>b[1].c-a[1].c);
+  const mx=ops.length?Math.max(...ops.map(o=>o[1].c)):1;
+  return`<div class="grid g2">
+  <div class="card">
+    <div class="ct">Consumo por período</div>
+    <div class="grid g2" style="margin-bottom:15px">
+      ${kpi('Total consumido',tC.toFixed(1)+' un.','var(--am)')}
+      ${kpi('Média por hora',tH>0?(tC/tH).toFixed(2)+'/h':'–','var(--bl)')}
+    </div>
+    ${regs.length===0?'<p class="mu">Nenhum registro com consumo.</p>':`
+    <div class="tw"><table>
+      <thead><tr><th>Data</th><th>Operador</th><th class="nr">Horas</th><th class="nr">Consumo</th><th class="nr">/h</th></tr></thead>
+      <tbody>${[...regs].reverse().map(r=>`<tr>
+        <td>${fD(r.dt)}</td><td>${r.op}</td>
+        <td class="nr bl mono">${r.h}h</td>
+        <td class="nr am mono">${r.c}</td>
+        <td class="nr mu mono">${r.h>0?(r.c/r.h).toFixed(2):'–'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`}
+  </div>
+  <div class="card">
+    <div class="ct">Por Operador</div>
+    ${ops.length===0?'<p class="mu">Sem dados.</p>':ops.map(([op,d],i)=>`
+    <div class="br" style="margin-bottom:11px">
+      <div class="bl2">${op}</div>
+      <div class="bt2"><div class="bb" style="width:${Math.round(d.c/mx*100)}%;background:hsl(${40+i*32},74%,55%)"><span>${d.c.toFixed(1)}</span></div></div>
+      <div class="bv">${d.h.toFixed(1)}h</div>
+    </div>`).join('')}
+  </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// AÇÕES – USO
+// ══════════════════════════════════════════════════════════════════════
+function regUso(uid){
+  const h_in=parseFloat(document.getElementById('uu-h')?.value);
+  const op=document.getElementById('uu-op')?.value;
+  if(!h_in||h_in<=0){alert('Informe as horas trabalhadas.');return;}
+  if(!op){alert('Selecione o operador.');return;}
+  const h=H(uid);
+  const c=parseFloat(document.getElementById('uu-c')?.value)||0;
+  const obs=document.getElementById('uu-obs')?.value||'';
+  const data=document.getElementById('uu-data')?.value||today();
+  h.regs.push({id:'r'+Date.now(),dt:new Date().toISOString(),h:h_in,c,op,obs,data});
+  h.hor=Math.round((h.hor+h_in)*10)/10;
+  saveState();render();
+}
+
+function abrirEditUso(uid,rid){
+  CUR.editUnitId=uid;CUR.editRegId=rid;
+  const h=H(uid);
+  const r=h.regs.find(x=>x.id===rid);if(!r)return;
+  document.getElementById('eu-data').value=r.data||r.dt?.slice(0,10)||today();
+  document.getElementById('eu-h').value=r.h;
+  document.getElementById('eu-c').value=r.c||0;
+  document.getElementById('eu-op').value=r.op;
+  document.getElementById('eu-obs').value=r.obs||'';
+  om('m-edituso');
+}
+function salvarEditUso(){
+  const h=H(CUR.editUnitId);
+  const r=h.regs.find(x=>x.id===CUR.editRegId);if(!r)return;
+  const oldH=r.h;
+  r.data=document.getElementById('eu-data').value;
+  r.h=parseFloat(document.getElementById('eu-h').value)||r.h;
+  r.c=parseFloat(document.getElementById('eu-c').value)||0;
+  r.op=document.getElementById('eu-op').value||r.op;
+  r.obs=document.getElementById('eu-obs').value;
+  h.hor=Math.round((h.hor-oldH+r.h)*10)/10;
+  saveState();cm('m-edituso');render();
+}
+function removerUso(){
+  if(!confirm('Remover este registro de uso?'))return;
+  const h=H(CUR.editUnitId);
+  const r=h.regs.find(x=>x.id===CUR.editRegId);
+  if(r){h.hor=Math.round((h.hor-r.h)*10)/10;h.regs=h.regs.filter(x=>x.id!==CUR.editRegId);}
+  saveState();cm('m-edituso');render();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// AÇÕES – MANUTENÇÃO
+// ══════════════════════════════════════════════════════════════════════
+function toggleMC(pid){
+  const cb=document.getElementById('mc-'+pid);
+  const lb=document.getElementById('ml-'+pid);
+  if(cb&&lb){lb.style.borderColor=cb.checked?'var(--or)':'var(--bd)';lb.style.background=cb.checked?'var(--or-bg)':'var(--bg3)';}
+  const n=document.querySelectorAll('[id^="mc-"]:checked').length;
+  const btn=document.getElementById('btn-reg-manut');
+  if(btn)btn.textContent=`✓ Registrar${n>0?` (${n} item${n>1?'s':''})`:' Manutenção'}`;
+}
+function regManut(uid){
+  const resp=document.getElementById('um-resp')?.value;
+  const data=document.getElementById('um-data')?.value||today();
+  const obs=document.getElementById('um-obs')?.value||'';
+  const sels=[...document.querySelectorAll('[id^="mc-"]:checked')].map(c=>c.id.replace('mc-',''));
+  if(!sels.length){alert('Selecione ao menos um serviço.');return;}
+  if(!resp){alert('Informe o responsável.');return;}
+  const u=S.unidades.find(x=>x.id===uid);
+  const t=T(u.tipo);
+  const h=H(uid);
+  const ulm={...h.ulm};
+  sels.forEach(pid=>{ulm[pid]=h.hor;});
+  h.ulm=ulm;
+  const nomes=sels.map(pid=>t.plano.find(p=>p.id===pid)?.n).filter(Boolean);
+  h.manut.push({id:'m'+Date.now(),data,h:h.hor,resp,itens:nomes,obs});
+  saveState();render();
+}
+function abrirEditManut(uid,mid){
+  CUR.editUnitId=uid;CUR.editManutId=mid;
+  const h=H(uid);
+  const m=h.manut.find(x=>x.id===mid);if(!m)return;
+  document.getElementById('em-data').value=m.data;
+  document.getElementById('em-h').value=m.h;
+  document.getElementById('em-resp').value=m.resp;
+  document.getElementById('em-obs').value=m.obs||'';
+  om('m-editmanut');
+}
+function salvarEditManut(){
+  const h=H(CUR.editUnitId);
+  const m=h.manut.find(x=>x.id===CUR.editManutId);if(!m)return;
+  m.data=document.getElementById('em-data').value;
+  m.h=parseFloat(document.getElementById('em-h').value)||m.h;
+  m.resp=document.getElementById('em-resp').value||m.resp;
+  m.obs=document.getElementById('em-obs').value;
+  saveState();cm('m-editmanut');render();
+}
+function removerManut(){
+  if(!confirm('Remover este registro de manutenção?'))return;
+  const h=H(CUR.editUnitId);
+  h.manut=h.manut.filter(x=>x.id!==CUR.editManutId);
+  saveState();cm('m-editmanut');render();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// AÇÕES – UNIDADES
+// ══════════════════════════════════════════════════════════════════════
+function abrirNovaUnit(tid){
+  CUR.editUnitId=null;
+  document.getElementById('m-unit-t').textContent=`Nova unidade – ${TIPOS[tid]?.nome||''}`;
+  document.getElementById('u-nome').value='';
+  document.getElementById('u-pat').value='';
+  document.getElementById('u-hor').value='0';
+  document.getElementById('u-obs').value='';
+  document.getElementById('u-nome').dataset.tid=tid;
+  om('m-unit');
+}
+function abrirEditUnit(uid){
+  CUR.editUnitId=uid;
+  const u=S.unidades.find(x=>x.id===uid);if(!u)return;
+  document.getElementById('m-unit-t').textContent=`Editar – ${u.nome}`;
+  document.getElementById('u-nome').value=u.nome;
+  document.getElementById('u-pat').value=u.pat||'';
+  document.getElementById('u-hor').value=H(uid).hor;
+  document.getElementById('u-obs').value=u.obs||'';
+  document.getElementById('u-nome').dataset.tid=u.tipo;
+  om('m-unit');
+}
+function salvarUnit(){
+  const nome=document.getElementById('u-nome').value.trim();
+  if(!nome){alert('Informe a identificação.');return;}
+  const tid=document.getElementById('u-nome').dataset.tid;
+  const pat=document.getElementById('u-pat').value.trim();
+  const hor=parseFloat(document.getElementById('u-hor').value)||0;
+  const obs=document.getElementById('u-obs').value.trim();
+  if(CUR.editUnitId){
+    const u=S.unidades.find(x=>x.id===CUR.editUnitId);
+    if(u){u.nome=nome;u.pat=pat;u.obs=obs;H(CUR.editUnitId).hor=hor;}
+  }else{
+    const id=uid();
+    S.unidades.push({id,tipo:tid,nome,pat,obs,ativo:true});
+    S.hist[id]={hor,regs:[],manut:[],ulm:{}};
+  }
+  saveState();cm('m-unit');render();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// ESTOQUE
+// ══════════════════════════════════════════════════════════════════════
+function renderEstoque(){
+  const valT=EST.reduce((s,p)=>s+p.qt*p.pr,0);
+  document.getElementById('content').innerHTML=tbar('Estoque de Materiais',
+    'Controle de peças e insumos para toda a frota',
+    `<span class="pill pt">Valor: ${fR(valT)}</span>
+     <span class="pill pr" style="margin-left:4px">${EST.filter(p=>p.qt===0).length} zerados</span>
+     <button class="btn bp bsm" style="margin-left:8px" onclick="abrirNovaPeca()">+ Nova peça</button>`)+`
+  <div style="padding:18px">
+  <div class="grid g4" style="margin-bottom:16px">
+    ${kpi('Valor em estoque',fR(valT),'var(--tl)')}
+    ${kpi('Itens zerados',EST.filter(p=>p.qt===0).length,'var(--rd)')}
+    ${kpi('Itens com estoque',EST.filter(p=>p.qt>0).length,'var(--gn)')}
+    ${kpi('Total de itens',EST.length,'var(--bl)')}
+  </div>
+  ${EST.length===0
+    ?`<div class="card"><div class="al ali">Adicione peças e insumos em <strong>PECAS_DEFAULT</strong> no script ou clique em "+ Nova peça".</div></div>`
+    :`<div class="card"><div class="tw"><table>
+    <thead><tr>
+      <th>#</th><th>Descrição</th><th>Cat.</th><th class="nr">UN</th>
+      <th class="nr">Qtd.</th><th class="nr">Pr. Unit.</th><th class="nr">Valor est.</th>
+      <th class="ct2">Status</th><th class="ct2">Ajustar</th><th>Últ. mov.</th>
+    </tr></thead><tbody>
+    ${EST.map((p,i)=>{
+      const st=p.qt===0?'vencida':p.qt<=2?'urgente':'ok';
+      const sl={vencida:'ZERADO',urgente:'BAIXO',ok:'OK'};
+      const ult=p.movs.length?p.movs[p.movs.length-1]:null;
+      return`<tr style="background:${p.qt===0?'var(--rd-bg)':i%2===0?'var(--bg3)':'var(--bg2)'}">
+        <td class="mu mono">${i+1}</td>
+        <td style="font-weight:500;color:var(--tx)">${p.d}</td>
+        <td><span class="tag tn" style="font-size:8px">${p.cat}</span></td>
+        <td class="nr mu">${p.un}</td>
+        <td class="nr bo" style="font-size:14px;color:${p.qt===0?'var(--rd)':p.qt<=2?'var(--am)':'var(--tx)'}">${p.qt}</td>
+        <td class="nr mu mono">${fR(p.pr)}</td>
+        <td class="nr bo tl">${fR(p.qt*p.pr)}</td>
+        <td class="ct2">${badge(st,sl[st])}</td>
+        <td class="ct2">
+          <div style="display:flex;gap:3px;justify-content:center">
+            <button onclick="ajEst('${p.id}',-1)" style="width:23px;height:23px;border-radius:5px;border:1px solid var(--bd);background:var(--bg3);cursor:pointer;font-weight:700;color:var(--tx2);font-size:13px">–</button>
+            <button onclick="abrirAjEst('${p.id}')" style="width:23px;height:23px;border-radius:5px;border:1px solid var(--or);background:var(--or-bg);cursor:pointer;font-size:10px;color:var(--or)">✎</button>
+            <button onclick="ajEst('${p.id}',1)" style="width:23px;height:23px;border-radius:5px;border:1px solid var(--gn);background:var(--gn-bg);cursor:pointer;font-weight:700;color:var(--gn);font-size:13px">+</button>
+            <button onclick="abrirEditPeca('${p.id}')" style="width:23px;height:23px;border-radius:5px;border:1px solid var(--bl);background:var(--bl-bg);cursor:pointer;font-size:10px;color:var(--bl)">🗒</button>
+          </div>
+        </td>
+        <td class="mu" style="font-size:10px;font-family:var(--mono)">${ult?`${fD(ult.dt)} ${ult.delta>0?'+':''}${ult.delta} (${ult.motivo})`:'-'}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div></div>`}
+  </div>`;
+}
+
+function ajEst(pid,d){
+  const p=EST.find(x=>x.id===pid);if(!p)return;
+  p.qt=Math.max(0,p.qt+d);
+  p.movs.push({dt:new Date().toISOString(),delta:d,motivo:d>0?'compra':'uso',obs:''});
+  saveEst();renderEstoque();
+}
+function abrirAjEst(pid){
+  const p=EST.find(x=>x.id===pid);if(!p)return;
+  CUR.editPecaId=pid;
+  document.getElementById('est-nm').textContent=p.d;
+  document.getElementById('est-at').textContent=p.qt;
+  document.getElementById('est-nv').value=p.qt;
+  document.getElementById('est-ob').value='';
+  om('m-est');
+}
+function salvarEst(){
+  const p=EST.find(x=>x.id===CUR.editPecaId);if(!p)return;
+  const nova=parseInt(document.getElementById('est-nv').value)||0;
+  const motivo=document.getElementById('est-mo').value;
+  const obs=document.getElementById('est-ob').value;
+  p.movs.push({dt:new Date().toISOString(),delta:nova-p.qt,motivo,obs});
+  p.qt=Math.max(0,nova);
+  saveEst();cm('m-est');renderEstoque();
+}
+function abrirNovaPeca(){
+  CUR.editPecaId=null;
+  document.getElementById('m-peca-t').textContent='Nova Peça / Insumo';
+  document.getElementById('p-desc').value='';
+  document.getElementById('p-un').value='UN';
+  document.getElementById('p-cat').value='consumivel';
+  document.getElementById('p-pr').value='0';
+  document.getElementById('p-qt').value='0';
+  document.getElementById('p-ob').value='';
+  document.getElementById('btn-del-peca').style.display='none';
+  om('m-peca');
+}
+function abrirEditPeca(pid){
+  const p=EST.find(x=>x.id===pid);if(!p)return;
+  CUR.editPecaId=pid;
+  document.getElementById('m-peca-t').textContent='Editar Peça';
+  document.getElementById('p-desc').value=p.d;
+  document.getElementById('p-un').value=p.un;
+  document.getElementById('p-cat').value=p.cat;
+  document.getElementById('p-pr').value=p.pr;
+  document.getElementById('p-qt').value=p.qt;
+  document.getElementById('p-ob').value=p.obs||'';
+  document.getElementById('btn-del-peca').style.display='';
+  om('m-peca');
+}
+function salvarPeca(){
+  const d=document.getElementById('p-desc').value.trim();
+  if(!d){alert('Informe a descrição.');return;}
+  const un=document.getElementById('p-un').value;
+  const cat=document.getElementById('p-cat').value;
+  const pr=parseFloat(document.getElementById('p-pr').value)||0;
+  const qt=parseInt(document.getElementById('p-qt').value)||0;
+  const obs=document.getElementById('p-ob').value.trim();
+  if(CUR.editPecaId){
+    const p=EST.find(x=>x.id===CUR.editPecaId);
+    if(p){p.d=d;p.un=un;p.cat=cat;p.pr=pr;p.obs=obs;}
+  }else{
+    EST.push({id:'_u_'+Date.now(),d,un,cat,pr,qt,obs,movs:[],_user:true});
+  }
+  saveEst();cm('m-peca');renderEstoque();
+}
+function removerPeca(){
+  if(!confirm('Remover esta peça do estoque?'))return;
+  EST=EST.filter(p=>p.id!==CUR.editPecaId);
+  saveEst();cm('m-peca');renderEstoque();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// RELATÓRIO
+// ══════════════════════════════════════════════════════════════════════
+function renderRel(){
+  const uns=S.unidades.filter(u=>u.ativo);
+  const alerts=allAlerts().filter(a=>a.p.st==='vencida'||a.p.st==='urgente');
+  const tH=uns.reduce((s,u)=>s+H(u.id).hor,0);
+  const tM=uns.reduce((s,u)=>s+H(u.id).manut.length,0);
+  const tC=uns.reduce((s,u)=>s+H(u.id).regs.reduce((r,x)=>r+(x.c||0),0),0);
+  const byOp={};
+  uns.forEach(u=>H(u.id).regs.forEach(r=>{
+    if(!byOp[r.op])byOp[r.op]={h:0,n:0};byOp[r.op].h+=r.h;byOp[r.op].n++;
+  }));
+  const ops=Object.entries(byOp).sort((a,b)=>b[1].h-a[1].h);
+
+  document.getElementById('content').innerHTML=tbar('Relatório Gerencial',
+    'CMASM · Divisão de Manutenção Especializada',
+    `<button class="btn bg2 bsm" onclick="window.print()">🖨️ Imprimir</button>`)+`
+  <div style="padding:18px">
+  <div class="grid g4" style="margin-bottom:16px">
+    ${kpi('Unidades ativas',uns.length,'var(--tl)')}
+    ${kpi('Horas totais (frota)',fH(tH),'var(--bl)')}
+    ${kpi('Manutenções realizadas',tM,'var(--gn)')}
+    ${kpi('Consumo total',tC.toFixed(1)+' un.','var(--am)')}
+  </div>
+
+  <div class="st">Resumo por Unidade</div>
+  <div class="card" style="margin-bottom:16px"><div class="tw"><table>
+    <thead><tr>
+      <th>Unidade</th><th>Tipo</th><th class="nr">Horímetro</th>
+      <th class="nr">Registros</th><th class="nr">Manut.</th><th class="nr">Consumo</th>
+      <th class="ct2">Vencidas</th><th class="ct2">Urgentes</th><th class="ct2">Status</th>
+    </tr></thead><tbody>
+    ${uns.map((u,i)=>{
+      const t=T(u.tipo);const h=H(u.id);
+      const pr=calcProx(u.id);
+      const vc=pr.filter(p=>p.st==='vencida').length;
+      const ur=pr.filter(p=>p.st==='urgente').length;
+      const cT=h.regs.reduce((s,r)=>s+(r.c||0),0);
+      const st=vc>0?'vencida':ur>0?'urgente':'ok';
+      return`<tr style="background:${i%2===0?'var(--bg3)':'var(--bg2)'}">
+        <td style="font-weight:600;color:var(--tx)">${u.nome}${u.pat?`<span class="mu" style="font-size:9px;margin-left:5px">#${u.pat}</span>`:''}</td>
+        <td><span style="font-size:10px;color:${t.cor}">${t.emoji} ${t.nome.split(' ').slice(0,2).join(' ')}</span></td>
+        <td class="nr bl mono bo">${fH(h.hor)}</td>
+        <td class="nr mu">${h.regs.length}</td>
+        <td class="nr mu">${h.manut.length}</td>
+        <td class="nr am">${cT.toFixed(1)}</td>
+        <td class="ct2">${vc>0?badge('vencida',vc):'–'}</td>
+        <td class="ct2">${ur>0?badge('urgente',ur):'–'}</td>
+        <td class="ct2">${badge(st,st.toUpperCase())}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div></div>
+
+  ${ops.length?`<div class="st">Uso por Operador</div>
+  <div class="card" style="margin-bottom:16px"><div class="tw"><table>
+    <thead><tr><th>Operador</th><th class="nr">Registros</th><th class="nr">Horas totais</th><th>% da frota</th></tr></thead>
+    <tbody>${ops.map(([op,d])=>`<tr>
+      <td style="font-weight:600">${op}</td>
+      <td class="nr mu">${d.n}</td>
+      <td class="nr bl mono bo">${fH(d.h)}</td>
+      <td style="min-width:150px"><div style="display:flex;align-items:center;gap:7px">
+        <div class="bt" style="flex:1"><div class="bf" style="width:${tH>0?Math.round(d.h/tH*100):0}%;background:var(--bl)"></div></div>
+        <span class="mu mono" style="font-size:10px">${tH>0?((d.h/tH)*100).toFixed(1):0}%</span>
+      </div></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`:''}
+
+  <div class="st">Manutenções Pendentes</div>
+  <div class="card">
+  ${alerts.length===0
+    ?`<div style="text-align:center;padding:20px 0;color:var(--gn)"><div style="font-size:26px;margin-bottom:5px">✓</div><div style="font-size:12px;font-weight:600">Todas as manutenções estão em dia.</div></div>`
+    :`<div class="tw"><table>
+      <thead><tr>
+        <th>Unidade</th><th>Tipo</th><th>Manutenção</th>
+        <th class="nr">Intervalo</th><th class="nr">Última (h)</th><th class="nr">Deveria (h)</th>
+        <th class="ct2">Status</th><th>Materiais</th>
+      </tr></thead><tbody>
+      ${alerts.map(a=>{
+        const t=T(a.u.tipo);
+        return`<tr style="background:${a.p.st==='vencida'?'var(--rd-bg)':'var(--am-bg)'}">
+          <td style="font-weight:600;cursor:pointer;color:var(--tx)" onclick="navUnit('${a.u.id}')">${a.u.nome}</td>
+          <td style="font-size:10px;color:${t.cor}">${t.emoji} ${t.nome.split(' ').slice(0,2).join(' ')}</td>
+          <td style="font-weight:500">${a.p.n}</td>
+          <td class="nr mu">A cada ${a.p.iv} h</td>
+          <td class="nr">${a.p.ult>0?`${a.p.ult.toFixed(0)} h`:'Nunca'}</td>
+          <td class="nr rd bo">${a.p.prox.toFixed(0)} h</td>
+          <td class="ct2">${badge(a.p.st)}</td>
+          <td class="mu" style="font-size:10px">${a.p.its.join(', ')||'–'}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ══════════════════════════════════════════════════════════════════════
+function om(id){document.getElementById(id).classList.add('open');}
+function cm(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.mbg').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// TEMA
+// ══════════════════════════════════════════════════════════════════════
+function toggleTheme(){
+  const l=document.documentElement.classList.toggle('light');
+  document.getElementById('tic').textContent=l?'🌙':'☀️';
+  document.getElementById('tlb').textContent=l?'Modo escuro':'Modo claro';
+  try{localStorage.setItem('cmasm_theme',l?'light':'dark');}catch(_){}
+}
+(function(){
+  try{if(localStorage.getItem('cmasm_theme')==='light'){
+    document.documentElement.classList.add('light');
+    setTimeout(()=>{const ic=document.getElementById('tic'),lb=document.getElementById('tlb');if(ic)ic.textContent='🌙';if(lb)lb.textContent='Modo escuro';},80);
+  }}catch(_){}
+})();
+
+// ══════════════════════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ══════════════════════════════════════════════════════════════════════
+function exportData(){
+  const estObj={};
+  EST.forEach(p=>{estObj[p.id]={qt:p.qt,movs:p.movs.slice(-30)};if(p._user)estObj[p.id]={...p,movs:p.movs.slice(-30)};});
+  const payload=JSON.stringify({state:S,estoque:estObj,exportedAt:new Date().toISOString(),version:'v1'},null,2);
+  const blob=new Blob([payload],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='CMASM_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();URL.revokeObjectURL(url);
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const obj=JSON.parse(ev.target.result);
+      if(obj.state&&obj.state.unidades){
+        const dt=obj.exportedAt?new Date(obj.exportedAt).toLocaleString('pt-BR'):'data desconhecida';
+        if(confirm('Importar backup de '+dt+'?\nOs dados atuais serão substituídos.')){
+          localStorage.setItem(SK,JSON.stringify(obj.state));
+          if(obj.estoque)localStorage.setItem(SE,JSON.stringify(obj.estoque));
+          S=loadState();EST=loadEst();render();
+        }
+      }else{alert('Arquivo inválido ou de versão incompatível.');}
+    }catch(_){alert('Erro ao ler o arquivo JSON.');}
+  };
+  reader.readAsText(file);e.target.value='';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.venv_new/
+**/.venv/
+**/.venv_new/
+.pytest_cache/
+**/.pytest_cache/
+htmlcov/
+**/htmlcov/
+.coverage
+**/.coverage
+*.egg-info/
+**/*.egg-info/
+dist/
+build/
+coverage/
+**/coverage/
+**/dist/
+**/build/
+
+# Node
+node_modules/
+**/node_modules/
+.npm/
+**/.npm/
+dist/
+.nuxt/
+.output/
+**/.nuxt/
+**/.output/
+
+# Databases
+data/*.db
+database/*.db
+**/*.db
+*.sqlite
+*.sqlite3
+**/*.sqlite
+**/*.sqlite3
+
+# Environment
+.env
+!.env.example
+
+# Java / JDK
+oracleJdk-26/
+
+# IDE
+.vscode/settings.json
+.idea/
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Test artifacts
+snapshots/
+.playwright/
+.playwright-mcp/
+htmlcov/
+.coverage
+**/snapshots/
+**/.playwright/
+**/.playwright-mcp/
+
+# Build artifacts
+*.tar.gz
+*.zip
+*.class
+*.war
+target/
+**/target/
+
+# Repository-local publication exclusions
+xPaiol/
+.old/
+.delete/
+**/.old/
+**/.delete/

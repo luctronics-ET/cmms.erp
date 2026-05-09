@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>xServiços — CMASM</title>
+<meta http-equiv="refresh" content="0; url=cmasm-erp.html?page=srv-dashboard">
+<script>window.location.replace('cmasm-erp.html?page=srv-dashboard');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+:root {
+  --navy:      #08131f;
+  --navy-mid:  rgba(10,24,42,.88);
+  --navy-soft: #112947;
+  --accent:    #2dd4bf;
+  --accent2:   #0ea5e9;
+  --gold:      #f59e0b;
+  --danger:    #ff4757;
+  --success:   #2ed573;
+  --warning:   #ffa502;
+  --text:      #e8eef6;
+  --text-muted:#7a9ab8;
+  --border:    rgba(74,222,128,.11);
+  --card-bg:   rgba(255,255,255,.045);
+  --card-hover:rgba(255,255,255,.08);
+  --sidebar-w: 252px;
+  --surface-shadow: 0 18px 60px rgba(0,0,0,.26);
+}
+
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --navy:      #f0f4f8;
+  --navy-mid:  rgba(255,255,255,.94);
+  --navy-soft: #e4ecf4;
+  --accent:    #0080cc;
+  --accent2:   #005fcc;
+  --gold:      #b07800;
+  --danger:    #d42b3a;
+  --success:   #1a9e50;
+  --warning:   #b86e00;
+  --text:      #1a2535;
+  --text-muted:#5a7394;
+  --border:    rgba(0,100,200,.14);
+  --card-bg:   rgba(0,0,0,.03);
+  --card-hover:rgba(0,0,0,.055);
+  --surface-shadow: 0 18px 50px rgba(15,23,42,.08);
+}
+[data-theme="light"] body { background:#f0f4f8; color:#1a2535; }
+[data-theme="light"] #sidebar { background:#ffffff; border-right:1px solid rgba(0,100,200,.12); }
+[data-theme="light"] .topbar { background:#ffffff; border-bottom:1px solid rgba(0,100,200,.12); }
+[data-theme="light"] .sb-item:hover { background:rgba(0,100,200,.06); }
+[data-theme="light"] .sb-item.active { background:rgba(0,95,204,.08); color:var(--accent2); border-left-color:var(--accent2); }
+[data-theme="light"] input[type=text],[data-theme="light"] input[type=date],
+[data-theme="light"] input[type=number],[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background:#ffffff; border-color:rgba(0,100,200,.2); color:#1a2535;
+}
+[data-theme="light"] .filter-bar input,[data-theme="light"] .filter-bar select {
+  background:#ffffff; border-color:rgba(0,100,200,.2); color:#1a2535;
+}
+[data-theme="light"] .filter-bar input::placeholder { color:#5a7394; }
+[data-theme="light"] select option { background:#ffffff; color:#1a2535; }
+[data-theme="light"] .card { background:#ffffff; border-color:rgba(0,100,200,.12); box-shadow:0 1px 4px rgba(0,0,0,.06); }
+[data-theme="light"] .card-header { border-bottom-color:rgba(0,100,200,.1); }
+[data-theme="light"] .kpi-card { background:#ffffff; border-color:rgba(0,100,200,.12); box-shadow:0 1px 4px rgba(0,0,0,.06); }
+[data-theme="light"] .k-card { background:#ffffff; border-color:rgba(0,100,200,.14); }
+[data-theme="light"] .k-card:hover { background:#f4f8ff; border-color:var(--accent2); }
+[data-theme="light"] .kanban-body { background:#f4f7fb; border-color:rgba(0,100,200,.12); }
+[data-theme="light"] tbody tr:hover { background:rgba(0,100,200,.04); }
+[data-theme="light"] tbody tr { border-bottom-color:rgba(0,0,0,.06); }
+[data-theme="light"] thead tr { border-bottom-color:rgba(0,100,200,.12); }
+[data-theme="light"] .detail-header { background:#ffffff; border-color:rgba(0,100,200,.12); box-shadow:0 1px 4px rgba(0,0,0,.06); }
+[data-theme="light"] .tabs { border-bottom-color:rgba(0,100,200,.12); }
+[data-theme="light"] .tab-btn.active { color:var(--accent2); border-bottom-color:var(--accent2); }
+[data-theme="light"] .modal-box { background:#ffffff; border-color:rgba(0,100,200,.15); }
+[data-theme="light"] .modal-header { border-bottom-color:rgba(0,100,200,.12); }
+[data-theme="light"] .modal-footer { border-top-color:rgba(0,100,200,.12); }
+[data-theme="light"] .toast { background:#ffffff; border-color:rgba(0,100,200,.15); color:#1a2535; }
+[data-theme="light"] .ind-card { background:#ffffff; border-color:rgba(0,100,200,.12); }
+[data-theme="light"] .config-section { background:#ffffff; border-color:rgba(0,100,200,.12); }
+[data-theme="light"] .config-item { background:rgba(0,100,200,.04); }
+[data-theme="light"] .kpi-icon.info { background:rgba(0,128,204,.1); }
+[data-theme="light"] .kpi-icon.primary { background:rgba(0,95,204,.1); }
+[data-theme="light"] .kpi-icon.warning { background:rgba(184,110,0,.1); }
+[data-theme="light"] .kpi-icon.success { background:rgba(26,158,80,.1); }
+[data-theme="light"] .kpi-icon.danger { background:rgba(212,43,58,.1); }
+[data-theme="light"] .badge-solicitado { background:rgba(90,115,148,.15); color:#3a5070; }
+[data-theme="light"] .badge-preparacao { background:rgba(0,95,204,.12); color:#0050b0; }
+[data-theme="light"] .badge-execucao { background:rgba(0,128,204,.12); color:#006aaa; }
+[data-theme="light"] .badge-avaliacao { background:rgba(184,110,0,.12); color:#8a5500; }
+[data-theme="light"] .badge-pronto { background:rgba(26,158,80,.12); color:#106030; }
+[data-theme="light"] .badge-cancelado { background:rgba(212,43,58,.12); color:#a01825; }
+[data-theme="light"] .pri-critica { background:rgba(212,43,58,.15); color:#a01825; }
+[data-theme="light"] .pri-alta { background:rgba(212,43,58,.1); color:#c02030; }
+[data-theme="light"] .pri-media { background:rgba(184,110,0,.12); color:#8a5500; }
+[data-theme="light"] .pri-baixa { background:rgba(90,115,148,.12); color:#3a5070; }
+[data-theme="light"] .progress-bar-wrap { background:rgba(0,0,0,.1); }
+[data-theme="light"] .chart-bar-track { background:rgba(0,0,0,.07); }
+[data-theme="light"] .hist-item { border-bottom-color:rgba(0,0,0,.07); }
+[data-theme="light"] .row-vencido { background:rgba(212,43,58,.04); }
+[data-theme="light"] .btn-outline { color:#3a5070; border-color:rgba(0,100,200,.25); }
+[data-theme="light"] .btn-outline:hover { color:#1a2535; border-color:var(--accent2); background:rgba(0,95,204,.06); }
+[data-theme="light"] .sb-footer { border-top-color:rgba(0,100,200,.12); }
+[data-theme="light"] .alert-info { background:rgba(0,128,204,.08); border-color:rgba(0,128,204,.25); color:#005588; }
+[data-theme="light"] .col-solicitado .kanban-col-head { background:rgba(90,115,148,.15); color:#2a4060; }
+[data-theme="light"] .col-preparacao .kanban-col-head { background:rgba(0,95,204,.12); color:#0050b0; }
+[data-theme="light"] .col-execucao .kanban-col-head { background:rgba(0,128,204,.12); color:#006aaa; }
+[data-theme="light"] .col-avaliacao .kanban-col-head { background:rgba(184,110,0,.12); color:#8a5500; }
+[data-theme="light"] .col-pronto .kanban-col-head { background:rgba(26,158,80,.12); color:#106030; }
+
+/* Theme toggle button */
+.theme-toggle {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-radius:7px;cursor:pointer;
+  background:var(--card-bg);border:1px solid var(--border);
+  font-size:12px;color:var(--text-muted);transition:.2s;
+  margin-bottom:10px;
+}
+.theme-toggle:hover { background:var(--card-hover);color:var(--text); }
+.toggle-track {
+  width:34px;height:18px;border-radius:9px;background:var(--border);
+  position:relative;transition:.25s;flex-shrink:0;border:1px solid var(--border);
+}
+.toggle-thumb {
+  width:12px;height:12px;border-radius:50%;background:var(--text-muted);
+  position:absolute;top:2px;left:2px;transition:.25s;
+}
+[data-theme="light"] .toggle-track { background:rgba(0,95,204,.25);border-color:rgba(0,95,204,.4); }
+[data-theme="light"] .toggle-thumb { background:var(--accent2);transform:translateX(16px); }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--navy);color:var(--text);min-height:100vh;display:flex;overflow:hidden;position:relative;}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:-2;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(45,212,191,.18), transparent 28%),
+    radial-gradient(circle at 84% 14%, rgba(14,165,233,.16), transparent 32%),
+    radial-gradient(circle at 50% 110%, rgba(245,158,11,.12), transparent 36%),
+    linear-gradient(145deg, rgba(8,19,31,.95), rgba(9,24,44,.94));
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.28;
+  background:linear-gradient(135deg, transparent 0 46%, rgba(255,255,255,.04) 46% 47%, transparent 47% 100%);
+  background-size:28px 28px;
+}
+[data-theme="light"] body::before{
+  background:
+    radial-gradient(circle at 10% 14%, rgba(14,165,233,.12), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(45,212,191,.14), transparent 28%),
+    radial-gradient(circle at 50% 110%, rgba(245,158,11,.10), transparent 34%),
+    linear-gradient(145deg, rgba(240,244,248,.98), rgba(228,236,244,.98));
+}
+[data-theme="light"] body::after{opacity:.16;}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  width:var(--sidebar-w);flex-shrink:0;background:var(--navy-mid);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;height:100vh;position:sticky;top:0;
+  backdrop-filter:blur(18px);box-shadow:var(--surface-shadow);
+}
+.sb-logo{
+  padding:20px 20px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:12px;position:relative;
+}
+.sb-logo .logo-mark{
+  width:36px;height:36px;background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#fff;
+  flex-shrink:0;
+  box-shadow:0 0 0 8px rgba(14,165,233,.08);
+}
+.sb-logo span{font-size:13px;font-weight:600;letter-spacing:.5px;color:var(--text);}
+.sb-logo small{display:block;font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;}
+.sb-meta{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;}
+.sb-linkback,.sb-chip{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+  border:1px solid var(--border);font-size:10px;font-family:'IBM Plex Mono',monospace;
+  text-decoration:none;color:var(--text-muted);background:var(--card-bg);transition:.15s;
+}
+.sb-linkback:hover,.sb-chip:hover{color:var(--text);border-color:var(--accent);background:var(--card-hover);}
+
+.sb-nav{padding:10px 0;flex:1;overflow-y:auto;}
+.sb-section{font-size:9px;letter-spacing:1.5px;color:var(--text-muted);padding:10px 20px 4px;text-transform:uppercase;font-weight:600;}
+.sb-item{
+  display:flex;align-items:center;gap:10px;padding:9px 20px;
+  font-size:13px;color:var(--text-muted);cursor:pointer;transition:.15s;
+  border-left:3px solid transparent;text-decoration:none;
+  margin-right:10px;border-radius:0 10px 10px 0;
+}
+.sb-item:hover{background:var(--card-hover);color:var(--text);border-left-color:var(--accent);}
+.sb-item.active{background:rgba(0,196,255,.08);color:var(--accent);border-left-color:var(--accent);font-weight:500;}
+.sb-item i{font-size:15px;width:18px;text-align:center;}
+
+.sb-footer{padding:12px 20px;border-top:1px solid var(--border);}
+.sb-user{display:flex;align-items:center;gap:10px;}
+.sb-avatar{
+  width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.sb-user-info span{display:block;font-size:12px;font-weight:500;color:var(--text);}
+.sb-user-info small{font-size:10px;color:var(--text-muted);}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+.topbar{
+  padding:16px 24px 14px;border-bottom:1px solid var(--border);background:var(--navy-mid);
+  display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;gap:16px;flex-wrap:wrap;
+  backdrop-filter:blur(18px);box-shadow:var(--surface-shadow);position:sticky;top:0;z-index:10;
+}
+.topbar-title{font-size:18px;font-weight:600;letter-spacing:-.2px;}
+.topbar-sub{font-size:12px;color:var(--text-muted);margin-top:1px;}
+.topbar-actions{display:flex;gap:8px;align-items:center;}
+.topbar-shell{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.shell-kicker,.shell-pill{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+  border:1px solid var(--border);font-size:10px;font-family:'IBM Plex Mono',monospace;
+  background:var(--card-bg);color:var(--text-muted);
+}
+.shell-kicker{color:var(--accent);border-color:rgba(14,165,233,.25);}
+.shell-pill strong{color:var(--text);font-weight:600;}
+
+.content{flex:1;overflow-y:auto;padding:24px;}
+
+/* ── CARDS/BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:7px 14px;
+  border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;
+  border:1px solid transparent;transition:.15s;text-decoration:none;
+}
+.btn-primary{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+.btn-primary:hover{background:#0070e0;}
+.btn-outline{background:transparent;color:var(--text-muted);border-color:var(--border);}
+.btn-outline:hover{color:var(--text);border-color:var(--accent);background:var(--card-hover);}
+.btn-danger-outline{background:transparent;color:var(--danger);border-color:var(--danger);}
+.btn-success-sm{background:rgba(46,213,115,.15);color:var(--success);border:1px solid rgba(46,213,115,.3);font-size:11px;padding:3px 8px;border-radius:4px;}
+
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.card-header h6{font-size:13px;font-weight:600;color:var(--text);margin:0;}
+.card-body{padding:16px;}
+
+/* ── KPI CARDS ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+.kpi-card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:10px;
+  padding:16px;display:flex;align-items:center;gap:14px;transition:.15s;
+}
+.kpi-card:hover{background:var(--card-hover);}
+.kpi-icon{
+  width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.kpi-icon.info{background:rgba(0,196,255,.15);color:var(--accent);}
+.kpi-icon.primary{background:rgba(0,128,255,.15);color:var(--accent2);}
+.kpi-icon.warning{background:rgba(255,165,2,.15);color:var(--warning);}
+.kpi-icon.success{background:rgba(46,213,115,.15);color:var(--success);}
+.kpi-icon.danger{background:rgba(255,71,87,.15);color:var(--danger);}
+.kpi-val{font-size:24px;font-weight:700;line-height:1;font-family:'IBM Plex Mono',monospace;}
+.kpi-label{font-size:11px;color:var(--text-muted);margin-top:3px;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.badge-solicitado{background:rgba(122,154,184,.2);color:#7a9ab8;}
+.badge-preparacao{background:rgba(0,128,255,.15);color:var(--accent2);}
+.badge-execucao{background:rgba(0,196,255,.15);color:var(--accent);}
+.badge-avaliacao{background:rgba(255,165,2,.15);color:var(--warning);}
+.badge-pronto{background:rgba(46,213,115,.15);color:var(--success);}
+.badge-cancelado{background:rgba(255,71,87,.15);color:var(--danger);}
+.badge-entrega_parcial{background:rgba(240,165,0,.15);color:var(--gold);}
+.badge-entrega_final{background:rgba(46,213,115,.1);color:#1abc9c;}
+
+.pri-critica{background:rgba(255,71,87,.2);color:var(--danger);}
+.pri-alta{background:rgba(255,71,87,.12);color:#ff6b81;}
+.pri-media{background:rgba(255,165,2,.15);color:var(--warning);}
+.pri-baixa{background:rgba(122,154,184,.15);color:var(--text-muted);}
+.pri-emergencia{background:rgba(255,0,0,.25);color:#ff3333;animation:pulse-badge 1.5s infinite;}
+@keyframes pulse-badge{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead tr{border-bottom:1px solid var(--border);}
+thead th{padding:9px 12px;color:var(--text-muted);font-weight:500;font-size:11px;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:.1s;cursor:pointer;}
+tbody tr:hover{background:var(--card-hover);}
+tbody td{padding:10px 12px;vertical-align:middle;}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+.filter-bar input,.filter-bar select{
+  background:var(--card-bg);border:1px solid var(--border);color:var(--text);
+  padding:7px 12px;border-radius:6px;font-size:13px;font-family:inherit;
+}
+.filter-bar input::placeholder{color:var(--text-muted);}
+.filter-bar input:focus,.filter-bar select:focus{outline:none;border-color:var(--accent);}
+.filter-bar select option{background:var(--navy-mid);}
+.filter-bar input[type="text"]{min-width:220px;}
+.filter-card{background:var(--card-bg);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:18px;box-shadow:var(--surface-shadow);}
+.filter-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px;}
+.filter-title{font-size:14px;font-weight:700;letter-spacing:-.02em;}
+.filter-sub{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.filter-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;}
+.filter-grid .search-field{grid-column:span 2;}
+.filter-grid .filter-bar{margin:0;display:contents;}
+.filter-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.quick-filters{display:flex;gap:8px;flex-wrap:wrap;}
+.filter-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:11px;font-family:'IBM Plex Mono',monospace;cursor:pointer;transition:.15s;}
+.filter-chip:hover{border-color:var(--accent);color:var(--text);background:var(--card-hover);}
+.filter-chip.active{background:rgba(14,165,233,.14);color:var(--accent2);border-color:rgba(14,165,233,.35);}
+.filter-meta{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;}
+
+/* ── KANBAN ── */
+.kanban-board{display:flex;gap:14px;overflow-x:auto;padding:2px 2px 12px;min-height:480px;}
+.kanban-col{min-width:200px;width:200px;flex-shrink:0;}
+.kanban-col-head{
+  padding:9px 12px;border-radius:7px 7px 0 0;font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.kanban-body{min-height:400px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-top:none;border-radius:0 0 7px 7px;padding:8px;display:flex;flex-direction:column;gap:6px;}
+.k-card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:6px;
+  padding:10px;transition:.15s;cursor:pointer;
+}
+.k-card:hover{background:var(--card-hover);border-color:var(--accent);}
+.k-code{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);margin-bottom:4px;}
+.k-title{font-size:12px;font-weight:500;line-height:1.3;margin-bottom:6px;}
+.k-meta{font-size:11px;color:var(--text-muted);}
+
+/* ── DETAIL VIEW ── */
+.detail-header{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:10px;
+  padding:20px;margin-bottom:18px;
+}
+.detail-code{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);}
+.detail-title{font-size:20px;font-weight:700;margin:6px 0;}
+.detail-meta{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;}
+.detail-meta-item{font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+.progress-bar-wrap{background:rgba(255,255,255,.08);border-radius:4px;height:6px;margin-top:12px;overflow:hidden;}
+.progress-bar-fill{height:100%;border-radius:4px;transition:width .5s;}
+
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.tab-btn{
+  padding:9px 16px;font-size:12px;font-weight:500;color:var(--text-muted);
+  cursor:pointer;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;
+  background:none;border-top:none;border-left:none;border-right:none;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+.form-full{grid-column:1/-1;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+label{font-size:12px;color:var(--text-muted);font-weight:500;}
+input[type=text],input[type=date],input[type=number],input[type=email],
+textarea,select{
+  background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text);
+  padding:8px 12px;border-radius:6px;font-size:13px;font-family:inherit;
+  transition:.15s;width:100%;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+input::placeholder,textarea::placeholder{color:var(--text-muted);}
+select option{background:var(--navy-mid);}
+textarea{resize:vertical;min-height:80px;}
+.form-note{font-size:11px;color:var(--text-muted);margin-top:2px;}
+
+/* ── MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal-box{
+  background:var(--navy-mid);border:1px solid var(--border);border-radius:12px;
+  width:100%;max-width:580px;max-height:90vh;overflow-y:auto;
+}
+.modal-header{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-header h5{font-size:15px;font-weight:600;}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;}
+.modal-body{padding:20px;}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+/* ── INDICATORS/CHARTS ── */
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+@media(max-width:900px){.ind-grid{grid-template-columns:repeat(2,1fr);}}
+.ind-card{
+  background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center;
+}
+.ind-val{font-size:32px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;}
+.ind-label{font-size:12px;color:var(--text-muted);margin-top:5px;}
+
+.chart-bar-group{display:flex;flex-direction:column;gap:8px;}
+.chart-bar-row{display:flex;align-items:center;gap:10px;}
+.chart-bar-label{font-size:12px;color:var(--text-muted);width:100px;text-align:right;flex-shrink:0;}
+.chart-bar-track{flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:24px;overflow:hidden;}
+.chart-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;transition:width .6s cubic-bezier(.4,0,.2,1);}
+.chart-bar-val{font-size:12px;color:var(--text-muted);width:32px;font-family:'IBM Plex Mono',monospace;}
+
+/* ── HISTORY ── */
+.hist-list{display:flex;flex-direction:column;gap:0;}
+.hist-item{
+  display:flex;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.04);
+}
+.hist-item:last-child{border-bottom:none;}
+.hist-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;
+  margin-top:5px;
+}
+.hist-content{flex:1;}
+.hist-time{font-size:11px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;}
+.hist-desc{font-size:13px;margin:2px 0;}
+.hist-user{font-size:11px;color:var(--text-muted);}
+
+/* ── ALERTS ── */
+.alert{padding:10px 14px;border-radius:7px;font-size:13px;display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.alert-danger{background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.3);color:var(--danger);}
+.alert-warning{background:rgba(255,165,2,.1);border:1px solid rgba(255,165,2,.3);color:var(--warning);}
+.alert-success{background:rgba(46,213,115,.1);border:1px solid rgba(46,213,115,.3);color:var(--success);}
+.alert-info{background:rgba(0,196,255,.1);border:1px solid rgba(0,196,255,.3);color:var(--accent);}
+
+/* ── VENCIDO ROW ── */
+.row-vencido{background:rgba(255,71,87,.05);}
+.vencido-tag{color:var(--danger);font-size:11px;font-weight:600;}
+
+/* ── SCROLL ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(0,196,255,.2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,196,255,.4);}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px;}
+.toast{
+  background:var(--navy-mid);border:1px solid var(--border);border-radius:8px;
+  padding:12px 16px;font-size:13px;min-width:240px;display:flex;align-items:center;gap:10px;
+  animation:slideIn .3s ease;
+}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.toast.success{border-color:rgba(46,213,115,.4);}
+.toast.success i{color:var(--success);}
+
+/* page transitions */
+.page{animation:fadeUp .25s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── STATUS COLUMN COLORS ── */
+.col-solicitado .kanban-col-head{background:rgba(122,154,184,.2);}
+.col-preparacao .kanban-col-head{background:rgba(0,128,255,.15);color:var(--accent2);}
+.col-execucao .kanban-col-head{background:rgba(0,196,255,.15);color:var(--accent);}
+.col-avaliacao .kanban-col-head{background:rgba(255,165,2,.15);color:var(--warning);}
+.col-pronto .kanban-col-head{background:rgba(46,213,115,.15);color:var(--success);}
+
+/* config section */
+.config-section{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:16px;}
+.config-section h6{font-size:13px;font-weight:600;margin-bottom:14px;color:var(--accent);}
+.config-list{display:flex;flex-direction:column;gap:6px;}
+.config-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;background:rgba(255,255,255,.04);border-radius:6px;font-size:13px;
+}
+.tag-priority{
+  font-size:10px;font-family:'IBM Plex Mono',monospace;font-weight:700;
+  padding:2px 7px;border-radius:3px;background:rgba(0,128,255,.2);color:var(--accent2);
+}
+.section-divider{height:1px;background:var(--border);margin:20px 0;}
+
+@media(max-width:1200px){
+  .filter-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .filter-grid .search-field{grid-column:span 3;}
+}
+@media(max-width:900px){
+  #sidebar{width:220px;}
+  .content{padding:18px;}
+  .topbar{padding:14px 18px 12px;}
+  .filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .filter-grid .search-field{grid-column:span 2;}
+}
+@media(max-width:720px){
+  body{flex-direction:column;overflow:auto;}
+  #sidebar{width:100%;height:auto;position:relative;}
+  #main{height:auto;min-height:100vh;}
+  .kpi-grid,.ind-grid,.form-grid,.form-grid.cols3{grid-template-columns:1fr !important;}
+  .filter-grid{grid-template-columns:1fr;}
+  .filter-grid .search-field{grid-column:span 1;}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="logo-mark">xS</div>
+    <div>
+      <span>xServiços</span>
+      <small>CMASM · UASG 744030</small>
+      <div class="sb-meta">
+        <a class="sb-linkback" href="cmasm-erp.html"><i class="bi bi-grid-1x2"></i> Portal ERP</a>
+        <span class="sb-chip"><i class="bi bi-activity"></i> deck operacional</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-nav">
+    <div class="sb-section">Principal</div>
+    <a class="sb-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a class="sb-item" data-page="lista" onclick="navigate('lista')">
+      <i class="bi bi-list-ul"></i> Lista de OS
+    </a>
+    <a class="sb-item" data-page="kanban" onclick="navigate('kanban')">
+      <i class="bi bi-kanban"></i> Kanban
+    </a>
+    <a class="sb-item" data-page="cadastro" onclick="navigate('cadastro')">
+      <i class="bi bi-file-earmark-plus"></i> Nova OS/PS
+    </a>
+
+    <div class="sb-section">Análise</div>
+    <a class="sb-item" data-page="indicadores" onclick="navigate('indicadores')">
+      <i class="bi bi-bar-chart-line"></i> Indicadores
+    </a>
+    <a class="sb-item" data-page="relatorios" onclick="navigate('relatorios')">
+      <i class="bi bi-file-text"></i> Relatórios
+    </a>
+
+    <div class="sb-section">Admin</div>
+    <a class="sb-item" data-page="configuracoes" onclick="navigate('configuracoes')">
+      <i class="bi bi-gear"></i> Configurações
+    </a>
+  </div>
+
+  <div class="sb-footer">
+    <div class="theme-toggle" onclick="toggleTheme()" title="Alternar tema claro/escuro">
+      <span id="theme-label"><i class="bi bi-sun"></i>&nbsp;Modo claro</span>
+      <div class="toggle-track"><div class="toggle-thumb"></div></div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-avatar">LF</div>
+      <div class="sb-user-info">
+        <span>L. Ferreira</span>
+        <small>Admin · 1T RM2-EN</small>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-shell">
+        <span class="shell-kicker"><i class="bi bi-stars"></i> CMASM Operations Deck</span>
+        <span class="shell-pill"><strong>Modo:</strong> claro/escuro sincronizado</span>
+        <span class="shell-pill"><strong>Foco:</strong> PS + OS + indicadores</span>
+      </div>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-sub" id="topbar-sub">Gestão de Ordens de Serviço — CMASM</div>
+    </div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button class="btn btn-primary" onclick="openModal('modalNovoPS')">
+        <i class="bi bi-plus-lg"></i> Novo PS
+      </button>
+    </div>
+  </div>
+
+  <div class="content" id="content-area">
+    <!-- Pages rendered by JS -->
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modalNovoPS">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h5><i class="bi bi-file-earmark-plus me-2" style="color:var(--accent2)"></i>Novo Pedido de Serviço (PS)</h5>
+      <button class="modal-close" onclick="closeModal('modalNovoPS')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label>Título *</label>
+          <input type="text" id="ps-titulo" placeholder="Descreva brevemente o serviço solicitado">
+        </div>
+        <div class="form-group form-full">
+          <label>Descrição</label>
+          <textarea id="ps-descricao" placeholder="Detalhes do problema, necessidade ou objetivo..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Serviço</label>
+          <select id="ps-tipo">
+            <option value="corretiva">Manutenção Corretiva</option>
+            <option value="preventiva">Manutenção Preventiva</option>
+            <option value="instalacao">Instalação</option>
+            <option value="projeto">Projeto</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridade</label>
+          <select id="ps-prioridade">
+            <option value="baixa">Baixa</option>
+            <option value="media" selected>Média</option>
+            <option value="alta">Alta</option>
+            <option value="critica">Crítica</option>
+            <option value="emergencia">⚡ Emergência</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Solicitante</label>
+          <input type="text" id="ps-solicitante" value="L. Ferreira" placeholder="Nome do solicitante">
+        </div>
+        <div class="form-group">
+          <label>Departamento</label>
+          <input type="text" id="ps-departamento" placeholder="Ex: Esquadrão de Tecnologia">
+        </div>
+        <div class="form-group">
+          <label>Setor Executor</label>
+          <input type="text" id="ps-setor" placeholder="Ex: Manutenção Eletrônica">
+        </div>
+        <div class="form-group">
+          <label>Data Prevista</label>
+          <input type="date" id="ps-data">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalNovoPS')">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitNovoPS()"><i class="bi bi-send"></i> Enviar PS</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail modal for Kanban click -->
+<div class="modal-overlay" id="modalDetalheRapido">
+  <div class="modal-box" style="max-width:700px;">
+    <div class="modal-header">
+      <h5 id="dr-title">OS-2025-0001 · Detalhe</h5>
+      <button class="modal-close" onclick="closeModal('modalDetalheRapido')">×</button>
+    </div>
+    <div class="modal-body" id="dr-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modalDetalheRapido')">Fechar</button>
+      <button class="btn btn-primary" onclick="openFullDetail()"><i class="bi bi-box-arrow-up-right"></i> Abrir Detalhe</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script>
+// ─────────────────────────────────────────────────────
+//  DATA STORE
+// ─────────────────────────────────────────────────────
+const TIPOS = {
+  corretiva:'Manutenção Corretiva', preventiva:'Manutenção Preventiva',
+  instalacao:'Instalação', projeto:'Projeto', outro:'Outro'
+};
+const STATUS = {
+  solicitado:'Solicitado', preparacao:'Preparação',
+  execucao:'Em Execução', avaliacao:'Avaliação',
+  entrega_parcial:'Entrega Parcial', entrega_final:'Entrega Final',
+  pronto:'Pronto', cancelado:'Cancelado'
+};
+const PRIORIDADE = {
+  baixa:'Baixa', media:'Média', alta:'Alta', critica:'Crítica', emergencia:'Emergência'
+};
+
+let nextId = 100;
+function genCodigo(tipo='os'){
+  const y = new Date().getFullYear();
+  return `${tipo.toUpperCase()}-${y}-${String(nextId++).padStart(4,'0')}`;
+}
+
+let servicos = [
+  {id:1,codigo:'PS-2025-0001',doc_tipo:'ps',titulo:'Substituição de sensor LVDT — Torpedo MK.48',descricao:'Sensor com deriva superior a tolerância. Necessário substituição e recalibração.',tipo:'corretiva',status:'execucao',prioridade:'alta',solicitante:'Lt Figueiredo',departamento:'CFTV',setor_executor:'Manutenção Eletrônica',data_abertura:'2025-03-01',data_prevista:'2025-04-05',data_inicio:'2025-03-10',data_conclusao:null,horas_previstas:12,horas_realizadas:8,ativo:1,
+    etapas:[
+      {id:10,titulo:'Diagnóstico do sensor',status:'concluida',responsavel:'Cb Mendes',data_prevista:'2025-03-12',data_conclusao:'2025-03-12'},
+      {id:11,titulo:'Solicitação de peça ao almoxarifado',status:'concluida',responsavel:'Lt Figueiredo',data_prevista:'2025-03-15',data_conclusao:'2025-03-14'},
+      {id:12,titulo:'Substituição e instalação',status:'em_andamento',responsavel:'Sd Rocha',data_prevista:'2025-04-02',data_conclusao:null},
+      {id:13,titulo:'Recalibração e teste funcional',status:'pendente',responsavel:'1T Ferreira',data_prevista:'2025-04-04',data_conclusao:null},
+    ],
+    historico:[
+      {tipo:'criacao',descricao:'PS criado por solicitação.',usuario_nome:'Lt Figueiredo',created_at:'2025-03-01 09:12'},
+      {tipo:'status',descricao:'Status alterado para Preparação.',usuario_nome:'1T Ferreira',created_at:'2025-03-08 14:30'},
+      {tipo:'status',descricao:'Status alterado para Em Execução.',usuario_nome:'1T Ferreira',created_at:'2025-03-10 08:00'},
+      {tipo:'etapa',descricao:'Etapa "Diagnóstico do sensor" concluída.',usuario_nome:'Cb Mendes',created_at:'2025-03-12 16:45'},
+    ]
+  },
+  {id:2,codigo:'OS-2025-0002',doc_tipo:'os',titulo:'Reparo no sistema de fonoclama — Bloco A',descricao:'Amplificadores com distorção acima do limiar. Verificar módulos PA-100.',tipo:'corretiva',status:'solicitado',prioridade:'media',solicitante:'CC Andrade',departamento:'Fonoclama',setor_executor:'Eletrônica',data_abertura:'2025-03-15',data_prevista:'2025-04-10',data_inicio:null,data_conclusao:null,horas_previstas:6,horas_realizadas:0,ativo:1,etapas:[],historico:[
+    {tipo:'criacao',descricao:'OS criada.',usuario_nome:'CC Andrade',created_at:'2025-03-15 10:00'}
+  ]},
+  {id:3,codigo:'OS-2025-0003',doc_tipo:'os',titulo:'Expansão da rede de fibra óptica — Galpão 4',descricao:'Implantação de 120m de fibra monomodo com splitter 1:4.',tipo:'projeto',status:'preparacao',prioridade:'alta',solicitante:'CN Barros',departamento:'Redes',setor_executor:'Fibra Óptica',data_abertura:'2025-02-20',data_prevista:'2025-05-30',data_inicio:null,data_conclusao:null,horas_previstas:40,horas_realizadas:0,ativo:1,etapas:[
+    {id:20,titulo:'Levantamento de planta baixa',status:'concluida',responsavel:'1T Ferreira',data_prevista:'2025-03-01',data_conclusao:'2025-02-28'},
+    {id:21,titulo:'Aquisição de materiais',status:'em_andamento',responsavel:'SdAl Costa',data_prevista:'2025-04-10',data_conclusao:null},
+  ],historico:[
+    {tipo:'criacao',descricao:'OS criada.',usuario_nome:'CN Barros',created_at:'2025-02-20 08:30'},
+    {tipo:'status',descricao:'Status alterado para Preparação.',usuario_nome:'1T Ferreira',created_at:'2025-02-25 13:00'},
+  ]},
+  {id:4,codigo:'OS-2025-0004',doc_tipo:'os',titulo:'Manutenção preventiva — Impressoras 3D (Creality)',descricao:'Limpeza de bico, substituição de correia X/Y, nivelamento de mesa.',tipo:'preventiva',status:'pronto',prioridade:'baixa',solicitante:'1T Ferreira',departamento:'Impressão 3D',setor_executor:'IoT/Fab Lab',data_abertura:'2025-02-01',data_prevista:'2025-02-28',data_inicio:'2025-02-10',data_conclusao:'2025-02-25',horas_previstas:8,horas_realizadas:7,ativo:1,etapas:[],historico:[
+    {tipo:'criacao',descricao:'OS criada.',usuario_nome:'1T Ferreira',created_at:'2025-02-01'},
+    {tipo:'status',descricao:'Status: Pronto.',usuario_nome:'1T Ferreira',created_at:'2025-02-25'},
+  ]},
+  {id:5,codigo:'OS-2025-0005',doc_tipo:'os',titulo:'Atualização firmware ESP32 — Rede IoT sensores',descricao:'Deploy do firmware v2.3 com suporte OTA e novo protocolo ESP-NOW.',tipo:'projeto',status:'execucao',prioridade:'media',solicitante:'1T Ferreira',departamento:'IoT/ESP32',setor_executor:'IoT/Fab Lab',data_abertura:'2025-03-20',data_prevista:'2025-04-15',data_inicio:'2025-03-22',data_conclusao:null,horas_previstas:20,horas_realizadas:9,ativo:1,etapas:[
+    {id:30,titulo:'Codificação firmware v2.3',status:'concluida',responsavel:'1T Ferreira',data_prevista:'2025-03-30',data_conclusao:'2025-03-29'},
+    {id:31,titulo:'Testes em bancada (5 nós)',status:'concluida',responsavel:'1T Ferreira',data_prevista:'2025-04-03',data_conclusao:'2025-04-02'},
+    {id:32,titulo:'Deploy em campo (20 nós)',status:'em_andamento',responsavel:'1T Ferreira',data_prevista:'2025-04-12',data_conclusao:null},
+  ],historico:[
+    {tipo:'criacao',descricao:'OS criada.',usuario_nome:'1T Ferreira',created_at:'2025-03-20'},
+    {tipo:'status',descricao:'Em Execução.',usuario_nome:'1T Ferreira',created_at:'2025-03-22'},
+  ]},
+  {id:6,codigo:'OS-2025-0006',doc_tipo:'os',titulo:'Inspeção CFTV — Câmeras do perímetro sul',descricao:'Revisão de 12 câmeras IP, limpeza de lentes, ajuste de ângulo e teste de gravação.',tipo:'preventiva',status:'avaliacao',prioridade:'media',solicitante:'CC Rodrigues',departamento:'CFTV',setor_executor:'CFTV',data_abertura:'2025-03-05',data_prevista:'2025-03-28',data_inicio:'2025-03-10',data_conclusao:null,horas_previstas:10,horas_realizadas:10,ativo:1,etapas:[],historico:[
+    {tipo:'criacao',descricao:'OS criada.',usuario_nome:'CC Rodrigues',created_at:'2025-03-05'},
+  ]},
+  {id:7,codigo:'PS-2025-0007',doc_tipo:'ps',titulo:'Solicitação de reposição — Filamento PLA/PETG',descricao:'Estoque crítico. Necessário compra de 5kg PLA e 3kg PETG para impressão 3D.',tipo:'outro',status:'solicitado',prioridade:'baixa',solicitante:'1T Ferreira',departamento:'Impressão 3D',setor_executor:'Almoxarifado',data_abertura:'2025-04-01',data_prevista:'2025-04-30',data_inicio:null,data_conclusao:null,horas_previstas:2,horas_realizadas:0,ativo:1,etapas:[],historico:[
+    {tipo:'criacao',descricao:'PS criado.',usuario_nome:'1T Ferreira',created_at:'2025-04-01'}
+  ]},
+  {id:8,codigo:'OS-2025-0008',doc_tipo:'os',titulo:'Instalação gateway ESP-NOW → Home Assistant',descricao:'Configurar ESP32 como gateway MQTT para integração com servidor HA local.',tipo:'instalacao',status:'preparacao',prioridade:'media',solicitante:'1T Ferreira',departamento:'IoT/ESP32',setor_executor:'IoT/Fab Lab',data_abertura:'2025-03-25',data_prevista:'2025-04-20',data_inicio:null,data_conclusao:null,horas_previstas:16,horas_realizadas:0,ativo:1,etapas:[],historico:[
+    {tipo:'criacao',descricao:'OS criada.',usuario_nome:'1T Ferreira',created_at:'2025-03-25'}
+  ]},
+  {id:9,codigo:'OS-2025-0009',doc_tipo:'os',titulo:'Reparo UPS rack — Sala de servidores',descricao:'Bateria de UPS com tensão abaixo do limiar. Substituir baterias e testar autonomia.',tipo:'corretiva',status:'execucao',prioridade:'critica',solicitante:'CC Lima',departamento:'Redes',setor_executor:'Elétrica',data_abertura:'2025-03-28',data_prevista:'2025-03-31',data_inicio:'2025-03-28',data_conclusao:null,horas_previstas:5,horas_realizadas:2,ativo:1,etapas:[],historico:[
+    {tipo:'criacao',descricao:'OS criada — urgência.',usuario_nome:'CC Lima',created_at:'2025-03-28'},
+  ]},
+  {id:10,codigo:'OS-2025-0010',doc_tipo:'os',titulo:'Calibração multímetros e osciloscópios',descricao:'Calibração periódica anual de 8 multímetros e 3 osciloscópios.',tipo:'preventiva',status:'cancelado',prioridade:'baixa',solicitante:'1T Ferreira',departamento:'Reparos Eletrônicos',setor_executor:'Metrologia',data_abertura:'2025-01-15',data_prevista:'2025-02-28',data_inicio:null,data_conclusao:null,horas_previstas:0,horas_realizadas:0,ativo:1,etapas:[],historico:[
+    {tipo:'criacao',descricao:'OS criada.',usuario_nome:'1T Ferreira',created_at:'2025-01-15'},
+    {tipo:'status',descricao:'Cancelado — aguardando OTDR próprio.',usuario_nome:'1T Ferreira',created_at:'2025-02-01'},
+  ]},
+];
+
+let currentPage = 'dashboard';
+let currentDetailId = null;
+let currentDetailQuickId = null;
+let filtrosLista = {q:'',status:'',prioridade:'',tipo:'',doc_tipo:'',departamento:'',ordem:'prioridade'};
+
+// ─────────────────────────────────────────────────────
+//  NAVIGATION
+// ─────────────────────────────────────────────────────
+function navigate(page, param){
+  currentPage = page;
+  document.querySelectorAll('.sb-item').forEach(el=>{
+    el.classList.toggle('active', el.dataset.page===page);
+  });
+  const area = document.getElementById('content-area');
+  area.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'page';
+  area.appendChild(div);
+
+  const titles = {
+    dashboard:['Dashboard','Visão geral das Ordens de Serviço'],
+    lista:['Lista de OS','Pedidos de Serviço e Ordens de Serviço'],
+    kanban:['Kanban','Visão por status do fluxo'],
+    cadastro:['Nova OS/PS','Registrar nova ordem de serviço'],
+    indicadores:['Indicadores','KPIs e métricas gerenciais'],
+    relatorios:['Relatórios','Análise e exportação'],
+    configuracoes:['Configurações','Parâmetros do módulo'],
+    detalhe:['Detalhe da OS','Acompanhamento completo']
+  };
+  const t = titles[page]||[page,''];
+  document.getElementById('topbar-title').textContent = t[0];
+  document.getElementById('topbar-sub').textContent = t[1];
+
+  const acts = document.getElementById('topbar-actions');
+  acts.innerHTML = '';
+
+  if(page==='detalhe'){
+    renderDetalhe(div, param);
+    const backBtn = document.createElement('button');
+    backBtn.className='btn btn-outline';
+    backBtn.innerHTML='<i class="bi bi-arrow-left"></i> Voltar';
+    backBtn.onclick=()=>navigate('lista');
+    acts.appendChild(backBtn);
+  } else if(page==='dashboard'){
+    renderDashboard(div);
+    const nb=document.createElement('button');
+    nb.className='btn btn-primary';
+    nb.innerHTML='<i class="bi bi-plus-lg"></i> Novo PS';
+    nb.onclick=()=>openModal('modalNovoPS');
+    acts.appendChild(nb);
+  } else if(page==='lista'){
+    renderLista(div);
+    const nb=document.createElement('button');
+    nb.className='btn btn-primary';
+    nb.innerHTML='<i class="bi bi-plus-lg"></i> Nova OS/PS';
+    nb.onclick=()=>navigate('cadastro');
+    acts.appendChild(nb);
+  } else if(page==='kanban'){
+    renderKanban(div);
+  } else if(page==='cadastro'){
+    renderCadastro(div);
+  } else if(page==='indicadores'){
+    renderIndicadores(div);
+  } else if(page==='relatorios'){
+    renderRelatorios(div);
+  } else if(page==='configuracoes'){
+    renderConfiguracoes(div);
+  }
+}
+
+// ─────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────
+const today = '2025-04-01';
+function isVencido(s){ return s.data_prevista && s.data_prevista < today && !['pronto','cancelado'].includes(s.status); }
+function fmtDate(d){ if(!d) return '—'; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+function badgeStatus(st){ return `<span class="badge badge-${st}">${STATUS[st]||st}</span>`; }
+function badgePri(p){ return `<span class="badge pri-${p}">${PRIORIDADE[p]||p}</span>`; }
+function departamentosLista(){ return [...new Set(servicos.filter(s=>s.ativo && s.departamento).map(s=>s.departamento))].sort(); }
+function quickFilterState(){
+  if(filtrosLista.status==='' && filtrosLista.prioridade==='' && filtrosLista.doc_tipo==='' && filtrosLista.departamento==='') return 'todos';
+  if(filtrosLista.status==='execucao') return 'execucao';
+  if(filtrosLista.prioridade==='critica') return 'critica';
+  if(filtrosLista.doc_tipo==='ps') return 'ps';
+  return '';
+}
+function applyQuickFilter(kind){
+  const base = {q:filtrosLista.q,status:'',prioridade:'',tipo:'',doc_tipo:'',departamento:'',ordem:filtrosLista.ordem};
+  if(kind==='execucao') base.status='execucao';
+  if(kind==='critica') base.prioridade='critica';
+  if(kind==='ps') base.doc_tipo='ps';
+  filtrosLista = base;
+  navigate('lista');
+}
+function pctEtapas(s){
+  if(!s.etapas||!s.etapas.length) return 0;
+  return Math.round(100*s.etapas.filter(e=>e.status==='concluida').length/s.etapas.length);
+}
+function kpis(){
+  const ks = servicos.filter(s=>s.ativo);
+  return {
+    total: ks.length,
+    execucao: ks.filter(s=>['execucao','preparacao'].includes(s.status)).length,
+    avaliacao: ks.filter(s=>['entrega_parcial','entrega_final','avaliacao'].includes(s.status)).length,
+    pronto_mes: ks.filter(s=>s.status==='pronto' && s.data_conclusao && s.data_conclusao.startsWith('2025-0')).length,
+    vencidos: ks.filter(isVencido).length,
+  };
+}
+
+// ─────────────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────────────
+function renderDashboard(el){
+  const k = kpis();
+  const vencidos = servicos.filter(s=>s.ativo && isVencido(s)).sort((a,b)=>a.data_prevista>b.data_prevista?1:-1).slice(0,5);
+  const hist = servicos.flatMap(s=>s.historico.map(h=>({...h,codigo:s.codigo,titulo:s.titulo,sid:s.id})))
+    .sort((a,b)=>b.created_at>a.created_at?1:-1).slice(0,8);
+
+  el.innerHTML = `
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon info"><i class="bi bi-clipboard2-pulse"></i></div>
+      <div><div class="kpi-val">${k.total}</div><div class="kpi-label">Total de Serviços</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon primary"><i class="bi bi-gear-wide-connected"></i></div>
+      <div><div class="kpi-val">${k.execucao}</div><div class="kpi-label">Em Execução</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon warning"><i class="bi bi-hourglass-split"></i></div>
+      <div><div class="kpi-val">${k.avaliacao}</div><div class="kpi-label">Aguardando Avaliação</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon success"><i class="bi bi-check2-circle"></i></div>
+      <div><div class="kpi-val">${k.pronto_mes}</div><div class="kpi-label">Concluídos (mês)</div></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon danger"><i class="bi bi-exclamation-triangle"></i></div>
+      <div><div class="kpi-val">${k.vencidos}</div><div class="kpi-label">Vencidos</div></div>
+    </div>
+  </div>
+
+  <!-- Quick access -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+    <div class="card" style="cursor:pointer;" onclick="openModal('modalNovoPS')">
+      <div class="card-body" style="display:flex;align-items:center;gap:14px;padding:18px;">
+        <div class="kpi-icon primary" style="font-size:22px;width:48px;height:48px;"><i class="bi bi-file-earmark-plus"></i></div>
+        <div><div style="font-weight:600;font-size:14px;">Novo Pedido de Serviço</div><div style="font-size:12px;color:var(--text-muted)">Registrar PS para avaliação</div></div>
+        <i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted)"></i>
+      </div>
+    </div>
+    <div class="card" style="cursor:pointer;" onclick="navigate('lista')">
+      <div class="card-body" style="display:flex;align-items:center;gap:14px;padding:18px;">
+        <div class="kpi-icon info" style="font-size:22px;width:48px;height:48px;"><i class="bi bi-list-ul"></i></div>
+        <div><div style="font-weight:600;font-size:14px;">Todos os Serviços</div><div style="font-size:12px;color:var(--text-muted)">${k.total} serviços ativos</div></div>
+        <i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted)"></i>
+      </div>
+    </div>
+    <div class="card" style="cursor:pointer;" onclick="navigate('kanban')">
+      <div class="card-body" style="display:flex;align-items:center;gap:14px;padding:18px;">
+        <div class="kpi-icon warning" style="font-size:22px;width:48px;height:48px;"><i class="bi bi-kanban"></i></div>
+        <div><div style="font-weight:600;font-size:14px;">Kanban</div><div style="font-size:12px;color:var(--text-muted)">Visão de fluxo por status</div></div>
+        <i class="bi bi-chevron-right" style="margin-left:auto;color:var(--text-muted)"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent + Alerts -->
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;">
+    <div class="card">
+      <div class="card-header"><h6><i class="bi bi-clock-history me-2" style="color:var(--accent2)"></i>Últimas Atividades</h6></div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%">
+          <thead><tr>
+            <th>Data/Hora</th><th>Serviço</th><th>Tipo</th><th>Descrição</th><th>Usuário</th>
+          </tr></thead>
+          <tbody>
+            ${hist.map(h=>`<tr onclick="navigate('detalhe',${h.sid})" style="cursor:pointer;">
+              <td class="mono" style="white-space:nowrap;color:var(--text-muted)">${h.created_at}</td>
+              <td><span class="badge badge-solicitado">${h.codigo}</span></td>
+              <td><span style="font-size:11px;color:var(--text-muted)">${h.tipo}</span></td>
+              <td style="font-size:12px;">${h.descricao.substring(0,50)}</td>
+              <td style="font-size:12px;color:var(--text-muted)">${h.usuario_nome}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h6><i class="bi bi-exclamation-triangle me-2" style="color:var(--danger)"></i>Serviços Vencidos</h6>
+        ${vencidos.length ? `<span class="badge" style="background:rgba(255,71,87,.2);color:var(--danger)">${vencidos.length}</span>` : ''}
+      </div>
+      <div>
+        ${vencidos.length === 0 ? `<div style="text-align:center;padding:32px;color:var(--success)"><i class="bi bi-check-circle" style="font-size:28px;display:block;margin-bottom:8px"></i>Nenhum serviço vencido</div>` :
+          vencidos.map(v=>`<div style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;" onclick="navigate('detalhe',${v.id})">
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              ${badgePri(v.prioridade)}
+              <div>
+                <div style="font-size:12px;font-weight:500">${v.codigo} · ${v.titulo.substring(0,30)}${v.titulo.length>30?'…':''}</div>
+                <div class="vencido-tag"><i class="bi bi-calendar-x me-1"></i>${fmtDate(v.data_prevista)}</div>
+              </div>
+            </div>
+          </div>`).join('')
+        }
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────
+//  LISTA
+// ─────────────────────────────────────────────────────
+function renderLista(el){
+  const quick = quickFilterState();
+  const deps = departamentosLista();
+  el.innerHTML = `
+  <div class="filter-card">
+    <div class="filter-head">
+      <div>
+        <div class="filter-title">Filtro operacional</div>
+        <div class="filter-sub">Refine por urgência, documento, setor e ordem de atendimento.</div>
+      </div>
+      <div class="quick-filters">
+        <button class="filter-chip ${quick==='todos'?'active':''}" onclick="applyQuickFilter('todos')">Todos</button>
+        <button class="filter-chip ${quick==='execucao'?'active':''}" onclick="applyQuickFilter('execucao')">Em execução</button>
+        <button class="filter-chip ${quick==='critica'?'active':''}" onclick="applyQuickFilter('critica')">Críticas</button>
+        <button class="filter-chip ${quick==='ps'?'active':''}" onclick="applyQuickFilter('ps')">Somente PS</button>
+      </div>
+    </div>
+    <div class="filter-grid">
+      <div class="search-field">
+        <input type="text" id="f-q" placeholder="Buscar código, título, solicitante ou setor..." value="${filtrosLista.q}" oninput="filtrosLista.q=this.value;renderListaTabela()" style="width:100%;">
+      </div>
+      <select id="f-status" onchange="filtrosLista.status=this.value;renderListaTabela()">
+        <option value="">Todos status</option>
+        ${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${filtrosLista.status===k?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <select id="f-prioridade" onchange="filtrosLista.prioridade=this.value;renderListaTabela()">
+        <option value="">Todas prioridades</option>
+        ${Object.entries(PRIORIDADE).map(([k,v])=>`<option value="${k}" ${filtrosLista.prioridade===k?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <select id="f-tipo" onchange="filtrosLista.tipo=this.value;renderListaTabela()">
+        <option value="">Todos tipos</option>
+        ${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}" ${filtrosLista.tipo===k?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <select id="f-doc" onchange="filtrosLista.doc_tipo=this.value;renderListaTabela()">
+        <option value="">OS + PS</option>
+        <option value="os" ${filtrosLista.doc_tipo==='os'?'selected':''}>Somente OS</option>
+        <option value="ps" ${filtrosLista.doc_tipo==='ps'?'selected':''}>Somente PS</option>
+      </select>
+      <select id="f-departamento" onchange="filtrosLista.departamento=this.value;renderListaTabela()">
+        <option value="">Todos setores</option>
+        ${deps.map(dep=>`<option value="${dep}" ${filtrosLista.departamento===dep?'selected':''}>${dep}</option>`).join('')}
+      </select>
+      <select id="f-ordem" onchange="filtrosLista.ordem=this.value;renderListaTabela()">
+        <option value="prioridade" ${filtrosLista.ordem==='prioridade'?'selected':''}>Ordenar por prioridade</option>
+        <option value="abertura" ${filtrosLista.ordem==='abertura'?'selected':''}>Mais recentes</option>
+        <option value="prazo" ${filtrosLista.ordem==='prazo'?'selected':''}>Prazo mais curto</option>
+        <option value="titulo" ${filtrosLista.ordem==='titulo'?'selected':''}>Título A-Z</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <div class="filter-meta">Deck sincronizado com tema ${document.documentElement.getAttribute('data-theme')==='light'?'claro':'escuro'}.</div>
+      <button class="btn btn-outline" onclick="filtrosLista={q:'',status:'',prioridade:'',tipo:'',doc_tipo:'',departamento:'',ordem:'prioridade'};navigate('lista')">
+        <i class="bi bi-x-circle"></i> Limpar filtros
+      </button>
+    </div>
+  </div>
+  <div class="card">
+    <div id="lista-tabela"></div>
+  </div>`;
+  renderListaTabela();
+}
+
+function renderListaTabela(){
+  let dados = servicos.filter(s=>s.ativo);
+  const f = filtrosLista;
+  if(f.q) dados=dados.filter(s=>
+    s.titulo.toLowerCase().includes(f.q.toLowerCase())||
+    s.codigo.toLowerCase().includes(f.q.toLowerCase())||
+    (s.solicitante||'').toLowerCase().includes(f.q.toLowerCase())
+  );
+  if(f.status) dados=dados.filter(s=>s.status===f.status);
+  if(f.prioridade) dados=dados.filter(s=>s.prioridade===f.prioridade);
+  if(f.tipo) dados=dados.filter(s=>s.tipo===f.tipo);
+  if(f.doc_tipo) dados=dados.filter(s=>s.doc_tipo===f.doc_tipo);
+  if(f.departamento) dados=dados.filter(s=>s.departamento===f.departamento);
+
+  const priOrd={emergencia:0,critica:1,alta:2,media:3,baixa:4};
+  if(f.ordem==='abertura') dados.sort((a,b)=>(b.data_abertura||'').localeCompare(a.data_abertura||''));
+  else if(f.ordem==='prazo') dados.sort((a,b)=>(a.data_prevista||'9999-99-99').localeCompare(b.data_prevista||'9999-99-99'));
+  else if(f.ordem==='titulo') dados.sort((a,b)=>a.titulo.localeCompare(b.titulo,'pt-BR'));
+  else dados.sort((a,b)=>(priOrd[a.prioridade]||5)-(priOrd[b.prioridade]||5));
+
+  const el = document.getElementById('lista-tabela');
+  if(!el) return;
+  if(dados.length===0){
+    el.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text-muted)"><i class="bi bi-inbox" style="font-size:32px;display:block;margin-bottom:8px"></i>Nenhum serviço encontrado</div>`;
+    return;
+  }
+  const criticos = dados.filter(s=>s.prioridade==='critica').length;
+  const vencidos = dados.filter(isVencido).length;
+  el.innerHTML=`
+  <div style="padding:12px 14px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <span>${dados.length} serviço${dados.length!==1?'s':''} encontrado${dados.length!==1?'s':''}</span>
+    <span class="filter-meta">${criticos} críticos · ${vencidos} vencidos</span>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th>Código</th><th>Título</th><th>Tipo</th><th>Status</th><th>Prioridade</th>
+      <th>Solicitante</th><th>Abertura</th><th>Previsto</th><th>Progresso</th>
+    </tr></thead>
+    <tbody>
+      ${dados.map(s=>{
+        const v = isVencido(s);
+        const pct = pctEtapas(s);
+        return `<tr class="${v?'row-vencido':''}" onclick="navigate('detalhe',${s.id})">
+          <td class="mono">${s.codigo}</td>
+          <td style="max-width:240px;">
+            <div style="font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px">${s.titulo}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${TIPOS[s.tipo]||s.tipo}</div>
+          </td>
+          <td><span style="font-size:11px;color:var(--text-muted)">${s.doc_tipo.toUpperCase()}</span></td>
+          <td>${badgeStatus(s.status)}</td>
+          <td>${badgePri(s.prioridade)}</td>
+          <td style="font-size:12px">${s.solicitante||'—'}</td>
+          <td style="font-size:12px;white-space:nowrap">${fmtDate(s.data_abertura)}</td>
+          <td style="font-size:12px;white-space:nowrap">${v?`<span class="vencido-tag"><i class="bi bi-calendar-x me-1"></i>${fmtDate(s.data_prevista)}</span>`:fmtDate(s.data_prevista)}</td>
+          <td style="min-width:80px;">
+            ${s.etapas&&s.etapas.length?`
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="progress-bar-wrap" style="flex:1;"><div class="progress-bar-fill" style="width:${pct}%;background:${pct>=100?'var(--success)':pct>50?'var(--accent2)':'var(--warning)'}"></div></div>
+              <span style="font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;">${pct}%</span>
+            </div>`:'<span style="font-size:11px;color:var(--text-muted)">—</span>'}
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────
+//  KANBAN
+// ─────────────────────────────────────────────────────
+function renderKanban(el){
+  const kanbanCols = ['solicitado','preparacao','execucao','avaliacao','pronto'];
+  const colConfig = {
+    solicitado:{label:'Solicitado',icon:'bi-inbox'},
+    preparacao:{label:'Preparação',icon:'bi-tools'},
+    execucao:{label:'Em Execução',icon:'bi-gear-wide-connected'},
+    avaliacao:{label:'Avaliação',icon:'bi-hourglass-split'},
+    pronto:{label:'Pronto',icon:'bi-check-circle'},
+  };
+
+  el.innerHTML = `
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <div class="filter-bar" style="margin:0;flex:1;">
+      <input type="text" id="k-search" placeholder="🔍 Filtrar cards..." oninput="filterKanban(this.value)" style="min-width:200px;">
+    </div>
+    <button class="btn btn-primary" onclick="navigate('cadastro')"><i class="bi bi-plus-lg"></i> Nova OS</button>
+    <button class="btn btn-outline" onclick="navigate('lista')"><i class="bi bi-list-ul"></i> Ver Lista</button>
+  </div>
+  <div class="kanban-board" id="kanban-board">
+    ${kanbanCols.map(s=>{
+      const cards = servicos.filter(x=>x.ativo&&x.status===s);
+      const cfg = colConfig[s];
+      return `<div class="kanban-col col-${s}">
+        <div class="kanban-col-head">
+          <span><i class="bi ${cfg.icon} me-1"></i>${cfg.label}</span>
+          <span style="background:rgba(255,255,255,.2);padding:1px 7px;border-radius:10px;font-size:11px;">${cards.length}</span>
+        </div>
+        <div class="kanban-body" id="kcol-${s}">
+          ${cards.length===0?`<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px;">Nenhum serviço</div>`:''}
+          ${cards.map(c=>{
+            const v=isVencido(c);
+            const pct=pctEtapas(c);
+            return `<div class="k-card" onclick="showKanbanDetail(${c.id})">
+              <div class="k-code">${c.codigo}</div>
+              <div class="k-title">${c.titulo.substring(0,50)}${c.titulo.length>50?'…':''}</div>
+              ${badgePri(c.prioridade)}
+              <div class="k-meta" style="margin-top:6px;">
+                ${c.solicitante?`<div><i class="bi bi-person me-1"></i>${c.solicitante}</div>`:''}
+                ${c.data_prevista?`<div class="${v?'vencido-tag':''}"><i class="bi bi-calendar${v?'-x':''} me-1"></i>${fmtDate(c.data_prevista)}</div>`:''}
+                ${pct>0?`<div style="margin-top:4px;"><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:var(--accent2);"></div></div></div>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function filterKanban(q){
+  document.querySelectorAll('#kanban-board .k-card').forEach(card=>{
+    card.style.display = q==='' || card.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function showKanbanDetail(id){
+  const s = servicos.find(x=>x.id===id);
+  if(!s) return;
+  currentDetailQuickId = id;
+  document.getElementById('dr-title').textContent = `${s.codigo} · ${s.titulo.substring(0,40)}`;
+  document.getElementById('dr-body').innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+      ${badgeStatus(s.status)} ${badgePri(s.prioridade)}
+      <span style="font-size:12px;color:var(--text-muted)">Tipo: ${TIPOS[s.tipo]||s.tipo}</span>
+    </div>
+    <div style="font-size:13px;margin-bottom:14px;">${s.descricao||'Sem descrição.'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--text-muted);">
+      <div><i class="bi bi-person me-1"></i>${s.solicitante||'—'}</div>
+      <div><i class="bi bi-building me-1"></i>${s.departamento||'—'}</div>
+      <div><i class="bi bi-calendar-event me-1"></i>Abertura: ${fmtDate(s.data_abertura)}</div>
+      <div><i class="bi bi-calendar-check me-1"></i>Previsto: ${fmtDate(s.data_prevista)}</div>
+    </div>
+    ${s.etapas&&s.etapas.length?`
+    <div style="margin-top:14px;">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px;">Etapas (${s.etapas.filter(e=>e.status==='concluida').length}/${s.etapas.length})</div>
+      ${s.etapas.map(e=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;">
+          <i class="bi bi-${e.status==='concluida'?'check-circle-fill text-success':'circle' }" style="color:${e.status==='concluida'?'var(--success)':e.status==='em_andamento'?'var(--accent2)':'var(--text-muted)'}"></i>
+          <span>${e.titulo}</span>
+          <span style="margin-left:auto;color:var(--text-muted)">${e.responsavel||''}</span>
+        </div>`).join('')}
+    </div>`:''
+    }`;
+  openModal('modalDetalheRapido');
+}
+
+function openFullDetail(){
+  closeModal('modalDetalheRapido');
+  if(currentDetailQuickId) navigate('detalhe', currentDetailQuickId);
+}
+
+// ─────────────────────────────────────────────────────
+//  CADASTRO
+// ─────────────────────────────────────────────────────
+function renderCadastro(el, editId){
+  const s = editId ? servicos.find(x=>x.id===editId) : null;
+  const f = (k) => s ? (s[k]||'') : '';
+  el.innerHTML = `
+  <div class="card" style="max-width:780px;margin:0 auto;">
+    <div class="card-header"><h6><i class="bi bi-file-earmark-plus me-2" style="color:var(--accent2)"></i>${s?'Editar OS/PS':'Nova Ordem de Serviço / Pedido de Serviço'}</h6></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label>Título *</label>
+          <input type="text" id="c-titulo" value="${f('titulo')}" placeholder="Descreva o serviço solicitado" maxlength="255">
+        </div>
+        <div class="form-group form-full">
+          <label>Descrição</label>
+          <textarea id="c-descricao" rows="3" placeholder="Detalhes do problema, necessidade ou objetivo...">${f('descricao')}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Documento</label>
+          <select id="c-doc_tipo">
+            <option value="ps" ${f('doc_tipo')==='ps'||!s?'selected':''}>PS — Pedido de Serviço</option>
+            <option value="os" ${f('doc_tipo')==='os'?'selected':''}>OS — Ordem de Serviço</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tipo de Serviço</label>
+          <select id="c-tipo">
+            ${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}" ${f('tipo')===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="c-status">
+            ${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${(f('status')||'solicitado')===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Prioridade</label>
+          <select id="c-prioridade">
+            ${Object.entries(PRIORIDADE).map(([k,v])=>`<option value="${k}" ${(f('prioridade')||'media')===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Solicitante</label>
+          <input type="text" id="c-solicitante" value="${f('solicitante')||'L. Ferreira'}" placeholder="Nome">
+        </div>
+        <div class="form-group">
+          <label>Departamento Solicitante</label>
+          <input type="text" id="c-departamento" value="${f('departamento')}" placeholder="Ex: Esquadrão de Tecnologia">
+        </div>
+        <div class="form-group">
+          <label>Setor Executor</label>
+          <input type="text" id="c-setor" value="${f('setor_executor')}" placeholder="Ex: Manutenção Eletrônica">
+        </div>
+        <div class="form-group">
+          <label>Horas Previstas</label>
+          <input type="number" id="c-horas" value="${f('horas_previstas')||0}" min="0" step="0.5">
+        </div>
+        <div class="form-group">
+          <label>Data de Abertura</label>
+          <input type="date" id="c-data_abertura" value="${f('data_abertura')||today}">
+        </div>
+        <div class="form-group">
+          <label>Data Prevista de Conclusão</label>
+          <input type="date" id="c-data_prevista" value="${f('data_prevista')}">
+        </div>
+        <div class="form-group form-full">
+          <label>Observações</label>
+          <textarea id="c-observacoes" rows="2" placeholder="Informações adicionais...">${f('observacoes')}</textarea>
+        </div>
+      </div>
+      <div class="section-divider"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-outline" onclick="navigate('lista')"><i class="bi bi-x"></i> Cancelar</button>
+        <button class="btn btn-primary" onclick="submitCadastro(${editId||'null'})"><i class="bi bi-check-lg"></i> ${s?'Salvar Alterações':'Criar Serviço'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function submitCadastro(editId){
+  const titulo = document.getElementById('c-titulo').value.trim();
+  if(!titulo){ showToast('error','Título é obrigatório!'); return; }
+
+  const data = {
+    titulo, doc_tipo:document.getElementById('c-doc_tipo').value,
+    descricao:document.getElementById('c-descricao').value,
+    tipo:document.getElementById('c-tipo').value,
+    status:document.getElementById('c-status').value,
+    prioridade:document.getElementById('c-prioridade').value,
+    solicitante:document.getElementById('c-solicitante').value,
+    departamento:document.getElementById('c-departamento').value,
+    setor_executor:document.getElementById('c-setor').value,
+    horas_previstas:parseFloat(document.getElementById('c-horas').value)||0,
+    data_abertura:document.getElementById('c-data_abertura').value,
+    data_prevista:document.getElementById('c-data_prevista').value||null,
+    observacoes:document.getElementById('c-observacoes').value,
+    ativo:1, etapas:[], historico:[]
+  };
+
+  if(editId){
+    const idx = servicos.findIndex(s=>s.id===editId);
+    if(idx>=0){ Object.assign(servicos[idx], data); showToast('success','Serviço atualizado com sucesso!'); navigate('detalhe', editId); }
+  } else {
+    data.id = ++nextId;
+    data.codigo = genCodigo(data.doc_tipo);
+    data.data_inicio = null; data.data_conclusao = null; data.horas_realizadas = 0;
+    data.historico=[{tipo:'criacao',descricao:`${data.doc_tipo.toUpperCase()} criado.`,usuario_nome:data.solicitante||'Sistema',created_at:new Date().toISOString().slice(0,16).replace('T',' ')}];
+    servicos.unshift(data);
+    showToast('success',`${data.codigo} criado com sucesso!`);
+    navigate('lista');
+  }
+}
+
+// ─────────────────────────────────────────────────────
+//  DETALHE
+// ─────────────────────────────────────────────────────
+function renderDetalhe(el, id){
+  const s = servicos.find(x=>x.id===id);
+  if(!s){ el.innerHTML=`<div class="alert alert-danger">Serviço não encontrado.</div>`; return; }
+  currentDetailId = id;
+  const pct = pctEtapas(s);
+  const v = isVencido(s);
+
+  el.innerHTML = `
+  <!-- Header card -->
+  <div class="detail-header">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="flex:1;min-width:200px;">
+        <div class="detail-code">${s.doc_tipo.toUpperCase()} · ${s.codigo}</div>
+        <div class="detail-title">${s.titulo}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          ${badgeStatus(s.status)} ${badgePri(s.prioridade)}
+          <span class="badge" style="background:rgba(122,154,184,.15);color:var(--text-muted)">${TIPOS[s.tipo]||s.tipo}</span>
+        </div>
+        <div class="detail-meta">
+          <span class="detail-meta-item"><i class="bi bi-person"></i>${s.solicitante||'—'}</span>
+          <span class="detail-meta-item"><i class="bi bi-building"></i>${s.departamento||'—'}</span>
+          <span class="detail-meta-item"><i class="bi bi-calendar-event"></i>Abertura: ${fmtDate(s.data_abertura)}</span>
+          <span class="detail-meta-item ${v?'vencido-tag':''}"><i class="bi bi-calendar-check"></i>Previsto: ${fmtDate(s.data_prevista)}</span>
+          ${s.data_conclusao?`<span class="detail-meta-item" style="color:var(--success)"><i class="bi bi-check-circle"></i>Concluído: ${fmtDate(s.data_conclusao)}</span>`:''}
+        </div>
+        ${s.etapas&&s.etapas.length?`
+        <div style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:4px;">
+            <span>Progresso das etapas</span><span>${s.etapas.filter(e=>e.status==='concluida').length}/${s.etapas.length} · ${pct}%</span>
+          </div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;background:${pct>=100?'var(--success)':pct>50?'var(--accent2)':'var(--warning)'}"></div></div>
+        </div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+        <button class="btn btn-outline" onclick="navigate('cadastro');renderCadastro(document.querySelector('.page'),${id})">
+          <i class="bi bi-pencil"></i> Editar
+        </button>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="font-size:12px;color:var(--text-muted)">Status:</span>
+          <select onchange="changeStatus(${id},this.value)" style="background:var(--card-bg);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:5px;font-size:12px;">
+            ${Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${s.status===k?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs" id="detail-tabs">
+    <button class="tab-btn active" onclick="switchTab('tab-detalhes',this)"><i class="bi bi-info-circle me-1"></i>Detalhes</button>
+    <button class="tab-btn" onclick="switchTab('tab-etapas',this)"><i class="bi bi-list-check me-1"></i>Etapas (${(s.etapas||[]).length})</button>
+    <button class="tab-btn" onclick="switchTab('tab-historico',this)"><i class="bi bi-clock-history me-1"></i>Histórico</button>
+    <button class="tab-btn" onclick="switchTab('tab-custos',this)"><i class="bi bi-cash-coin me-1"></i>Custos</button>
+  </div>
+
+  <!-- Tab Detalhes -->
+  <div class="tab-pane active" id="tab-detalhes">
+    <div class="card">
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div><div style="font-size:11px;color:var(--text-muted)">Setor Executor</div><div style="font-size:13px;margin-top:3px;">${s.setor_executor||'—'}</div></div>
+          <div><div style="font-size:11px;color:var(--text-muted)">Horas Previstas</div><div style="font-size:13px;margin-top:3px;font-family:'IBM Plex Mono',monospace;">${s.horas_previstas||0}h</div></div>
+          <div><div style="font-size:11px;color:var(--text-muted)">Horas Realizadas</div><div style="font-size:13px;margin-top:3px;font-family:'IBM Plex Mono',monospace;">${s.horas_realizadas||0}h</div></div>
+          <div><div style="font-size:11px;color:var(--text-muted)">Data de Início</div><div style="font-size:13px;margin-top:3px;">${fmtDate(s.data_inicio)}</div></div>
+          <div><div style="font-size:11px;color:var(--text-muted)">Data de Conclusão</div><div style="font-size:13px;margin-top:3px;">${fmtDate(s.data_conclusao)}</div></div>
+        </div>
+        <div class="section-divider"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Descrição</div>
+        <div style="font-size:13px;line-height:1.6;">${s.descricao||'Nenhuma descrição informada.'}</div>
+        ${s.observacoes?`<div class="section-divider"></div><div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">Observações</div><div style="font-size:13px">${s.observacoes}</div>`:''}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Etapas -->
+  <div class="tab-pane" id="tab-etapas">
+    <div class="card">
+      <div class="card-header">
+        <h6><i class="bi bi-list-check me-1"></i>Etapas</h6>
+        <button class="btn btn-primary" onclick="addEtapaForm(${id})" style="font-size:12px;padding:5px 10px;"><i class="bi bi-plus"></i> Adicionar</button>
+      </div>
+      <div id="etapas-list">
+        ${renderEtapasList(s)}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Histórico -->
+  <div class="tab-pane" id="tab-historico">
+    <div class="card">
+      <div class="card-header"><h6><i class="bi bi-clock-history me-1"></i>Histórico de Alterações</h6></div>
+      <div class="card-body">
+        <div class="hist-list">
+          ${(s.historico||[]).slice().reverse().map(h=>`
+          <div class="hist-item">
+            <div class="hist-dot"></div>
+            <div class="hist-content">
+              <div class="hist-time">${h.created_at}</div>
+              <div class="hist-desc">${h.descricao}</div>
+              <div class="hist-user"><i class="bi bi-person-fill me-1"></i>${h.usuario_nome}</div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab Custos -->
+  <div class="tab-pane" id="tab-custos">
+    <div class="card">
+      <div class="card-header"><h6><i class="bi bi-cash-coin me-1"></i>Custos e Recursos</h6></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;">
+          <div class="ind-card"><div class="ind-val" style="font-size:20px;">R$ ${((s.horas_realizadas||0)*85).toFixed(2).replace('.',',')}</div><div class="ind-label">Mão de Obra</div></div>
+          <div class="ind-card"><div class="ind-val" style="font-size:20px;">R$ 0,00</div><div class="ind-label">Materiais</div></div>
+          <div class="ind-card"><div class="ind-val" style="font-size:20px;">R$ ${((s.horas_realizadas||0)*85).toFixed(2).replace('.',',')}</div><div class="ind-label">Total</div></div>
+        </div>
+        <div class="alert alert-info"><i class="bi bi-info-circle"></i>Nenhum material ou custo adicional registrado neste serviço.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderEtapasList(s){
+  if(!s.etapas||!s.etapas.length) return `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;"><i class="bi bi-list-check" style="font-size:24px;display:block;margin-bottom:6px;"></i>Nenhuma etapa cadastrada</div>`;
+  return `<div style="padding:4px 0;">${s.etapas.map(e=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);">
+      <i class="bi bi-${e.status==='concluida'?'check-circle-fill':'circle'}" style="font-size:17px;color:${e.status==='concluida'?'var(--success)':e.status==='em_andamento'?'var(--accent2)':'var(--text-muted)'};flex-shrink:0;cursor:pointer;" onclick="toggleEtapa(${s.id},${e.id})"></i>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;${e.status==='concluida'?'text-decoration:line-through;color:var(--text-muted)':''}">${e.titulo}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+          ${e.responsavel?`<i class="bi bi-person me-1"></i>${e.responsavel} · `:''}
+          ${e.data_prevista?`<i class="bi bi-calendar me-1"></i>${fmtDate(e.data_prevista)}`:''}
+        </div>
+      </div>
+      <div>
+        <select onchange="setEtapaStatus(${s.id},${e.id},this.value)" style="background:var(--card-bg);border:1px solid var(--border);color:var(--text);padding:3px 8px;border-radius:4px;font-size:11px;">
+          <option value="pendente" ${e.status==='pendente'?'selected':''}>Pendente</option>
+          <option value="em_andamento" ${e.status==='em_andamento'?'selected':''}>Em andamento</option>
+          <option value="concluida" ${e.status==='concluida'?'selected':''}>Concluída</option>
+        </select>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function toggleEtapa(sid, eid){
+  const s = servicos.find(x=>x.id===sid);
+  if(!s) return;
+  const e = s.etapas.find(x=>x.id===eid);
+  if(!e) return;
+  e.status = e.status==='concluida' ? 'em_andamento' : 'concluida';
+  if(e.status==='concluida') e.data_conclusao=today;
+  const el=document.getElementById('etapas-list');
+  if(el) el.innerHTML=renderEtapasList(s);
+  refreshDetailHeader(s);
+  showToast('success', e.status==='concluida'?'Etapa concluída!':'Etapa reaberta.');
+}
+
+function setEtapaStatus(sid, eid, st){
+  const s = servicos.find(x=>x.id===sid);
+  if(!s) return;
+  const e = s.etapas.find(x=>x.id===eid);
+  if(e){ e.status=st; if(st==='concluida') e.data_conclusao=today; }
+  refreshDetailHeader(s);
+}
+
+function refreshDetailHeader(s){
+  const pct=pctEtapas(s);
+  const pbar=document.querySelector('.progress-bar-fill');
+  if(pbar){ pbar.style.width=pct+'%'; pbar.style.background=pct>=100?'var(--success)':pct>50?'var(--accent2)':'var(--warning)'; }
+}
+
+function addEtapaForm(sid){
+  const s = servicos.find(x=>x.id===sid);
+  if(!s) return;
+  const titulo = prompt('Título da etapa:');
+  if(!titulo||!titulo.trim()) return;
+  const resp = prompt('Responsável (opcional):','1T Ferreira');
+  const id = Date.now();
+  s.etapas.push({id,titulo:titulo.trim(),status:'pendente',responsavel:resp||'',data_prevista:null,data_conclusao:null});
+  const el=document.getElementById('etapas-list');
+  if(el) el.innerHTML=renderEtapasList(s);
+  showToast('success','Etapa adicionada!');
+}
+
+function changeStatus(id, newStatus){
+  const s = servicos.find(x=>x.id===id);
+  if(!s) return;
+  const old = s.status;
+  s.status = newStatus;
+  if(newStatus==='execucao'&&!s.data_inicio) s.data_inicio=today;
+  if(newStatus==='pronto') s.data_conclusao=today;
+  s.historico.push({tipo:'status',descricao:`Status alterado: ${STATUS[old]||old} → ${STATUS[newStatus]||newStatus}`,usuario_nome:'1T Ferreira',created_at:new Date().toISOString().slice(0,16).replace('T',' ')});
+  showToast('success',`Status atualizado: ${STATUS[newStatus]||newStatus}`);
+  // refresh status badge
+  const badges = document.querySelectorAll('.detail-header .badge');
+  if(badges[0]) badges[0].outerHTML=badgeStatus(newStatus);
+}
+
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─────────────────────────────────────────────────────
+//  INDICADORES
+// ─────────────────────────────────────────────────────
+function renderIndicadores(el){
+  const ativos = servicos.filter(s=>s.ativo);
+  const total = ativos.length;
+  const abertas = ativos.filter(s=>['solicitado','preparacao','execucao'].includes(s.status)).length;
+  const concluidas = ativos.filter(s=>s.status==='pronto').length;
+  const vencidos = ativos.filter(isVencido).length;
+  const leadAvg = concluidas > 0 ? '4.2' : '—';
+
+  const byStatus = Object.entries(STATUS).map(([k,v])=>({label:v,count:ativos.filter(s=>s.status===k).length,k})).filter(x=>x.count>0);
+  const byPri = Object.entries(PRIORIDADE).map(([k,v])=>({label:v,count:ativos.filter(s=>s.prioridade===k).length,k})).filter(x=>x.count>0);
+  const byTipo = Object.entries(TIPOS).map(([k,v])=>({label:v,count:ativos.filter(s=>s.tipo===k).length,k})).filter(x=>x.count>0);
+  const maxS = Math.max(...byStatus.map(x=>x.count),1);
+  const maxP = Math.max(...byPri.map(x=>x.count),1);
+  const maxT = Math.max(...byTipo.map(x=>x.count),1);
+
+  const priColors={emergencia:'#ff3333',critica:var_css('--danger'),alta:'#ff6b81',media:var_css('--warning'),baixa:var_css('--text-muted')};
+  function var_css(v){const c=document.createElement('span');document.body.appendChild(c);const s=getComputedStyle(c).getPropertyValue(v).trim();c.remove();return s||'#888';}
+
+  el.innerHTML = `
+  <div class="ind-grid">
+    <div class="ind-card">
+      <div class="ind-val" style="color:var(--accent)">${total}</div>
+      <div class="ind-label">Total Serviços</div>
+    </div>
+    <div class="ind-card">
+      <div class="ind-val" style="color:var(--warning)">${abertas}</div>
+      <div class="ind-label">Em Aberto</div>
+    </div>
+    <div class="ind-card">
+      <div class="ind-val" style="color:var(--success)">${concluidas}</div>
+      <div class="ind-label">Concluídos</div>
+    </div>
+    <div class="ind-card">
+      <div class="ind-val" style="color:var(--danger)">${vencidos}</div>
+      <div class="ind-label">Vencidos</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-header"><h6>Por Status</h6></div>
+      <div class="card-body">
+        <div class="chart-bar-group">
+          ${byStatus.map(x=>`
+          <div class="chart-bar-row">
+            <div class="chart-bar-label">${x.label}</div>
+            <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(100*x.count/maxS)}%;background:var(--accent2);">${x.count}</div></div>
+            <div class="chart-bar-val">${x.count}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h6>Por Prioridade</h6></div>
+      <div class="card-body">
+        <div class="chart-bar-group">
+          ${byPri.map(x=>`
+          <div class="chart-bar-row">
+            <div class="chart-bar-label">${x.label}</div>
+            <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(100*x.count/maxP)}%;background:var(--warning);">${x.count}</div></div>
+            <div class="chart-bar-val">${x.count}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h6>Por Tipo</h6></div>
+      <div class="card-body">
+        <div class="chart-bar-group">
+          ${byTipo.map(x=>`
+          <div class="chart-bar-row">
+            <div class="chart-bar-label" style="width:120px">${x.label.split(' ')[0]}</div>
+            <div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(100*x.count/maxT)}%;background:var(--success);">${x.count}</div></div>
+            <div class="chart-bar-val">${x.count}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-header"><h6>Serviços Vencidos</h6><span class="badge" style="background:rgba(255,71,87,.2);color:var(--danger)">${vencidos}</span></div>
+      <div>
+        ${servicos.filter(s=>s.ativo&&isVencido(s)).length===0
+          ?`<div style="text-align:center;padding:24px;color:var(--success)"><i class="bi bi-check-circle" style="font-size:24px;display:block"></i>Nenhum vencido</div>`
+          :servicos.filter(s=>s.ativo&&isVencido(s)).map(s=>`
+          <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="navigate('detalhe',${s.id})">
+            <div>
+              <div class="mono" style="font-size:11px;color:var(--text-muted)">${s.codigo}</div>
+              <div style="font-size:13px">${s.titulo.substring(0,40)}${s.titulo.length>40?'…':''}</div>
+            </div>
+            <span class="vencido-tag" style="white-space:nowrap"><i class="bi bi-calendar-x me-1"></i>${fmtDate(s.data_prevista)}</span>
+          </div>`).join('')
+        }
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h6>Lead Time</h6></div>
+      <div class="card-body" style="text-align:center;padding:40px 16px;">
+        <div style="font-size:48px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--accent)">${leadAvg}</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:8px;">dias (média últimos 90 dias)</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:16px;">Taxa de conclusão no prazo: <strong style="color:var(--success)">73%</strong></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────
+//  RELATORIOS
+// ─────────────────────────────────────────────────────
+function renderRelatorios(el){
+  el.innerHTML = `
+  <div class="filter-bar" id="rel-filters">
+    <input type="text" id="rel-q" placeholder="🔍 Buscar..." oninput="renderRelTabela()" style="flex:1;min-width:180px;">
+    <select id="rel-status" onchange="renderRelTabela()">
+      <option value="">Todos status</option>
+      ${Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+    </select>
+    <select id="rel-periodo" onchange="renderRelTabela()">
+      <option value="">Qualquer período</option>
+      <option value="mes">Este mês</option>
+      <option value="semana">Esta semana</option>
+    </select>
+    <button class="btn btn-outline" onclick="exportCSV()"><i class="bi bi-download"></i> Exportar CSV</button>
+  </div>
+  <div class="card">
+    <div id="rel-tabela"></div>
+  </div>`;
+  renderRelTabela();
+}
+
+function renderRelTabela(){
+  const q=(document.getElementById('rel-q')||{}).value||'';
+  const st=(document.getElementById('rel-status')||{}).value||'';
+  let dados=servicos.filter(s=>s.ativo);
+  if(q) dados=dados.filter(s=>s.titulo.toLowerCase().includes(q.toLowerCase())||s.codigo.toLowerCase().includes(q.toLowerCase()));
+  if(st) dados=dados.filter(s=>s.status===st);
+  const el=document.getElementById('rel-tabela');
+  if(!el) return;
+  el.innerHTML=`
+  <div style="padding:10px 14px;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);">${dados.length} registros</div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th>Código</th><th>Título</th><th>Status</th><th>Tipo</th><th>Prioridade</th>
+      <th>Solicitante</th><th>Abertura</th><th>Previsto</th><th>Conclusão</th>
+    </tr></thead>
+    <tbody>
+      ${dados.map(s=>`<tr onclick="navigate('detalhe',${s.id})">
+        <td class="mono">${s.codigo}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.titulo}</td>
+        <td>${badgeStatus(s.status)}</td>
+        <td style="font-size:11px;color:var(--text-muted)">${TIPOS[s.tipo]||s.tipo}</td>
+        <td>${badgePri(s.prioridade)}</td>
+        <td style="font-size:12px;">${s.solicitante||'—'}</td>
+        <td style="font-size:12px;white-space:nowrap">${fmtDate(s.data_abertura)}</td>
+        <td style="font-size:12px;white-space:nowrap">${fmtDate(s.data_prevista)}</td>
+        <td style="font-size:12px;white-space:nowrap">${fmtDate(s.data_conclusao)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  </div>`;
+}
+
+function exportCSV(){
+  const headers=['Código','Título','Status','Tipo','Prioridade','Solicitante','Departamento','Abertura','Previsto','Conclusão'];
+  const rows=servicos.filter(s=>s.ativo).map(s=>[s.codigo,`"${s.titulo}"`,STATUS[s.status]||s.status,TIPOS[s.tipo]||s.tipo,PRIORIDADE[s.prioridade]||s.prioridade,s.solicitante||'',s.departamento||'',s.data_abertura||'',s.data_prevista||'',s.data_conclusao||'']);
+  const csv=[headers.join(';'),...rows.map(r=>r.join(';'))].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=`servicos_${today}.csv`;
+  a.click();
+  showToast('success','CSV exportado!');
+}
+
+// ─────────────────────────────────────────────────────
+//  CONFIGURACOES
+// ─────────────────────────────────────────────────────
+const configState = {
+  status: Object.entries(STATUS).map(([k,v])=>({k,v})),
+  prioridades: Object.entries(PRIORIDADE).map(([k,v])=>({k,v})),
+  tipos: Object.entries(TIPOS).map(([k,v])=>({k,v})),
+};
+
+function renderConfiguracoes(el){
+  el.innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;">
+    <div class="config-section">
+      <h6><i class="bi bi-tags me-2"></i>Status disponíveis</h6>
+      <div class="config-list">
+        ${configState.status.map(s=>`<div class="config-item"><span>${s.v}</span><span class="tag-priority mono">${s.k}</span></div>`).join('')}
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <input type="text" id="new-status-k" placeholder="chave_status" style="flex:1;">
+        <input type="text" id="new-status-v" placeholder="Rótulo" style="flex:1;">
+        <button class="btn btn-primary" onclick="addConfigItem('status','new-status-k','new-status-v')" style="padding:6px 10px;"><i class="bi bi-plus"></i></button>
+      </div>
+    </div>
+    <div class="config-section">
+      <h6><i class="bi bi-flag me-2"></i>Prioridades</h6>
+      <div class="config-list">
+        ${configState.prioridades.map(p=>`<div class="config-item"><span>${p.v}</span><span class="tag-priority mono">${p.k}</span></div>`).join('')}
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <input type="text" id="new-pri-k" placeholder="chave" style="flex:1;">
+        <input type="text" id="new-pri-v" placeholder="Rótulo" style="flex:1;">
+        <button class="btn btn-primary" onclick="addConfigItem('prioridades','new-pri-k','new-pri-v')" style="padding:6px 10px;"><i class="bi bi-plus"></i></button>
+      </div>
+    </div>
+    <div class="config-section">
+      <h6><i class="bi bi-tools me-2"></i>Tipos de Serviço</h6>
+      <div class="config-list">
+        ${configState.tipos.map(t=>`<div class="config-item"><span>${t.v}</span><span class="tag-priority mono">${t.k}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="config-section">
+      <h6><i class="bi bi-person-gear me-2"></i>Perfil Ativo</h6>
+      <div class="config-list">
+        <div class="config-item"><span>Nome</span><span>L. Ferreira</span></div>
+        <div class="config-item"><span>Cargo</span><span>1T RM2-EN</span></div>
+        <div class="config-item"><span>Papel</span><span class="tag-priority">Admin</span></div>
+        <div class="config-item"><span>Unidade</span><span>CMASM</span></div>
+        <div class="config-item"><span>UASG</span><span class="mono">744030</span></div>
+      </div>
+      <div class="section-divider"></div>
+      <h6><i class="bi bi-database me-2"></i>Dados</h6>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="showToast('success','Banco: localStorage simulado — OK')"><i class="bi bi-check-circle"></i> Verificar BD</button>
+        <button class="btn btn-danger-outline" onclick="if(confirm('Resetar dados de demonstração?')){location.reload();}"><i class="bi bi-arrow-counterclockwise"></i> Resetar Demo</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function addConfigItem(type, kidEl, vidEl){
+  const k=document.getElementById(kidEl).value.trim();
+  const v=document.getElementById(vidEl).value.trim();
+  if(!k||!v){showToast('error','Preencha chave e rótulo!');return;}
+  configState[type].push({k,v});
+  document.getElementById(kidEl).value='';
+  document.getElementById(vidEl).value='';
+  renderConfiguracoes(document.querySelector('.page'));
+  showToast('success','Item adicionado!');
+}
+
+// ─────────────────────────────────────────────────────
+//  MODAL
+// ─────────────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+// click outside
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+function submitNovoPS(){
+  const titulo=document.getElementById('ps-titulo').value.trim();
+  if(!titulo){showToast('error','Título é obrigatório!');return;}
+  const data={
+    id:++nextId, doc_tipo:'ps', codigo:genCodigo('ps'),
+    titulo, descricao:document.getElementById('ps-descricao').value,
+    tipo:document.getElementById('ps-tipo').value,
+    prioridade:document.getElementById('ps-prioridade').value,
+    status:'solicitado',
+    solicitante:document.getElementById('ps-solicitante').value,
+    departamento:document.getElementById('ps-departamento').value,
+    setor_executor:document.getElementById('ps-setor').value,
+    data_abertura:today, data_prevista:document.getElementById('ps-data').value||null,
+    data_inicio:null, data_conclusao:null,
+    horas_previstas:0, horas_realizadas:0, ativo:1, etapas:[],
+    historico:[{tipo:'criacao',descricao:'PS criado por solicitação.',usuario_nome:document.getElementById('ps-solicitante').value||'Sistema',created_at:new Date().toISOString().slice(0,16).replace('T',' ')}]
+  };
+  servicos.unshift(data);
+  closeModal('modalNovoPS');
+  document.getElementById('ps-titulo').value='';
+  document.getElementById('ps-descricao').value='';
+  showToast('success',`${data.codigo} criado com sucesso!`);
+  navigate('lista');
+}
+
+// ─────────────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────────────
+function showToast(type, msg){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  const icons={success:'bi-check-circle-fill',error:'bi-x-circle-fill',info:'bi-info-circle-fill'};
+  t.innerHTML=`<i class="bi ${icons[type]||icons.info}" style="font-size:16px;"></i><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(), 3500);
+}
+
+// ─────────────────────────────────────────────────────
+//  THEME TOGGLE
+// ─────────────────────────────────────────────────────
+function toggleTheme(){
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  if(isLight){
+    html.removeAttribute('data-theme');
+    document.getElementById('theme-label').innerHTML = '<i class="bi bi-sun"></i>&nbsp;Modo claro';
+    localStorage.setItem('xs-theme','dark');
+  } else {
+    html.setAttribute('data-theme','light');
+    document.getElementById('theme-label').innerHTML = '<i class="bi bi-moon"></i>&nbsp;Modo escuro';
+    localStorage.setItem('xs-theme','light');
+  }
+}
+
+// Persist theme across navigations
+(function initTheme(){
+  const saved = localStorage.getItem('xs-theme');
+  if(saved === 'light'){
+    document.documentElement.setAttribute('data-theme','light');
+    // label updated after DOM ready
+    document.addEventListener('DOMContentLoaded',()=>{
+      const lbl = document.getElementById('theme-label');
+      if(lbl) lbl.innerHTML = '<i class="bi bi-moon"></i>&nbsp;Modo escuro';
+    });
+  }
+})();
+
+// ─────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────
+navigate('dashboard');
+
+// Fix theme label after init render
+(function(){
+  const saved = localStorage.getItem('xs-theme');
+  if(saved === 'light'){
+    const lbl = document.getElementById('theme-label');
+    if(lbl) lbl.innerHTML = '<i class="bi bi-moon"></i>&nbsp;Modo escuro';
+  }
+})();
+</script>
+</body>
+</html>

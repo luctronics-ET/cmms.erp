@@ -1,0 +1,462 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   xCMASM Internal Module Shell  ·  assets/erp-module-shell.css
+   Centraliza tokens e estilo dos módulos internos (:8010)
+   Aplica o design system do ERP sobre todos os templates de módulo.
+
+   Body classes:
+     .erp-module-body      — módulos ativo-template (maq-corte, eletrica…)
+     .erp-transportes-body — módulo Transportes
+     .erp-bridge-body      — páginas-ponte (xmap, predial, seguranca…)
+     .erp-calibracao-body  — módulo Calibração (React + dark override)
+═══════════════════════════════════════════════════════════════════════ */
+
+
+/* ────────────────────────────────────────────────────────────────────
+   1. ATIVO-TEMPLATE MODULES  (body.erp-module-body)
+   Remaps ativo-template tokens to the ERP design system.
+   Modules load their own structural CSS; we override only the vars.
+──────────────────────────────────────────────────────────────────── */
+body.erp-module-body {
+  /* Background layers → ERP dark */
+  --bg:  #07111f;
+  --bg2: #0c1a2e;
+  --bg3: #112240;
+  --bg4: #162b4a;
+  /* Borders */
+  --bd:  rgba(100, 180, 255, 0.10);
+  --bd2: rgba(100, 180, 255, 0.18);
+  /* Text */
+  --tx:  #e2eaf4;
+  --tx2: #8fa8c8;
+  --tx3: #4a6785;
+  /* Accent: remap orange → ERP blue */
+  --or:    #3b82f6;
+  --or2:   #60a5fa;
+  --or-bg: rgba(59, 130, 246, 0.08);
+  /* Semantic status (dark-adjusted backgrounds) */
+  --gn:    #22c55e;  --gn-bg: rgba(34, 197, 94, 0.07);
+  --rd:    #ef4444;  --rd-bg: rgba(239, 68, 68, 0.07);
+  --am:    #f59e0b;  --am-bg: rgba(245, 158, 11, 0.07);
+  --bl:    #06b6d4;  --bl-bg: rgba(6, 182, 212, 0.07);
+  --tl:    #14b8a6;  --tl-bg: rgba(20, 184, 166, 0.07);
+  --pu:    #a78bfa;  --pu-bg: rgba(167, 139, 250, 0.07);
+  /* Fonts → ERP local (loaded via fonts.css) */
+  --font: 'DM Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --head: 'DM Sans', sans-serif;
+  /* Page background */
+  background:
+    radial-gradient(circle at top left,  rgba(59, 130, 246, .12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(6, 182, 212, .08), transparent 24%),
+    linear-gradient(180deg, #07111f 0%, #09152a 100%);
+  color: var(--tx);
+  font-family: var(--font);
+}
+
+/* Fix hardcoded orange in sidebar logo */
+body.erp-module-body .sb-logo {
+  background: linear-gradient(135deg, #3b82f6, #06b6d4) !important;
+}
+
+/* Sidebar glass */
+body.erp-module-body #sb {
+  background: rgba(12, 26, 46, 0.97);
+  backdrop-filter: blur(18px);
+  border-right-color: var(--bd);
+}
+
+/* Topbar glass */
+body.erp-module-body .tbar {
+  background: linear-gradient(180deg, rgba(12, 26, 46, 0.96), rgba(15, 30, 53, 0.92));
+  border-bottom-color: var(--bd);
+  backdrop-filter: blur(12px);
+}
+
+/* Back-to-CMASM pill */
+body.erp-module-body .tb-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--bd);
+  color: var(--tx2);
+  text-decoration: none;
+  font-size: 10px;
+  font-family: var(--mono);
+  transition: all .15s;
+}
+body.erp-module-body .tb-home:hover {
+  color: var(--tx);
+  border-color: var(--or);
+  background: var(--or-bg);
+}
+
+/* Cards & modals */
+body.erp-module-body .card,
+body.erp-module-body .mbox {
+  background: linear-gradient(180deg, rgba(15, 30, 53, 0.90), rgba(12, 26, 46, 0.88));
+  border-color: var(--bd);
+}
+
+/* Form fields */
+body.erp-module-body .inp,
+body.erp-module-body .sel,
+body.erp-module-body .txa {
+  background: rgba(17, 34, 64, 0.72);
+  border-color: var(--bd);
+}
+body.erp-module-body .inp:focus,
+body.erp-module-body .sel:focus,
+body.erp-module-body .txa:focus {
+  border-color: var(--or);
+  box-shadow: 0 0 0 3px var(--or-bg);
+}
+
+/* Primary button */
+body.erp-module-body .bp {
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  color: #fff;
+  border: none;
+}
+body.erp-module-body .bp:hover {
+  background: linear-gradient(135deg, #60a5fa, #22d3ee);
+}
+
+/* Scrollbar */
+body.erp-module-body ::-webkit-scrollbar        { width: 4px; height: 4px; }
+body.erp-module-body ::-webkit-scrollbar-track   { background: var(--bg2); }
+body.erp-module-body ::-webkit-scrollbar-thumb   { background: var(--bd2); border-radius: 3px; }
+
+
+/* ────────────────────────────────────────────────────────────────────
+   2. TRANSPORTES MODULE  (body.erp-transportes-body)
+   Remaps navy/gold/surface tokens to ERP design system.
+──────────────────────────────────────────────────────────────────── */
+body.erp-transportes-body {
+  /* Surface → ERP dark */
+  --surface-0: #07111f;
+  --surface-1: #0c1a2e;
+  --surface-2: #112240;
+  --surface-3: #162b4a;
+  /* Navy scale → ERP blue scale */
+  --navy-950: #07111f;  --navy-900: #0c1a2e;
+  --navy-800: #112240;  --navy-700: #162b4a;
+  --navy-600: rgba(59, 130, 246, 0.12);
+  --navy-500: rgba(59, 130, 246, 0.20);
+  --navy-400: #3b82f6;
+  --navy-300: #60a5fa;  --navy-200: #93c5fd;  --navy-100: #dbeafe;
+  /* Gold → ERP blue */
+  --gold:     #3b82f6;
+  --gold-dim: #60a5fa;
+  /* Text */
+  --text-1: #e2eaf4;  --text-2: #8fa8c8;  --text-3: #4a6785;
+  /* Borders */
+  --border:    rgba(100, 180, 255, 0.10);
+  --border-hi: rgba(100, 180, 255, 0.18);
+  /* Fonts → ERP */
+  --font: 'DM Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  /* Page background */
+  background:
+    radial-gradient(circle at top left,  rgba(59, 130, 246, .12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(6, 182, 212, .08), transparent 24%),
+    linear-gradient(180deg, #07111f 0%, #09152a 100%);
+  color: var(--text-1);
+  font-family: var(--font);
+}
+
+body.erp-transportes-body .topbar {
+  background: rgba(12, 26, 46, 0.96);
+  border-bottom-color: var(--border);
+  backdrop-filter: blur(12px);
+}
+body.erp-transportes-body .sidebar {
+  background: rgba(12, 26, 46, 0.97);
+  border-right-color: var(--border);
+}
+body.erp-transportes-body .nav-item.active {
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  border-left-color: #3b82f6;
+}
+body.erp-transportes-body .nav-item:hover {
+  background: rgba(59, 130, 246, 0.06);
+  color: var(--text-1);
+}
+body.erp-transportes-body .tb-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  text-decoration: none;
+  font-size: 10px;
+  font-family: var(--mono);
+  transition: all .15s;
+}
+body.erp-transportes-body .tb-home:hover {
+  color: var(--text-1);
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+}
+body.erp-transportes-body ::-webkit-scrollbar        { width: 4px; height: 4px; }
+body.erp-transportes-body ::-webkit-scrollbar-track   { background: var(--surface-1); }
+body.erp-transportes-body ::-webkit-scrollbar-thumb   { background: var(--border-hi); border-radius: 3px; }
+
+
+/* ────────────────────────────────────────────────────────────────────
+   3. BRIDGE PAGES  (body.erp-bridge-body)
+   Pages that launch external apps (xmap, predial, seguranca…).
+──────────────────────────────────────────────────────────────────── */
+body.erp-bridge-body {
+  --erp-bg:    #07111f;
+  --erp-bg2:   #0c1a2e;
+  --erp-panel: #0f1e35;
+  --erp-acc:   #3b82f6;
+  --erp-acc2:  #60a5fa;
+  --erp-cyan:  #06b6d4;
+  --erp-line:  rgba(100, 180, 255, 0.10);
+  --erp-text:  #e2eaf4;
+  --erp-text2: #8fa8c8;
+  --erp-text3: #4a6785;
+  --erp-sans:  'DM Sans', sans-serif;
+  --erp-mono:  'JetBrains Mono', monospace;
+  --erp-shadow: 0 14px 36px rgba(0, 0, 0, 0.34);
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 248px 1fr;
+  background:
+    radial-gradient(circle at top left,  rgba(59, 130, 246, .12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(6, 182, 212, .08), transparent 24%),
+    linear-gradient(180deg, #07111f 0%, #09152a 100%);
+  font-family: var(--erp-sans);
+  color: var(--erp-text);
+}
+body.erp-bridge-body .bridge-sidebar {
+  background: rgba(12, 26, 46, 0.98);
+  border-right: 1px solid var(--erp-line);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  backdrop-filter: blur(18px);
+  box-shadow: var(--erp-shadow);
+}
+body.erp-bridge-body .bridge-brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+body.erp-bridge-body .bridge-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  font-family: var(--erp-mono);
+  color: #fff;
+  font-weight: 700;
+}
+body.erp-bridge-body .bridge-brand strong { font-size: 12px; }
+body.erp-bridge-body .bridge-brand span,
+body.erp-bridge-body .bridge-meta,
+body.erp-bridge-body .bridge-home {
+  font-family: var(--erp-mono);
+  font-size: 10px;
+  color: var(--erp-text3);
+}
+body.erp-bridge-body .bridge-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--erp-line);
+  text-decoration: none;
+  color: var(--erp-text2);
+  transition: all .15s;
+}
+body.erp-bridge-body .bridge-home:hover {
+  color: var(--erp-text);
+  border-color: rgba(59, 130, 246, 0.30);
+  background: rgba(59, 130, 246, 0.07);
+}
+body.erp-bridge-body .bridge-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+body.erp-bridge-body .bridge-topbar {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(12, 26, 46, 0.96), rgba(15, 30, 53, 0.92));
+  border-bottom: 1px solid var(--erp-line);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--erp-shadow);
+}
+body.erp-bridge-body .bridge-title { font-size: 14px; font-weight: 700; }
+body.erp-bridge-body .bridge-sub {
+  font-size: 10px;
+  font-family: var(--erp-mono);
+  color: var(--erp-text3);
+}
+body.erp-bridge-body .bridge-content { padding: 24px; }
+body.erp-bridge-body .bridge-card {
+  max-width: 760px;
+  border: 1px solid var(--erp-line);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(15, 30, 53, 0.90), rgba(12, 26, 46, 0.88));
+  padding: 24px;
+  box-shadow: var(--erp-shadow);
+}
+body.erp-bridge-body .bridge-card h1 { font-size: 28px; line-height: 1.1; margin-bottom: 12px; }
+body.erp-bridge-body .bridge-card p  { color: var(--erp-text2); line-height: 1.7; }
+body.erp-bridge-body .bridge-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+body.erp-bridge-body .bridge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 1px solid var(--erp-line);
+  color: var(--erp-text);
+  background: rgba(17, 34, 64, 0.72);
+  transition: all .15s;
+}
+body.erp-bridge-body .bridge-btn.primary {
+  background: linear-gradient(135deg, #3b82f6, #06b6d4);
+  color: #fff;
+  border-color: transparent;
+}
+body.erp-bridge-body .bridge-btn:hover {
+  border-color: rgba(59, 130, 246, 0.30);
+  background: rgba(59, 130, 246, 0.07);
+  color: var(--erp-text);
+}
+body.erp-bridge-body .bridge-btn.primary:hover {
+  background: linear-gradient(135deg, #60a5fa, #22d3ee);
+  color: #fff;
+}
+body.erp-bridge-body .bridge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--erp-mono);
+  border: 1px solid currentColor;
+}
+body.erp-bridge-body .bridge-pill.ok    { color: #22c55e; background: rgba(34,197,94,.08); }
+body.erp-bridge-body .bridge-pill.warn  { color: #f59e0b; background: rgba(245,158,11,.08); }
+body.erp-bridge-body .bridge-pill.info  { color: #06b6d4; background: rgba(6,182,212,.08); }
+body.erp-bridge-body .bridge-pill.error { color: #ef4444; background: rgba(239,68,68,.08); }
+
+@media (max-width: 980px) {
+  body.erp-bridge-body {
+    grid-template-columns: 1fr;
+  }
+  body.erp-bridge-body .bridge-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--erp-line);
+  }
+}
+
+
+/* ────────────────────────────────────────────────────────────────────
+   4. CALIBRAÇÃO  (body.erp-calibracao-body)
+   Dark-theme override for the React calibration module.
+   Remaps its :root light vars to ERP dark palette.
+──────────────────────────────────────────────────────────────────── */
+body.erp-calibracao-body {
+  --bg:        #07111f;
+  --sf:        #0c1a2e;
+  --sf2:       #112240;
+  --bd:        rgba(100, 180, 255, 0.10);
+  --bd2:       rgba(100, 180, 255, 0.18);
+  --tx:        #e2eaf4;
+  --tx2:       #8fa8c8;
+  --tx3:       #4a6785;
+  --blue:      #3b82f6;
+  --blue-bg:   rgba(59, 130, 246, 0.08);
+  --blue-lt:   rgba(59, 130, 246, 0.14);
+  --green:     #22c55e;  --green-bg:  rgba(34, 197, 94, 0.07);
+  --red:       #ef4444;  --red-bg:    rgba(239, 68, 68, 0.07);
+  --red-lt:    rgba(239, 68, 68, 0.14);
+  --amber:     #f59e0b;  --amber-bg:  rgba(245, 158, 11, 0.07);
+  --orange:    #f97316;  --orange-bg: rgba(249, 115, 22, 0.07);
+  --purple:    #a78bfa;  --purple-bg: rgba(167, 139, 250, 0.07);
+  background:
+    radial-gradient(circle at top left,  rgba(59, 130, 246, .12), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(6, 182, 212, .08), transparent 24%),
+    linear-gradient(180deg, #07111f 0%, #09152a 100%);
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  color: var(--tx);
+}
+body.erp-calibracao-body .sb {
+  background: rgba(5, 13, 24, 0.98);
+  border-right: 1px solid rgba(100, 180, 255, 0.10);
+}
+body.erp-calibracao-body .topbar {
+  background: rgba(12, 26, 46, 0.96);
+  border-bottom-color: rgba(100, 180, 255, 0.10);
+  backdrop-filter: blur(12px);
+}
+body.erp-calibracao-body .card  { background: rgba(12, 26, 46, 0.85); border-color: var(--bd); }
+body.erp-calibracao-body .kpi   { background: rgba(12, 26, 46, 0.85); border-color: var(--bd); }
+body.erp-calibracao-body .twrap { border-color: var(--bd); }
+body.erp-calibracao-body thead tr { background: rgba(17, 34, 64, 0.80); }
+body.erp-calibracao-body tbody tr:hover { background: rgba(59, 130, 246, 0.05); }
+body.erp-calibracao-body .mod  { background: rgba(12, 26, 46, 0.98); border: 1px solid var(--bd); }
+body.erp-calibracao-body input,
+body.erp-calibracao-body select,
+body.erp-calibracao-body textarea {
+  background: rgba(17, 34, 64, 0.72);
+  border-color: var(--bd2);
+  color: var(--tx);
+}
+body.erp-calibracao-body input:focus,
+body.erp-calibracao-body select:focus,
+body.erp-calibracao-body textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-bg);
+}
+/* Fixed "← CMASM" link */
+body.erp-calibracao-body .calib-home {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(100, 180, 255, 0.20);
+  background: rgba(12, 26, 46, 0.92);
+  color: #8fa8c8;
+  text-decoration: none;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  backdrop-filter: blur(8px);
+  transition: all .15s;
+}
+body.erp-calibracao-body .calib-home:hover {
+  color: #e2eaf4;
+  border-color: rgba(59, 130, 246, 0.40);
+  background: rgba(59, 130, 246, 0.10);
+}
+body.erp-calibracao-body ::-webkit-scrollbar        { width: 4px; height: 4px; }
+body.erp-calibracao-body ::-webkit-scrollbar-track   { background: var(--sf); }
+body.erp-calibracao-body ::-webkit-scrollbar-thumb   { background: var(--bd2); border-radius: 3px; }

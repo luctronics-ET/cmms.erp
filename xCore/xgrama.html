@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>xGrama — Controle Vegetal · CMASM</title>
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/xcmasm-shell.css">
+<style>
+/* ── xGrama extras ── */
+.status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+.status-dot.ok      { background:var(--xc-green); }
+.status-dot.warn    { background:var(--xc-amber); }
+.status-dot.err     { background:var(--xc-red); }
+.status-dot.idle    { background:var(--xc-tx3); }
+
+.maq-card {
+  background:var(--xc-panel);
+  border:1px solid var(--xc-line);
+  border-radius:var(--xc-r);
+  padding:16px;
+  transition:.15s;
+}
+.maq-card:hover { border-color:var(--xc-line2); }
+.maq-card-top { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.maq-icon {
+  width:42px; height:42px; border-radius:9px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; flex-shrink:0;
+}
+.maq-icon.cortador  { background:rgba(34,197,94,.12); }
+.maq-icon.rocadeira { background:rgba(6,182,212,.12); }
+.maq-icon.motosserra{ background:rgba(245,158,11,.12); }
+.maq-icon.outro     { background:rgba(100,116,139,.12); }
+.maq-name { font-size:14px; font-weight:600; color:var(--xc-tx); }
+.maq-type { font-size:11px; color:var(--xc-tx2); }
+.maq-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.maq-stat { font-size:11px; }
+.maq-stat span { color:var(--xc-tx2); display:block; }
+.maq-stat strong { color:var(--xc-tx); font-weight:600; font-family:var(--xc-mono); }
+
+.area-row { border-bottom:1px solid var(--xc-line); }
+.area-row:last-child { border:none; }
+
+.op-timeline { display:flex; flex-direction:column; gap:0; }
+.op-item {
+  display:flex; gap:14px; align-items:flex-start;
+  padding:10px 0; border-bottom:1px solid var(--xc-line);
+  font-size:12px;
+}
+.op-item:last-child { border:none; }
+.op-dot-wrap { display:flex; flex-direction:column; align-items:center; width:14px; flex-shrink:0; padding-top:3px; }
+.op-dot { width:10px; height:10px; border-radius:50%; background:var(--xc-acc); flex-shrink:0; }
+.op-dot.grn { background:var(--xc-green); }
+.op-dot.amb { background:var(--xc-amber); }
+.op-line { flex:1; width:1px; background:var(--xc-line); min-height:16px; }
+.op-body { flex:1; }
+.op-title { font-weight:500; color:var(--xc-tx); }
+.op-meta  { color:var(--xc-tx2); margin-top:2px; }
+
+.prog-bar { height:5px; background:var(--xc-line2); border-radius:3px; overflow:hidden; margin-top:6px; }
+.prog-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--xc-acc),var(--xc-cyan)); transition:width .4s; }
+.prog-fill.grn { background:linear-gradient(90deg,var(--xc-green),#4ade80); }
+.prog-fill.amb { background:linear-gradient(90deg,var(--xc-amber),#fcd34d); }
+.prog-fill.red { background:linear-gradient(90deg,var(--xc-red),#f87171); }
+
+.cal-grid {
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:4px;
+}
+.cal-header { font-size:10px; text-align:center; color:var(--xc-tx2); padding:4px 0; font-weight:600; text-transform:uppercase; }
+.cal-day {
+  aspect-ratio:1; border-radius:6px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; font-size:12px; cursor:default;
+  position:relative;
+}
+.cal-day.other-month { color:var(--xc-tx3); }
+.cal-day.today { background:rgba(59,130,246,.15); color:var(--xc-acc2); font-weight:700; border:1px solid rgba(59,130,246,.3); }
+.cal-day.has-event::after {
+  content:''; position:absolute; bottom:4px;
+  width:5px; height:5px; border-radius:50%; background:var(--xc-green);
+}
+.cal-day.has-event.op::after { background:var(--xc-acc); }
+.cal-day.has-event.manut::after { background:var(--xc-amber); }
+
+.kcard-grama {
+  background:var(--xc-panel);
+  border:1px solid var(--xc-line);
+  border-radius:var(--xc-r);
+  padding:12px 14px;
+  margin-bottom:8px;
+  font-size:12px;
+  cursor:pointer;
+  transition:.15s;
+}
+.kcard-grama:hover { border-color:var(--xc-line2); background:var(--xc-bg2); }
+.kcard-grama .kt { font-weight:600; color:var(--xc-tx); margin-bottom:4px; }
+.kcard-grama .km { color:var(--xc-tx2); }
+
+.tab-row { display:flex; gap:0; border-bottom:1px solid var(--xc-line); margin-bottom:20px; }
+.tab-btn {
+  padding:8px 16px; font-size:13px; color:var(--xc-tx2); cursor:pointer;
+  border-bottom:2px solid transparent; transition:.15s; background:none; border-top:none;
+  border-left:none; border-right:none; font-family:var(--xc-sans);
+}
+.tab-btn.active { color:var(--xc-acc2); border-bottom-color:var(--xc-acc); }
+.tab-btn:hover:not(.active) { color:var(--xc-tx); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+</style>
+</head>
+<body>
+<!-- ── THEME INIT ── -->
+<script>(function(){const t=localStorage.getItem('xc_theme');if(t==='light')document.documentElement.classList.add('light');})()</script>
+
+<div class="xc-app">
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="xc-sb">
+  <div class="xc-sb-head">
+    <div class="xc-sb-mark">⟨G⟩</div>
+    <div class="xc-sb-brand">
+      <strong>xGrama</strong>
+      <small>Controle Vegetal</small>
+    </div>
+  </div>
+
+  <nav class="xc-sb-nav">
+    <div class="xc-sb-sec">Visão</div>
+    <a class="xc-ni active" onclick="showPage('dashboard')" href="#">
+      <span class="xc-ni-ico">◈</span>
+      <span class="xc-ni-label">Dashboard</span>
+    </a>
+    <a class="xc-ni" onclick="showPage('kanban')" href="#">
+      <span class="xc-ni-ico">⊞</span>
+      <span class="xc-ni-label">Kanban</span>
+    </a>
+    <a class="xc-ni" onclick="showPage('calendario')" href="#">
+      <span class="xc-ni-ico">◷</span>
+      <span class="xc-ni-label">Calendário</span>
+    </a>
+
+    <div class="xc-sb-sec">Gestão</div>
+    <a class="xc-ni" onclick="showPage('maquinas')" href="#">
+      <span class="xc-ni-ico">⚙</span>
+      <span class="xc-ni-label">Máquinas</span>
+    </a>
+    <a class="xc-ni" onclick="showPage('areas')" href="#">
+      <span class="xc-ni-ico">⊡</span>
+      <span class="xc-ni-label">Áreas</span>
+    </a>
+    <a class="xc-ni" onclick="showPage('operacoes')" href="#">
+      <span class="xc-ni-ico">▶</span>
+      <span class="xc-ni-label">Operações</span>
+    </a>
+    <a class="xc-ni" onclick="showPage('manutencao')" href="#">
+      <span class="xc-ni-ico">🔧</span>
+      <span class="xc-ni-label">Manutenção</span>
+    </a>
+    <a class="xc-ni" onclick="showPage('combustivel')" href="#">
+      <span class="xc-ni-ico">⛽</span>
+      <span class="xc-ni-label">Combustível</span>
+    </a>
+
+    <div class="xc-sb-sec">Sistema</div>
+    <a class="xc-ni" href="../cmasm-erp.html">
+      <span class="xc-ni-ico">⇚</span>
+      <span class="xc-ni-label">xCMASM</span>
+    </a>
+  </nav>
+
+  <div class="xc-sb-foot">
+    <button class="xc-theme-btn" onclick="toggleTheme()" id="themeBtn">◑ Tema Claro</button>
+    <div class="xc-sb-user">
+      <div class="xc-sb-avatar" id="sbAvatar">–</div>
+      <div>
+        <span id="sbName">–</span>
+        <small id="sbRole">Operador</small>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="xc-main">
+  <header class="xc-topbar">
+    <div>
+      <div class="xc-tb-title" id="pageTitle">Dashboard</div>
+      <div style="font-size:11px;color:var(--xc-tx2);margin-top:1px;">Controle de vegetação e equipamentos de corte</div>
+    </div>
+    <div class="xc-tb-right">
+      <button class="xc-btn xc-btn-p xc-btn-sm" onclick="openModal('modal-nova-op')">＋ Nova Operação</button>
+      <button class="xc-btn xc-btn-g xc-btn-sm" onclick="openModal('modal-nova-manut')">⚙ Manutenção</button>
+    </div>
+  </header>
+
+  <div class="xc-content">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="xc-page active" id="page-dashboard">
+      <div class="xc-g4" id="kpi-row" style="margin-bottom:24px;">
+        <div class="xc-kpi">
+          <div class="xc-kpi-icon acc">⚙</div>
+          <div>
+            <div class="xc-kpi-val" id="kpi-maq">–</div>
+            <div class="xc-kpi-label">Máquinas ativas</div>
+          </div>
+        </div>
+        <div class="xc-kpi">
+          <div class="xc-kpi-icon grn">⊡</div>
+          <div>
+            <div class="xc-kpi-val" id="kpi-areas">–</div>
+            <div class="xc-kpi-label">Áreas cadastradas</div>
+          </div>
+        </div>
+        <div class="xc-kpi">
+          <div class="xc-kpi-icon cyan">▶</div>
+          <div>
+            <div class="xc-kpi-val" id="kpi-ops">–</div>
+            <div class="xc-kpi-label">Operações (30d)</div>
+          </div>
+        </div>
+        <div class="xc-kpi">
+          <div class="xc-kpi-icon amb">⚠</div>
+          <div>
+            <div class="xc-kpi-val" id="kpi-manut">–</div>
+            <div class="xc-kpi-label">Manutenções pend.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="xc-g2" style="margin-bottom:24px;">
+        <!-- Máquinas status -->
+        <div class="xc-card">
+          <div class="xc-card-head">
+            <div class="xc-card-title">Frota de Equipamentos</div>
+            <button class="xc-btn xc-btn-xs xc-btn-g" onclick="showPage('maquinas')">Ver todas</button>
+          </div>
+          <div class="xc-card-body" id="dash-maq-list">
+            <div class="xc-empty">Carregando...</div>
+          </div>
+        </div>
+
+        <!-- Últimas operações -->
+        <div class="xc-card">
+          <div class="xc-card-head">
+            <div class="xc-card-title">Últimas Operações</div>
+            <button class="xc-btn xc-btn-xs xc-btn-g" onclick="showPage('operacoes')">Ver todas</button>
+          </div>
+          <div class="xc-card-body">
+            <div class="op-timeline" id="dash-ops-list">
+              <div class="xc-empty">Carregando...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="xc-g2">
+        <!-- Áreas por tipo -->
+        <div class="xc-card">
+          <div class="xc-card-head">
+            <div class="xc-card-title">Áreas por Tipo</div>
+          </div>
+          <div class="xc-card-body">
+            <div id="dash-areas-chart">
+              <div class="xc-empty">Carregando...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Próximas manutenções -->
+        <div class="xc-card">
+          <div class="xc-card-head">
+            <div class="xc-card-title">Próximas Manutenções</div>
+            <button class="xc-btn xc-btn-xs xc-btn-g" onclick="showPage('manutencao')">Ver todas</button>
+          </div>
+          <div class="xc-card-body" id="dash-manut-list">
+            <div class="xc-empty">Carregando...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── KANBAN ── -->
+    <div class="xc-page" id="page-kanban">
+      <div class="xc-kanban" id="kanban-board">
+        <div class="xc-kol">
+          <div class="xc-kol-head"><span>Agendado</span><span id="k-cnt-agendado" class="xc-ni-badge">0</span></div>
+          <div class="xc-kol-body" id="k-agendado"></div>
+        </div>
+        <div class="xc-kol">
+          <div class="xc-kol-head"><span>Em Execução</span><span id="k-cnt-execucao" class="xc-ni-badge">0</span></div>
+          <div class="xc-kol-body" id="k-execucao"></div>
+        </div>
+        <div class="xc-kol">
+          <div class="xc-kol-head"><span>Concluído</span><span id="k-cnt-concluido" class="xc-ni-badge">0</span></div>
+          <div class="xc-kol-body" id="k-concluido"></div>
+        </div>
+        <div class="xc-kol">
+          <div class="xc-kol-head"><span>Manutenção</span><span id="k-cnt-manutencao" class="xc-ni-badge">0</span></div>
+          <div class="xc-kol-body" id="k-manutencao"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CALENDÁRIO ── -->
+    <div class="xc-page" id="page-calendario">
+      <div class="xc-g2">
+        <div class="xc-card">
+          <div class="xc-card-head">
+            <button class="xc-btn xc-btn-xs xc-btn-g" onclick="calNav(-1)">‹</button>
+            <div class="xc-card-title" id="cal-month-label">–</div>
+            <button class="xc-btn xc-btn-xs xc-btn-g" onclick="calNav(1)">›</button>
+          </div>
+          <div class="xc-card-body">
+            <div class="cal-grid" id="cal-days-header"></div>
+            <div class="cal-grid" id="cal-days" style="margin-top:4px;"></div>
+          </div>
+        </div>
+        <div class="xc-card">
+          <div class="xc-card-head">
+            <div class="xc-card-title" id="cal-selected-label">Eventos do mês</div>
+          </div>
+          <div class="xc-card-body" id="cal-events-list">
+            <div class="xc-empty">Selecione um dia</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MÁQUINAS ── -->
+    <div class="xc-page" id="page-maquinas">
+      <div class="xc-filters">
+        <div class="xc-search">
+          <span style="color:var(--xc-tx2);">⌕</span>
+          <input class="xc-search-inp" id="filt-maq" oninput="filterMaquinas()" placeholder="Buscar equipamento…">
+        </div>
+        <select class="xc-sel" id="filt-maq-tipo" onchange="filterMaquinas()">
+          <option value="">Todos os tipos</option>
+          <option value="cortador">Cortador</option>
+          <option value="rocadeira">Roçadeira</option>
+          <option value="motosserra">Motosserra</option>
+        </select>
+        <select class="xc-sel" id="filt-maq-status" onchange="filterMaquinas()">
+          <option value="">Todos os status</option>
+          <option value="operacional">Operacional</option>
+          <option value="manutencao">Em Manutenção</option>
+          <option value="inativo">Inativo</option>
+        </select>
+        <button class="xc-btn xc-btn-p xc-btn-sm" onclick="openModal('modal-nova-maq')">＋ Cadastrar</button>
+      </div>
+      <div class="xc-g3" id="maq-grid">
+        <div class="xc-empty">Carregando...</div>
+      </div>
+    </div>
+
+    <!-- ── ÁREAS ── -->
+    <div class="xc-page" id="page-areas">
+      <div class="xc-filters">
+        <div class="xc-search">
+          <span style="color:var(--xc-tx2);">⌕</span>
+          <input class="xc-search-inp" id="filt-area" oninput="filterAreas()" placeholder="Buscar área…">
+        </div>
+        <select class="xc-sel" id="filt-area-tipo" onchange="filterAreas()">
+          <option value="">Todos os tipos</option>
+          <option value="corte">Corte</option>
+          <option value="poda">Poda</option>
+          <option value="limpeza">Limpeza</option>
+          <option value="mista">Mista</option>
+        </select>
+        <button class="xc-btn xc-btn-p xc-btn-sm" onclick="openModal('modal-nova-area')">＋ Nova Área</button>
+      </div>
+      <div class="xc-table-wrap">
+        <table class="xc-table">
+          <thead><tr>
+            <th>Código</th><th>Nome</th><th>Tipo</th><th>Área (m²)</th><th>Periodicidade</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="areas-tbody">
+            <tr><td colspan="7" style="text-align:center;color:var(--xc-tx2);padding:32px;">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── OPERAÇÕES ── -->
+    <div class="xc-page" id="page-operacoes">
+      <div class="xc-filters">
+        <div class="xc-search">
+          <span style="color:var(--xc-tx2);">⌕</span>
+          <input class="xc-search-inp" id="filt-op" oninput="filterOperacoes()" placeholder="Buscar operação…">
+        </div>
+        <select class="xc-sel" id="filt-op-status" onchange="filterOperacoes()">
+          <option value="">Todos os status</option>
+          <option value="agendado">Agendado</option>
+          <option value="execucao">Em Execução</option>
+          <option value="concluido">Concluído</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <input class="xc-inp" type="date" id="filt-op-data" onchange="filterOperacoes()" style="max-width:160px;">
+        <button class="xc-btn xc-btn-p xc-btn-sm" onclick="openModal('modal-nova-op')">＋ Nova Operação</button>
+      </div>
+      <div class="xc-table-wrap">
+        <table class="xc-table">
+          <thead><tr>
+            <th>Data</th><th>Área</th><th>Máquina</th><th>Operador</th><th>Duração</th><th>Combustível</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="ops-tbody">
+            <tr><td colspan="8" style="text-align:center;color:var(--xc-tx2);padding:32px;">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── MANUTENÇÃO ── -->
+    <div class="xc-page" id="page-manutencao">
+      <div class="xc-filters">
+        <div class="xc-search">
+          <span style="color:var(--xc-tx2);">⌕</span>
+          <input class="xc-search-inp" id="filt-manut" oninput="filterManut()" placeholder="Buscar manutenção…">
+        </div>
+        <select class="xc-sel" id="filt-manut-tipo" onchange="filterManut()">
+          <option value="">Todos os tipos</option>
+          <option value="preventiva">Preventiva</option>
+          <option value="corretiva">Corretiva</option>
+        </select>
+        <select class="xc-sel" id="filt-manut-status" onchange="filterManut()">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="em_andamento">Em andamento</option>
+          <option value="concluida">Concluída</option>
+        </select>
+        <button class="xc-btn xc-btn-p xc-btn-sm" onclick="openModal('modal-nova-manut')">＋ Registrar</button>
+      </div>
+      <div class="xc-table-wrap">
+        <table class="xc-table">
+          <thead><tr>
+            <th>Data</th><th>Máquina</th><th>Tipo</th><th>Descrição</th><th>Resp.</th><th>Custo</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="manut-tbody">
+            <tr><td colspan="8" style="text-align:center;color:var(--xc-tx2);padding:32px;">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── COMBUSTÍVEL ── -->
+    <div class="xc-page" id="page-combustivel">
+      <div class="xc-filters">
+        <select class="xc-sel" id="filt-comb-maq" onchange="filterCombustivel()">
+          <option value="">Todas as máquinas</option>
+        </select>
+        <input class="xc-inp" type="date" id="filt-comb-data" onchange="filterCombustivel()" style="max-width:160px;">
+        <button class="xc-btn xc-btn-p xc-btn-sm" onclick="openModal('modal-comb')">＋ Abastecimento</button>
+      </div>
+
+      <div class="xc-g4" style="margin-bottom:24px;">
+        <div class="xc-kpi">
+          <div class="xc-kpi-icon amb">⛽</div>
+          <div><div class="xc-kpi-val" id="comb-total">–</div><div class="xc-kpi-label">Total (L) / 30d</div></div>
+        </div>
+        <div class="xc-kpi">
+          <div class="xc-kpi-icon acc">⚙</div>
+          <div><div class="xc-kpi-val" id="comb-maior-maq">–</div><div class="xc-kpi-label">Maior consumidor</div></div>
+        </div>
+        <div class="xc-kpi">
+          <div class="xc-kpi-icon grn">◈</div>
+          <div><div class="xc-kpi-val" id="comb-media">–</div><div class="xc-kpi-label">Média L/operação</div></div>
+        </div>
+        <div class="xc-kpi">
+          <div class="xc-kpi-icon red">⚠</div>
+          <div><div class="xc-kpi-val" id="comb-custo">–</div><div class="xc-kpi-label">Custo estimado</div></div>
+        </div>
+      </div>
+
+      <div class="xc-table-wrap">
+        <table class="xc-table">
+          <thead><tr>
+            <th>Data</th><th>Máquina</th><th>Litros</th><th>Tipo</th><th>Operador</th><th>Obs.</th>
+          </tr></thead>
+          <tbody id="comb-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--xc-tx2);padding:32px;">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /.xc-content -->
+</div><!-- /.xc-main -->
+</div><!-- /.xc-app -->
+
+<!-- ═══════════════ MODAIS ═══════════════ -->
+
+<!-- Nova Operação -->
+<div class="xc-overlay" id="modal-nova-op" onclick="if(event.target===this)closeModal(this.id)">
+  <div class="xc-modal">
+    <div class="xc-modal-head">
+      <span>Nova Operação de Corte</span>
+      <button class="xc-modal-close" onclick="closeModal('modal-nova-op')">✕</button>
+    </div>
+    <div class="xc-modal-body">
+      <div class="xc-g2">
+        <div>
+          <label class="xc-label">Área *</label>
+          <select class="xc-sel" id="op-area" style="width:100%;"></select>
+        </div>
+        <div>
+          <label class="xc-label">Máquina *</label>
+          <select class="xc-sel" id="op-maquina" style="width:100%;"></select>
+        </div>
+        <div>
+          <label class="xc-label">Operador</label>
+          <input class="xc-inp" id="op-operador" style="width:100%;" placeholder="Nome do operador">
+        </div>
+        <div>
+          <label class="xc-label">Data</label>
+          <input class="xc-inp" type="date" id="op-data" style="width:100%;">
+        </div>
+        <div>
+          <label class="xc-label">Duração (min)</label>
+          <input class="xc-inp" type="number" id="op-duracao" style="width:100%;" placeholder="120">
+        </div>
+        <div>
+          <label class="xc-label">Combustível (L)</label>
+          <input class="xc-inp" type="number" id="op-combustivel" style="width:100%;" step="0.5" placeholder="5.0">
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label class="xc-label">Observações</label>
+        <textarea class="xc-txa" id="op-obs" rows="3" style="width:100%;" placeholder="Notas adicionais..."></textarea>
+      </div>
+    </div>
+    <div class="xc-modal-foot">
+      <button class="xc-btn xc-btn-g" onclick="closeModal('modal-nova-op')">Cancelar</button>
+      <button class="xc-btn xc-btn-p" onclick="salvarOperacao()">Salvar Operação</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nova Máquina -->
+<div class="xc-overlay" id="modal-nova-maq" onclick="if(event.target===this)closeModal(this.id)">
+  <div class="xc-modal">
+    <div class="xc-modal-head">
+      <span>Cadastrar Máquina</span>
+      <button class="xc-modal-close" onclick="closeModal('modal-nova-maq')">✕</button>
+    </div>
+    <div class="xc-modal-body">
+      <div class="xc-g2">
+        <div>
+          <label class="xc-label">Nome *</label>
+          <input class="xc-inp" id="maq-nome" style="width:100%;" placeholder="Ex: Cortador Husqvarna 550">
+        </div>
+        <div>
+          <label class="xc-label">Tipo *</label>
+          <select class="xc-sel" id="maq-tipo" style="width:100%;">
+            <option value="cortador">Cortador</option>
+            <option value="rocadeira">Roçadeira</option>
+            <option value="motosserra">Motosserra</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div>
+          <label class="xc-label">Modelo / Marca</label>
+          <input class="xc-inp" id="maq-modelo" style="width:100%;" placeholder="Ex: 550 / Husqvarna">
+        </div>
+        <div>
+          <label class="xc-label">Nº Série / Patrimônio</label>
+          <input class="xc-inp" id="maq-serie" style="width:100%;" placeholder="SN-XXXXX">
+        </div>
+        <div>
+          <label class="xc-label">Ano de Fabricação</label>
+          <input class="xc-inp" type="number" id="maq-ano" style="width:100%;" placeholder="2022">
+        </div>
+        <div>
+          <label class="xc-label">Horas acumuladas</label>
+          <input class="xc-inp" type="number" id="maq-horas" style="width:100%;" placeholder="0">
+        </div>
+      </div>
+    </div>
+    <div class="xc-modal-foot">
+      <button class="xc-btn xc-btn-g" onclick="closeModal('modal-nova-maq')">Cancelar</button>
+      <button class="xc-btn xc-btn-p" onclick="salvarMaquina()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nova Área -->
+<div class="xc-overlay" id="modal-nova-area" onclick="if(event.target===this)closeModal(this.id)">
+  <div class="xc-modal">
+    <div class="xc-modal-head">
+      <span>Nova Área de Serviço</span>
+      <button class="xc-modal-close" onclick="closeModal('modal-nova-area')">✕</button>
+    </div>
+    <div class="xc-modal-body">
+      <div class="xc-g2">
+        <div>
+          <label class="xc-label">Nome *</label>
+          <input class="xc-inp" id="area-nome" style="width:100%;" placeholder="Ex: Pátio Principal">
+        </div>
+        <div>
+          <label class="xc-label">Tipo *</label>
+          <select class="xc-sel" id="area-tipo" style="width:100%;">
+            <option value="corte">Corte</option>
+            <option value="poda">Poda</option>
+            <option value="limpeza">Limpeza</option>
+            <option value="mista">Mista</option>
+          </select>
+        </div>
+        <div>
+          <label class="xc-label">Área (m²)</label>
+          <input class="xc-inp" type="number" id="area-m2" style="width:100%;" placeholder="1500">
+        </div>
+        <div>
+          <label class="xc-label">Periodicidade (dias)</label>
+          <input class="xc-inp" type="number" id="area-periodo" style="width:100%;" placeholder="15">
+        </div>
+        <div>
+          <label class="xc-label">Localização / Referência</label>
+          <input class="xc-inp" id="area-loc" style="width:100%;" placeholder="Ex: Ao lado do pavilhão 3">
+        </div>
+      </div>
+    </div>
+    <div class="xc-modal-foot">
+      <button class="xc-btn xc-btn-g" onclick="closeModal('modal-nova-area')">Cancelar</button>
+      <button class="xc-btn xc-btn-p" onclick="salvarArea()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nova Manutenção -->
+<div class="xc-overlay" id="modal-nova-manut" onclick="if(event.target===this)closeModal(this.id)">
+  <div class="xc-modal">
+    <div class="xc-modal-head">
+      <span>Registrar Manutenção</span>
+      <button class="xc-modal-close" onclick="closeModal('modal-nova-manut')">✕</button>
+    </div>
+    <div class="xc-modal-body">
+      <div class="xc-g2">
+        <div>
+          <label class="xc-label">Máquina *</label>
+          <select class="xc-sel" id="manut-maq" style="width:100%;"></select>
+        </div>
+        <div>
+          <label class="xc-label">Tipo</label>
+          <select class="xc-sel" id="manut-tipo" style="width:100%;">
+            <option value="preventiva">Preventiva</option>
+            <option value="corretiva">Corretiva</option>
+          </select>
+        </div>
+        <div>
+          <label class="xc-label">Data *</label>
+          <input class="xc-inp" type="date" id="manut-data" style="width:100%;">
+        </div>
+        <div>
+          <label class="xc-label">Responsável</label>
+          <input class="xc-inp" id="manut-resp" style="width:100%;" placeholder="Nome do mecânico/responsável">
+        </div>
+        <div>
+          <label class="xc-label">Custo (R$)</label>
+          <input class="xc-inp" type="number" id="manut-custo" style="width:100%;" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label class="xc-label">Descrição do serviço *</label>
+        <textarea class="xc-txa" id="manut-desc" rows="3" style="width:100%;" placeholder="Descreva o serviço realizado..."></textarea>
+      </div>
+    </div>
+    <div class="xc-modal-foot">
+      <button class="xc-btn xc-btn-g" onclick="closeModal('modal-nova-manut')">Cancelar</button>
+      <button class="xc-btn xc-btn-p" onclick="salvarManutencao()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Abastecimento -->
+<div class="xc-overlay" id="modal-comb" onclick="if(event.target===this)closeModal(this.id)">
+  <div class="xc-modal">
+    <div class="xc-modal-head">
+      <span>Registrar Abastecimento</span>
+      <button class="xc-modal-close" onclick="closeModal('modal-comb')">✕</button>
+    </div>
+    <div class="xc-modal-body">
+      <div class="xc-g2">
+        <div>
+          <label class="xc-label">Máquina *</label>
+          <select class="xc-sel" id="comb-maq" style="width:100%;"></select>
+        </div>
+        <div>
+          <label class="xc-label">Litros *</label>
+          <input class="xc-inp" type="number" id="comb-litros" step="0.5" style="width:100%;" placeholder="5.0">
+        </div>
+        <div>
+          <label class="xc-label">Data</label>
+          <input class="xc-inp" type="date" id="comb-data-inp" style="width:100%;">
+        </div>
+        <div>
+          <label class="xc-label">Tipo de combustível</label>
+          <select class="xc-sel" id="comb-tipo-comb" style="width:100%;">
+            <option value="gasolina">Gasolina</option>
+            <option value="diesel">Diesel</option>
+            <option value="mistura">Mistura (2T)</option>
+          </select>
+        </div>
+        <div>
+          <label class="xc-label">Operador</label>
+          <input class="xc-inp" id="comb-operador" style="width:100%;" placeholder="Quem realizou o abastecimento">
+        </div>
+      </div>
+    </div>
+    <div class="xc-modal-foot">
+      <button class="xc-btn xc-btn-g" onclick="closeModal('modal-comb')">Cancelar</button>
+      <button class="xc-btn xc-btn-p" onclick="salvarCombustivel()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TOASTS ═══════════════ -->
+<div id="xc-toasts"></div>
+
+<!-- ═══════════════ SCRIPT ═══════════════ -->
+<script>
+const API = 'http://localhost:8010/api/grama';
+const TODAY = new Date().toISOString().slice(0,10);
+
+// ── STATE ──────────────────────────────────────────
+let maquinas = [], areas = [], operacoes = [], manutencoes = [], combustivel = [];
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+let calEventos = [];
+
+// ── SEEDS (offline fallback) ───────────────────────
+const SEED_MAQ = [
+  {id:1, nome:'Cortador Husqvarna 550', tipo:'cortador', modelo:'550', status:'operacional', horas_acumuladas:380},
+  {id:2, nome:'Roçadeira Stihl FS 55', tipo:'rocadeira', modelo:'FS 55', status:'operacional', horas_acumuladas:210},
+  {id:3, nome:'Motosserra Stihl MS 251', tipo:'motosserra', modelo:'MS 251', status:'manutencao', horas_acumuladas:145},
+  {id:4, nome:'Cortador Murray M2510', tipo:'cortador', modelo:'M2510', status:'inativo', horas_acumuladas:620},
+];
+const SEED_AREAS = [
+  {id:1, nome:'Pátio Principal', tipo:'corte', area_m2:4500, periodicidade_dias:14, status:'ativa'},
+  {id:2, nome:'Entorno Pavilhão 3', tipo:'mista', area_m2:1200, periodicidade_dias:21, status:'ativa'},
+  {id:3, nome:'Acesso Principal', tipo:'poda', area_m2:800, periodicidade_dias:30, status:'ativa'},
+  {id:4, nome:'Área de Manobra', tipo:'limpeza', area_m2:2200, periodicidade_dias:28, status:'ativa'},
+  {id:5, nome:'Jardim HQ', tipo:'poda', area_m2:350, periodicidade_dias:7, status:'ativa'},
+];
+const SEED_OPS = [
+  {id:1, area_id:1, maquina_id:1, operador:'Sgt Silva', data:'2026-04-28', duracao_min:180, combustivel_l:8.5, status:'concluido'},
+  {id:2, area_id:2, maquina_id:2, operador:'Cb Souza', data:'2026-04-25', duracao_min:90, combustivel_l:2.5, status:'concluido'},
+  {id:3, area_id:3, maquina_id:2, operador:'Sgt Silva', data:'2026-05-05', duracao_min:60, combustivel_l:2.0, status:'agendado'},
+  {id:4, area_id:1, maquina_id:1, operador:'Cb Pereira', data:'2026-05-10', duracao_min:200, combustivel_l:9.0, status:'agendado'},
+];
+const SEED_MANUT = [
+  {id:1, maquina_id:1, tipo:'preventiva', descricao:'Troca de lâminas + filtro de ar', data:'2026-04-20', responsavel:'Sgt Borges', custo:185.50, status:'concluida'},
+  {id:2, maquina_id:3, tipo:'corretiva', descricao:'Substituição da vela de ignição', data:'2026-04-22', responsavel:'Sgt Borges', custo:45.00, status:'em_andamento'},
+  {id:3, maquina_id:1, tipo:'preventiva', descricao:'Troca de óleo motor', data:'2026-05-15', responsavel:'', custo:0, status:'pendente'},
+];
+const SEED_COMB = [
+  {id:1, maquina_id:1, litros:8.5, tipo_combustivel:'gasolina', data:'2026-04-28', operador:'Sgt Silva'},
+  {id:2, maquina_id:2, litros:2.5, tipo_combustivel:'mistura', data:'2026-04-25', operador:'Cb Souza'},
+  {id:3, maquina_id:2, litros:3.0, tipo_combustivel:'mistura', data:'2026-04-18', operador:'Sgt Silva'},
+];
+
+// ── API HELPERS ──────────────────────────────────────
+async function get(path) {
+  const r = await fetch(API + path, {headers:{Authorization:'Bearer '+localStorage.getItem('xcmasm_token')||''}});
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function post(path, body) {
+  const r = await fetch(API + path, {method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('xcmasm_token')||''},body:JSON.stringify(body)});
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+// ── LOAD ALL ────────────────────────────────────────
+async function loadAll() {
+  try { maquinas = await get('/maquinas'); } catch { maquinas = SEED_MAQ; }
+  try { areas = await get('/areas'); } catch { areas = SEED_AREAS; }
+  try { operacoes = await get('/operacoes'); } catch { operacoes = SEED_OPS; }
+  try { manutencoes = await get('/manutencao'); } catch { manutencoes = SEED_MANUT; }
+  try { combustivel = await get('/combustivel'); } catch { combustivel = SEED_COMB; }
+  try { calEventos = await get('/calendario'); } catch { calEventos = []; }
+  populateSelects();
+  renderDashboard();
+  renderKanban();
+  renderCalendario();
+  renderMaquinas();
+  renderAreas();
+  renderOperacoes();
+  renderManutencao();
+  renderCombustivel();
+}
+
+// ── USER from localStorage ───────────────────────────
+function initUser() {
+  try {
+    const u = JSON.parse(localStorage.getItem('xcmasm_user') || '{}');
+    if (u.nome) {
+      const av = document.getElementById('sbAvatar');
+      av.textContent = u.nome.charAt(0).toUpperCase();
+      document.getElementById('sbName').textContent = u.nome;
+      document.getElementById('sbRole').textContent = u.cargo || 'Operador';
+    }
+  } catch {}
+}
+
+// ── PAGE NAVIGATION ──────────────────────────────────
+const PAGES = ['dashboard','kanban','calendario','maquinas','areas','operacoes','manutencao','combustivel'];
+const PAGE_LABELS = {dashboard:'Dashboard',kanban:'Kanban de Tarefas',calendario:'Calendário de Operações',
+  maquinas:'Frota de Equipamentos',areas:'Áreas de Serviço',operacoes:'Registro de Operações',
+  manutencao:'Manutenção de Equipamentos',combustivel:'Controle de Combustível'};
+
+function showPage(id) {
+  PAGES.forEach(p => {
+    const el = document.getElementById('page-'+p);
+    if (el) el.classList.toggle('active', p === id);
+  });
+  document.querySelectorAll('.xc-ni').forEach(n => n.classList.remove('active'));
+  event && event.currentTarget && event.currentTarget.classList.add('active');
+  document.getElementById('pageTitle').textContent = PAGE_LABELS[id] || id;
+}
+
+// ── THEME ────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  localStorage.setItem('xc_theme', isLight ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = isLight ? '◑ Tema Escuro' : '◑ Tema Claro';
+}
+
+// ── MODALS ────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── TOAST ─────────────────────────────────────────────
+function toast(msg, type='info') {
+  const c = document.getElementById('xc-toasts');
+  const t = document.createElement('div');
+  t.className = `xc-toast ${type==='success'?'ok':type==='error'?'err':type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ── POPULATE SELECTS ──────────────────────────────────
+function populateSelects() {
+  const maqOpts = maquinas.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  ['op-maquina','manut-maq','comb-maq'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<option value="">— selecione —</option>' + maqOpts;
+  });
+  const manutMaqFilt = document.getElementById('filt-comb-maq');
+  if (manutMaqFilt) manutMaqFilt.innerHTML = '<option value="">Todas as máquinas</option>' + maqOpts;
+
+  const areaOpts = areas.map(a=>`<option value="${a.id}">${a.nome}</option>`).join('');
+  const opArea = document.getElementById('op-area');
+  if (opArea) opArea.innerHTML = '<option value="">— selecione —</option>' + areaOpts;
+
+  // default dates
+  ['op-data','manut-data','comb-data-inp'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = TODAY;
+  });
+}
+
+// ── HELPERS ──────────────────────────────────────────
+function maqName(id) { const m = maquinas.find(x=>x.id==id); return m ? m.nome : `#${id}`; }
+function areaName(id) { const a = areas.find(x=>x.id==id); return a ? a.nome : `#${id}`; }
+
+function statusBadge(s) {
+  const map = {
+    operacional:'xc-badge-grn', manutencao:'xc-badge-amb', inativo:'xc-badge-tx2',
+    agendado:'xc-badge-acc', execucao:'xc-badge-cyan', concluido:'xc-badge-grn', cancelado:'xc-badge-red',
+    ativa:'xc-badge-grn', inativa:'xc-badge-tx2',
+    pendente:'xc-badge-amb', em_andamento:'xc-badge-cyan', concluida:'xc-badge-grn',
+    preventiva:'xc-badge-acc', corretiva:'xc-badge-red',
+  };
+  const labels = {
+    operacional:'Operacional', manutencao:'Manutenção', inativo:'Inativo',
+    agendado:'Agendado', execucao:'Em Execução', concluido:'Concluído', cancelado:'Cancelado',
+    ativa:'Ativa', inativa:'Inativa',
+    pendente:'Pendente', em_andamento:'Em andamento', concluida:'Concluída',
+    preventiva:'Preventiva', corretiva:'Corretiva',
+  };
+  return `<span class="xc-badge ${map[s]||'xc-badge-tx2'}">${labels[s]||s}</span>`;
+}
+
+function maqIcon(tipo) {
+  const icons = {cortador:'🌿', rocadeira:'⚙', motosserra:'🪵', outro:'🔧'};
+  return icons[tipo] || '⚙';
+}
+
+// ── DASHBOARD ─────────────────────────────────────────
+function renderDashboard() {
+  const ativas = maquinas.filter(m=>m.status==='operacional').length;
+  const pend = manutencoes.filter(m=>m.status==='pendente'||m.status==='em_andamento').length;
+  const ops30 = operacoes.length;
+  document.getElementById('kpi-maq').textContent = ativas;
+  document.getElementById('kpi-areas').textContent = areas.length;
+  document.getElementById('kpi-ops').textContent = ops30;
+  document.getElementById('kpi-manut').textContent = pend;
+
+  // Frota cards
+  const maqList = document.getElementById('dash-maq-list');
+  maqList.innerHTML = maquinas.map(m => `
+    <div class="maq-card" style="margin-bottom:10px;">
+      <div class="maq-card-top">
+        <div class="maq-icon ${m.tipo}">${maqIcon(m.tipo)}</div>
+        <div>
+          <div class="maq-name">${m.nome}</div>
+          <div class="maq-type">${m.tipo} · ${m.modelo||''}</div>
+        </div>
+        <div style="margin-left:auto;">${statusBadge(m.status)}</div>
+      </div>
+      <div class="maq-stats">
+        <div class="maq-stat"><span>Horas</span><strong>${m.horas_acumuladas||0}h</strong></div>
+        <div class="maq-stat"><span>Status</span><strong>${m.status}</strong></div>
+      </div>
+    </div>
+  `).join('');
+
+  // Últimas operações
+  const opsList = document.getElementById('dash-ops-list');
+  const recent = [...operacoes].sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5);
+  if (!recent.length) { opsList.innerHTML = '<div class="xc-empty">Nenhuma operação registrada</div>'; return; }
+  opsList.innerHTML = recent.map((op,i) => `
+    <div class="op-item">
+      <div class="op-dot-wrap">
+        <div class="op-dot ${op.status==='concluido'?'grn':op.status==='agendado'?'':'amb'}"></div>
+        ${i < recent.length-1 ? '<div class="op-line"></div>' : ''}
+      </div>
+      <div class="op-body">
+        <div class="op-title">${areaName(op.area_id)} · ${maqName(op.maquina_id)}</div>
+        <div class="op-meta">${op.data} · ${op.operador||'—'} · ${op.duracao_min||0}min · ${op.combustivel_l||0}L</div>
+      </div>
+      ${statusBadge(op.status)}
+    </div>
+  `).join('');
+
+  // Áreas por tipo
+  const tipoCount = areas.reduce((acc,a)=>{ acc[a.tipo]=(acc[a.tipo]||0)+1; return acc; }, {});
+  const tipoColors = {corte:'var(--xc-green)',poda:'var(--xc-acc)',limpeza:'var(--xc-cyan)',mista:'var(--xc-amber)'};
+  document.getElementById('dash-areas-chart').innerHTML = Object.entries(tipoCount).map(([t,n])=>`
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+        <span style="color:var(--xc-tx);text-transform:capitalize;">${t}</span>
+        <span class="xc-mono" style="color:var(--xc-tx2);">${n} área${n>1?'s':''}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${Math.round(n/areas.length*100)}%;background:${tipoColors[t]||'var(--xc-acc)'};"></div></div>
+    </div>
+  `).join('');
+
+  // Próximas manutenções
+  const nextManut = manutencoes.filter(m=>m.status==='pendente').slice(0,4);
+  document.getElementById('dash-manut-list').innerHTML = nextManut.length
+    ? nextManut.map(m=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--xc-line);font-size:12px;">
+        <div>
+          <div style="font-weight:600;color:var(--xc-tx);">${maqName(m.maquina_id)}</div>
+          <div style="color:var(--xc-tx2);">${m.descricao.slice(0,40)}${m.descricao.length>40?'…':''}</div>
+        </div>
+        <div style="text-align:right;">
+          ${statusBadge(m.tipo)}
+          <div class="xc-mono" style="font-size:11px;color:var(--xc-tx2);margin-top:4px;">${m.data}</div>
+        </div>
+      </div>
+    `).join('')
+    : '<div class="xc-empty">Nenhuma manutenção pendente</div>';
+}
+
+// ── KANBAN ────────────────────────────────────────────
+function renderKanban() {
+  const cols = {agendado:[], execucao:[], concluido:[], manutencao:[]};
+  operacoes.forEach(op => {
+    const col = op.status === 'execucao' ? 'execucao' : op.status === 'concluido' ? 'concluido' : 'agendado';
+    cols[col].push(op);
+  });
+  manutencoes.filter(m=>m.status!=='concluida').forEach(m => cols.manutencao.push(m));
+
+  Object.entries(cols).forEach(([col, items]) => {
+    document.getElementById('k-cnt-'+col).textContent = items.length;
+    document.getElementById('k-'+col).innerHTML = items.length
+      ? items.map(item => {
+          const isManut = item.descricao !== undefined;
+          return `<div class="xc-kcard">
+            <div style="font-weight:600;font-size:13px;color:var(--xc-tx);margin-bottom:6px;">
+              ${isManut ? maqName(item.maquina_id) : areaName(item.area_id)}
+            </div>
+            <div style="font-size:11px;color:var(--xc-tx2);">
+              ${isManut ? item.descricao.slice(0,50) : `${maqName(item.maquina_id)} · ${item.operador||'—'}`}
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              ${statusBadge(isManut?item.tipo:item.status)}
+              <span class="xc-mono" style="font-size:10px;color:var(--xc-tx3);">${item.data}</span>
+            </div>
+          </div>`;
+        }).join('')
+      : `<div class="xc-empty" style="font-size:12px;padding:20px 0;">Vazio</div>`;
+  });
+}
+
+// ── CALENDÁRIO ────────────────────────────────────────
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const DAYS_ABBR = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function renderCalendario() {
+  document.getElementById('cal-month-label').textContent = `${MONTHS[calMonth]} ${calYear}`;
+
+  const header = document.getElementById('cal-days-header');
+  header.innerHTML = DAYS_ABBR.map(d=>`<div class="cal-header">${d}</div>`).join('');
+
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const days = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date();
+
+  // events by date
+  const evByDate = {};
+  operacoes.forEach(op => { evByDate[op.data] = evByDate[op.data] || []; evByDate[op.data].push({...op, _tipo:'op'}); });
+  manutencoes.forEach(m => { evByDate[m.data] = evByDate[m.data] || []; evByDate[m.data].push({...m, _tipo:'manut'}); });
+
+  let html = '';
+  for (let i=0; i<first; i++) html += '<div class="cal-day other-month"></div>';
+  for (let d=1; d<=days; d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
+    const evs = evByDate[ds] || [];
+    const evType = evs.length ? (evs[0]._tipo === 'op' ? ' has-event op' : ' has-event manut') : '';
+    html += `<div class="cal-day${isToday?' today':''}${evType}" onclick="showCalDay('${ds}')" title="${evs.length} evento(s)">${d}</div>`;
+  }
+  document.getElementById('cal-days').innerHTML = html;
+}
+
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendario();
+}
+
+function showCalDay(ds) {
+  const evByDate = {};
+  operacoes.forEach(op => { evByDate[op.data] = evByDate[op.data] || []; evByDate[op.data].push({...op, _tipo:'op'}); });
+  manutencoes.forEach(m => { evByDate[m.data] = evByDate[m.data] || []; evByDate[m.data].push({...m, _tipo:'manut'}); });
+  const evs = evByDate[ds] || [];
+  document.getElementById('cal-selected-label').textContent = `Eventos em ${ds}`;
+  document.getElementById('cal-events-list').innerHTML = evs.length
+    ? evs.map(e => `
+      <div style="padding:10px 0;border-bottom:1px solid var(--xc-line);font-size:12px;">
+        <div style="font-weight:600;color:var(--xc-tx);">
+          ${e._tipo==='op' ? `Operação · ${areaName(e.area_id)}` : `Manutenção · ${maqName(e.maquina_id)}`}
+        </div>
+        <div style="color:var(--xc-tx2);margin-top:2px;">
+          ${e._tipo==='op' ? `${maqName(e.maquina_id)} · ${e.operador||'—'} · ${e.duracao_min||0}min` : e.descricao}
+        </div>
+        <div style="margin-top:6px;">${statusBadge(e.status||e.tipo)}</div>
+      </div>
+    `).join('')
+    : '<div class="xc-empty">Nenhum evento nesta data</div>';
+}
+
+// ── MÁQUINAS ──────────────────────────────────────────
+function renderMaquinas(list) {
+  const data = list || maquinas;
+  document.getElementById('maq-grid').innerHTML = data.length
+    ? data.map(m => `
+      <div class="maq-card">
+        <div class="maq-card-top">
+          <div class="maq-icon ${m.tipo}">${maqIcon(m.tipo)}</div>
+          <div>
+            <div class="maq-name">${m.nome}</div>
+            <div class="maq-type">${m.tipo}${m.modelo?' · '+m.modelo:''}</div>
+          </div>
+          <div style="margin-left:auto;">${statusBadge(m.status)}</div>
+        </div>
+        <div class="maq-stats">
+          <div class="maq-stat"><span>Horas acum.</span><strong>${m.horas_acumuladas||0}h</strong></div>
+          <div class="maq-stat"><span>Série</span><strong>${m.numero_serie||'—'}</strong></div>
+          <div class="maq-stat"><span>Ano</span><strong>${m.ano_fabricacao||'—'}</strong></div>
+          <div class="maq-stat"><span>Modelo</span><strong>${m.modelo||'—'}</strong></div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="xc-btn xc-btn-g xc-btn-xs" onclick="openManutForMaq(${m.id})">⚙ Manutenção</button>
+        </div>
+      </div>
+    `).join('')
+    : '<div class="xc-empty" style="grid-column:1/-1;">Nenhuma máquina encontrada</div>';
+}
+
+function filterMaquinas() {
+  const q = document.getElementById('filt-maq').value.toLowerCase();
+  const tipo = document.getElementById('filt-maq-tipo').value;
+  const status = document.getElementById('filt-maq-status').value;
+  renderMaquinas(maquinas.filter(m =>
+    (!q || m.nome.toLowerCase().includes(q)) &&
+    (!tipo || m.tipo === tipo) &&
+    (!status || m.status === status)
+  ));
+}
+
+function openManutForMaq(id) {
+  document.getElementById('manut-maq').value = id;
+  openModal('modal-nova-manut');
+}
+
+// ── ÁREAS ────────────────────────────────────────────
+function renderAreas(list) {
+  const data = list || areas;
+  document.getElementById('areas-tbody').innerHTML = data.length
+    ? data.map(a => `
+      <tr>
+        <td class="xc-mono">${a.codigo||'—'}</td>
+        <td>${a.nome}</td>
+        <td>${statusBadge(a.tipo)}</td>
+        <td class="xc-mono">${(a.area_m2||0).toLocaleString('pt-BR')} m²</td>
+        <td class="xc-mono">${a.periodicidade_dias||'—'}d</td>
+        <td>${statusBadge(a.status||'ativa')}</td>
+        <td><button class="xc-btn xc-btn-xs xc-btn-g" onclick="openOpForArea(${a.id})">▶ Operação</button></td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="7" style="text-align:center;color:var(--xc-tx2);padding:32px;">Nenhuma área encontrada</td></tr>';
+}
+
+function filterAreas() {
+  const q = document.getElementById('filt-area').value.toLowerCase();
+  const tipo = document.getElementById('filt-area-tipo').value;
+  renderAreas(areas.filter(a =>
+    (!q || a.nome.toLowerCase().includes(q)) &&
+    (!tipo || a.tipo === tipo)
+  ));
+}
+
+function openOpForArea(id) {
+  document.getElementById('op-area').value = id;
+  openModal('modal-nova-op');
+}
+
+// ── OPERAÇÕES ─────────────────────────────────────────
+function renderOperacoes(list) {
+  const data = list || [...operacoes].sort((a,b)=>b.data.localeCompare(a.data));
+  document.getElementById('ops-tbody').innerHTML = data.length
+    ? data.map(op => `
+      <tr>
+        <td class="xc-mono">${op.data}</td>
+        <td>${areaName(op.area_id)}</td>
+        <td>${maqName(op.maquina_id)}</td>
+        <td>${op.operador||'—'}</td>
+        <td class="xc-mono">${op.duracao_min||0}min</td>
+        <td class="xc-mono">${op.combustivel_l||0}L</td>
+        <td>${statusBadge(op.status)}</td>
+        <td><button class="xc-btn xc-btn-xs xc-btn-g">···</button></td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="8" style="text-align:center;color:var(--xc-tx2);padding:32px;">Nenhuma operação encontrada</td></tr>';
+}
+
+function filterOperacoes() {
+  const q = document.getElementById('filt-op').value.toLowerCase();
+  const status = document.getElementById('filt-op-status').value;
+  const data = document.getElementById('filt-op-data').value;
+  renderOperacoes(operacoes.filter(op =>
+    (!q || areaName(op.area_id).toLowerCase().includes(q) || maqName(op.maquina_id).toLowerCase().includes(q)) &&
+    (!status || op.status === status) &&
+    (!data || op.data === data)
+  ).sort((a,b)=>b.data.localeCompare(a.data)));
+}
+
+// ── MANUTENÇÃO ────────────────────────────────────────
+function renderManutencao(list) {
+  const data = list || [...manutencoes].sort((a,b)=>b.data.localeCompare(a.data));
+  document.getElementById('manut-tbody').innerHTML = data.length
+    ? data.map(m => `
+      <tr>
+        <td class="xc-mono">${m.data}</td>
+        <td>${maqName(m.maquina_id)}</td>
+        <td>${statusBadge(m.tipo)}</td>
+        <td>${m.descricao.slice(0,50)}${m.descricao.length>50?'…':''}</td>
+        <td>${m.responsavel||'—'}</td>
+        <td class="xc-mono">${m.custo>0?'R$ '+(m.custo||0).toFixed(2):'—'}</td>
+        <td>${statusBadge(m.status)}</td>
+        <td><button class="xc-btn xc-btn-xs xc-btn-g">···</button></td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="8" style="text-align:center;color:var(--xc-tx2);padding:32px;">Nenhuma manutenção encontrada</td></tr>';
+}
+
+function filterManut() {
+  const q = document.getElementById('filt-manut').value.toLowerCase();
+  const tipo = document.getElementById('filt-manut-tipo').value;
+  const status = document.getElementById('filt-manut-status').value;
+  renderManutencao(manutencoes.filter(m =>
+    (!q || maqName(m.maquina_id).toLowerCase().includes(q) || m.descricao.toLowerCase().includes(q)) &&
+    (!tipo || m.tipo === tipo) &&
+    (!status || m.status === status)
+  ));
+}
+
+// ── COMBUSTÍVEL ───────────────────────────────────────
+function renderCombustivel(list) {
+  const data = list || [...combustivel].sort((a,b)=>b.data.localeCompare(a.data));
+  const total = combustivel.reduce((s,c)=>s+(c.litros||0),0);
+  const porMaq = combustivel.reduce((acc,c)=>{ acc[c.maquina_id]=(acc[c.maquina_id]||0)+c.litros; return acc; },{});
+  const maiorMaqId = Object.entries(porMaq).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('comb-total').textContent = total.toFixed(1)+'L';
+  document.getElementById('comb-maior-maq').textContent = maiorMaqId ? maqName(maiorMaqId[0]).split(' ').slice(0,2).join(' ') : '—';
+  document.getElementById('comb-media').textContent = combustivel.length ? (total/combustivel.length).toFixed(1)+'L' : '—';
+  document.getElementById('comb-custo').textContent = 'R$ '+(total*6.2).toFixed(2);
+
+  document.getElementById('comb-tbody').innerHTML = data.length
+    ? data.map(c => `
+      <tr>
+        <td class="xc-mono">${c.data}</td>
+        <td>${maqName(c.maquina_id)}</td>
+        <td class="xc-mono">${c.litros}L</td>
+        <td>${c.tipo_combustivel||'—'}</td>
+        <td>${c.operador||'—'}</td>
+        <td>${c.obs||'—'}</td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:var(--xc-tx2);padding:32px;">Nenhum registro encontrado</td></tr>';
+}
+
+function filterCombustivel() {
+  const maqId = document.getElementById('filt-comb-maq').value;
+  const data = document.getElementById('filt-comb-data').value;
+  renderCombustivel(combustivel.filter(c =>
+    (!maqId || c.maquina_id == maqId) &&
+    (!data || c.data === data)
+  ));
+}
+
+// ── SALVAR ────────────────────────────────────────────
+async function salvarOperacao() {
+  const areaId = document.getElementById('op-area').value;
+  const maqId = document.getElementById('op-maquina').value;
+  if (!areaId || !maqId) { toast('Selecione área e máquina!','error'); return; }
+  const payload = {
+    area_id: +areaId, maquina_id: +maqId,
+    operador: document.getElementById('op-operador').value,
+    data: document.getElementById('op-data').value || TODAY,
+    duracao_min: +document.getElementById('op-duracao').value || 0,
+    combustivel_l: +document.getElementById('op-combustivel').value || 0,
+    observacoes: document.getElementById('op-obs').value,
+    status: 'agendado',
+  };
+  try {
+    const r = await post('/operacoes', payload);
+    operacoes.unshift({...payload, id:r.id||Date.now()});
+  } catch {
+    operacoes.unshift({...payload, id:Date.now()});
+  }
+  closeModal('modal-nova-op');
+  renderDashboard(); renderKanban(); renderCalendario(); renderOperacoes();
+  toast('Operação registrada!','success');
+}
+
+async function salvarMaquina() {
+  const nome = document.getElementById('maq-nome').value.trim();
+  if (!nome) { toast('Nome é obrigatório!','error'); return; }
+  const payload = {
+    nome, tipo: document.getElementById('maq-tipo').value,
+    modelo: document.getElementById('maq-modelo').value,
+    numero_serie: document.getElementById('maq-serie').value,
+    ano_fabricacao: +document.getElementById('maq-ano').value || null,
+    horas_acumuladas: +document.getElementById('maq-horas').value || 0,
+    status: 'operacional',
+  };
+  try {
+    const r = await post('/maquinas', payload);
+    maquinas.push({...payload, id:r.id||Date.now()});
+  } catch {
+    maquinas.push({...payload, id:Date.now()});
+  }
+  populateSelects();
+  closeModal('modal-nova-maq');
+  renderDashboard(); renderMaquinas();
+  toast('Máquina cadastrada!','success');
+}
+
+async function salvarArea() {
+  const nome = document.getElementById('area-nome').value.trim();
+  if (!nome) { toast('Nome é obrigatório!','error'); return; }
+  const payload = {
+    nome, tipo: document.getElementById('area-tipo').value,
+    area_m2: +document.getElementById('area-m2').value || 0,
+    periodicidade_dias: +document.getElementById('area-periodo').value || 14,
+    localizacao: document.getElementById('area-loc').value,
+    status: 'ativa',
+  };
+  try {
+    const r = await post('/areas', payload);
+    areas.push({...payload, id:r.id||Date.now()});
+  } catch {
+    areas.push({...payload, id:Date.now()});
+  }
+  populateSelects();
+  closeModal('modal-nova-area');
+  renderDashboard(); renderAreas();
+  toast('Área cadastrada!','success');
+}
+
+async function salvarManutencao() {
+  const maqId = document.getElementById('manut-maq').value;
+  const desc = document.getElementById('manut-desc').value.trim();
+  if (!maqId || !desc) { toast('Máquina e descrição são obrigatórios!','error'); return; }
+  const payload = {
+    maquina_id: +maqId, tipo: document.getElementById('manut-tipo').value,
+    descricao: desc, data: document.getElementById('manut-data').value || TODAY,
+    responsavel: document.getElementById('manut-resp').value,
+    custo: +document.getElementById('manut-custo').value || 0,
+    status: 'pendente',
+  };
+  try {
+    const r = await post('/manutencao', payload);
+    manutencoes.unshift({...payload, id:r.id||Date.now()});
+  } catch {
+    manutencoes.unshift({...payload, id:Date.now()});
+  }
+  closeModal('modal-nova-manut');
+  renderDashboard(); renderKanban(); renderManutencao();
+  toast('Manutenção registrada!','success');
+}
+
+async function salvarCombustivel() {
+  const maqId = document.getElementById('comb-maq').value;
+  const litros = +document.getElementById('comb-litros').value;
+  if (!maqId || !litros) { toast('Máquina e litros são obrigatórios!','error'); return; }
+  const payload = {
+    maquina_id: +maqId, litros,
+    tipo_combustivel: document.getElementById('comb-tipo-comb').value,
+    data: document.getElementById('comb-data-inp').value || TODAY,
+    operador: document.getElementById('comb-operador').value,
+  };
+  try {
+    const r = await post('/combustivel', payload);
+    combustivel.unshift({...payload, id:r.id||Date.now()});
+  } catch {
+    combustivel.unshift({...payload, id:Date.now()});
+  }
+  closeModal('modal-comb');
+  renderCombustivel();
+  toast('Abastecimento registrado!','success');
+}
+
+// ── INIT ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initUser();
+  const isLight = document.documentElement.classList.contains('light');
+  document.getElementById('themeBtn').textContent = isLight ? '◑ Tema Escuro' : '◑ Tema Claro';
+  loadAll();
+});
+</script>
+</body>
+</html>

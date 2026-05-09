@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xPredial · Gestão de Manutenção</title>
+  <link rel="stylesheet" href="http://localhost:8010/assets/xcmasm-shell.css" />
+  <link rel="stylesheet" href="http://localhost:8010/assets/fonts.css" />
+  <style>
+    /* Ajustes específicos para a página inicial do xPredial se necessário */
+  </style>
+</head>
+<body class="xcmasm-shell">
+  <div id="app"></div>
+
+  <template id="page-content">
+    <div class="xc-g5 xc-mb16" id="kpis">
+      <div class="xc-kpi"><div class="xc-kpi-icon acc">📋</div><div><div class="xc-kpi-val" id="kpi-planejada">0</div><div class="xc-kpi-label">Planejadas</div></div></div>
+      <div class="xc-kpi"><div class="xc-kpi-icon amb">🚧</div><div><div class="xc-kpi-val" id="kpi-execucao">0</div><div class="xc-kpi-label">Em Execução</div></div></div>
+      <div class="xc-kpi"><div class="xc-kpi-icon grn">✓</div><div><div class="xc-kpi-val" id="kpi-concluida">0</div><div class="xc-kpi-label">Concluídas</div></div></div>
+      <div class="xc-kpi"><div class="xc-kpi-icon red">⚠</div><div><div class="xc-kpi-val" id="kpi-critico">0</div><div class="xc-kpi-label">Itens Críticos</div></div></div>
+      <div class="xc-kpi"><div class="xc-kpi-icon cyan">📄</div><div><div class="xc-kpi-val" id="kpi-laudos">0</div><div class="xc-kpi-label">Laudos/ARTs</div></div></div>
+    </div>
+
+    <div class="xc-g2">
+      <div class="xc-card">
+        <div class="xc-card-head"><div class="xc-card-title">Acesso Rápido</div></div>
+        <div class="xc-card-body">
+          <div class="xc-g2 xc-gap8">
+            <a href="inspecoes.html" class="xc-btn xc-btn-p">Iniciar Inspeção</a>
+            <a href="laudos.html" class="xc-btn xc-btn-g">Gerenciar Laudos</a>
+            <a href="locais.html" class="xc-btn xc-btn-g">Ver Locais</a>
+            <a href="normas.html" class="xc-btn xc-btn-g">Consultar Normas</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="xc-card">
+        <div class="xc-card-head"><div class="xc-card-title">Conformidade NBR 5674</div></div>
+        <div class="xc-card-body">
+          <p class="xc-tx2-col" style="margin-bottom: 12px;">O sistema monitora o ciclo de vida dos ativos e a validade de laudos técnicos conforme as normas brasileiras.</p>
+          <div id="health" class="xc-mono" style="font-size: 11px;">Verificando integridade do sistema...</div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="http://localhost:8010/assets/xcmasm-shell.js"></script>
+  <script src="assets/predial-api.js"></script>
+  <script>
+    xShell.init({
+      activePage: 'predial',
+      pageTitle: 'xPredial · Painel de Controle',
+      subtitle: 'Manutenção Edificada (NBR 5674)'
+    });
+
+    // Injetar conteúdo da página
+    document.getElementById('xc-content').appendChild(document.getElementById('page-content').content.cloneNode(true));
+
+    async function load() {
+      try {
+        const h = await predialAPI.health();
+        document.getElementById("health").innerHTML = `[ONLINE] API v1.0.0 <span class="xc-dot xc-dot-grn"></span>`;
+        
+        const resumo = await predialAPI.resumo();
+        const statusMap = { 'planejada': 'kpi-planejada', 'em_execucao': 'kpi-execucao', 'concluida': 'kpi-concluida' };
+        
+        (resumo.por_status || []).forEach(s => {
+          const el = document.getElementById(statusMap[s.status]);
+          if (el) el.textContent = s.total;
+        });
+        
+        document.getElementById("kpi-critico").textContent = resumo.itens_criticos || 0;
+        document.getElementById("kpi-laudos").textContent = resumo.total_laudos || 0;
+
+      } catch (err) {
+        document.getElementById("health").innerHTML = `[OFFLINE] <span class="xc-dot xc-dot-red"></span> ${err.message}`;
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

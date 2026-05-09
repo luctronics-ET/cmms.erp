@@ -1,0 +1,1048 @@
+{
+  "meta": {
+    "organizacao": "CMASM",
+    "regimento": "2024-11-08"
+  },
+  "estrutura": [
+    {
+      "id": "CMASM",
+      "tipo": "organizacao",
+      "nome": "Centro de Mísseis e Armas Submarinas da Marinha",
+      "pai": null,
+      "cargo": "Organização",
+      "ct": "organizacao",
+      "at": []
+    },
+    {
+      "id": "CMASM-01",
+      "tipo": "direcao",
+      "nome": "Direção (CMASM-01)",
+      "pai": "CMASM",
+      "cargo": "Diretor(a)",
+      "ct": "direcao",
+      "at": [
+        "Exercer atribuições previstas na OGSA para Comandante de navio",
+        "Presidir o CONSAD",
+        "Ordenador de Despesas",
+        "Assessorar o Diretor de Sistema de Armas"
+      ]
+    },
+    {
+      "id": "CMASM-01.1",
+      "tipo": "assessoria",
+      "nome": "Gabinete do Diretor(a)",
+      "pai": "CMASM-01",
+      "cargo": "Chefe do Gabinete do Diretor(a)",
+      "ct": "chefe_gabinete",
+      "at": [
+        "Assistir ao Diretor(a) no exercício de suas atribuições",
+        "Assessorar as áreas administrativas"
+      ]
+    },
+    {
+      "id": "CMASM-01.2",
+      "tipo": "assessoria",
+      "nome": "Assessoria de Inteligência",
+      "pai": "CMASM-01",
+      "cargo": "Assessor(a) de Inteligência",
+      "ct": "assessor",
+      "at": [
+        "Assessorar o Diretor(a) nas atividades de inteligência",
+        "Executar a identificação provisória ou permanente de militares e servidores civis"
+      ]
+    },
+    {
+      "id": "CMASM-01.3",
+      "tipo": "assessoria",
+      "nome": "Assessoria Jurídica",
+      "pai": "CMASM-01",
+      "cargo": "Assessor(a) Jurídico(a)",
+      "ct": "assessor",
+      "at": [
+        "Assessorar a Direção nos temas de cunho jurídico"
+      ]
+    },
+    {
+      "id": "CMASM-01.4",
+      "tipo": "assessoria",
+      "nome": "OSIC – Of. Segurança das Informações e Comunicações",
+      "pai": "CMASM-01",
+      "cargo": "OSIC",
+      "ct": "assessor",
+      "at": [
+        "Assessorar o Diretor(a) nas atividades de segurança das informações digitais",
+        "Fiscalizar o cumprimento das Normas de segurança das informações digitais"
+      ]
+    },
+    {
+      "id": "CMASM-02",
+      "tipo": "vice_direcao",
+      "nome": "Vice-Direção (CMASM-02)",
+      "pai": "CMASM-01",
+      "cargo": "Vice-Diretor(a)",
+      "ct": "vice_direcao",
+      "at": [
+        "Coordenar e fiscalizar atividades administrativas e de pessoal",
+        "Agente Fiscal",
+        "Ordenador de Despesas substituto"
+      ]
+    },
+    {
+      "id": "CMASM-02.1",
+      "tipo": "assessoria",
+      "nome": "Gabinete do Vice-Diretor(a)",
+      "pai": "CMASM-02",
+      "cargo": "Secretária do Gabinete do Vice-Diretor(a)",
+      "ct": "chefe_gabinete",
+      "at": [
+        "Tramitar e receber expedientes",
+        "Auxiliar na elaboração e revisão de documentos administrativos",
+        "Atualizar e controlar agenda administrativa"
+      ]
+    },
+    {
+      "id": "CMASM-09",
+      "tipo": "servico",
+      "nome": "Secretaria e Comunicações (SECOM)",
+      "pai": "CMASM-02",
+      "cargo": "Encarregado(a) do SECOM",
+      "ct": "encarregado_servico",
+      "at": [
+        "Controlar recebimento e saída de mensagens e expedientes externos",
+        "Manter publicações, recursos criptotécnicos e material de sinalária",
+        "Assessorar o Vice-Diretor(a) nas atividades administrativas",
+        "Exercer função de Encarregado do Material Controlado (EMC)"
+      ]
+    },
+    {
+      "id": "CMASM-09.1",
+      "tipo": "secao",
+      "nome": "Seção de Mensagens",
+      "pai": "CMASM-09",
+      "cargo": "Encarregado(a) – Seção de Mensagens",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-09.2",
+      "tipo": "secao",
+      "nome": "Seção de Expedientes",
+      "pai": "CMASM-09",
+      "cargo": "Encarregado(a) – Seção de Expedientes",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-02.2",
+      "tipo": "servico",
+      "nome": "Serviço de Processamento de Dados (SPD)",
+      "pai": "CMASM-02",
+      "cargo": "Encarregado(a) do SPD",
+      "ct": "encarregado_servico",
+      "at": [
+        "Manter e operar sistemas de processamento de dados, rede de dados, telefonia e central eletrônica"
+      ]
+    },
+    {
+      "id": "CMASM-02.2.1",
+      "tipo": "secao",
+      "nome": "Seção de Infraestrutura de Rede",
+      "pai": "CMASM-02.2",
+      "cargo": "Encarregado(a) – Seção de Infraestrutura de Rede",
+      "ct": "encarregado_secao",
+      "at": [
+        "Gerenciar a rede local",
+        "Operar os servidores da rede",
+        "Executar cópias de segurança"
+      ]
+    },
+    {
+      "id": "CMASM-02.2.2",
+      "tipo": "secao",
+      "nome": "Seção de Manutenção de Hardware",
+      "pai": "CMASM-02.2",
+      "cargo": "Encarregado(a) – Seção de Manutenção de Hardware",
+      "ct": "encarregado_secao",
+      "at": [
+        "Efetuar manutenções corretivas e preventivas nas estações de trabalho",
+        "Manter banco de dados de equipamentos e manutenções"
+      ]
+    },
+    {
+      "id": "CMASM-02.2.3",
+      "tipo": "secao",
+      "nome": "Seção de Telefonia e Enlace Rádio",
+      "pai": "CMASM-02.2",
+      "cargo": "Encarregado(a) – Seção de Telefonia e Enlace Rádio",
+      "ct": "encarregado_secao",
+      "at": [
+        "Operar a Central Telefônica e os Rádios Enlaces",
+        "Manutenção preventiva e corretiva da Central Telefônica"
+      ]
+    },
+    {
+      "id": "CMASM-10",
+      "tipo": "departamento",
+      "nome": "Departamento de Infraestrutura",
+      "pai": "CMASM-01",
+      "cargo": "Chefe do Departamento de Infraestrutura",
+      "ct": "chefe_departamento",
+      "at": [
+        "Prestar apoio de infraestrutura aos demais departamentos",
+        "Gerir armamento portátil e munição",
+        "Supervisionar conservação e limpeza das instalações",
+        "Supervisionar atividades de transporte marítimo, terrestre e movimentação de carga"
+      ]
+    },
+    {
+      "id": "CMASM-10.1",
+      "tipo": "secretaria",
+      "nome": "Secretário(a) do Depto de Infraestrutura",
+      "pai": "CMASM-10",
+      "cargo": "Secretário(a) do Depto de Infraestrutura",
+      "ct": "secretario_depto",
+      "at": [
+        "Atualizar e controlar agenda administrativa",
+        "Coordenar fluxo de informações internas",
+        "Auxiliar na elaboração e revisão de documentos administrativos"
+      ]
+    },
+    {
+      "id": "CMASM-11",
+      "tipo": "divisao",
+      "nome": "Divisão de Prefeitura",
+      "pai": "CMASM-10",
+      "cargo": "Encarregado(a) da Divisão de Prefeitura",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Coordenar manutenção das instalações elétricas, hidráulicas e prediais",
+        "Executar serviços de conservação e limpeza das instalações e das áreas verdes",
+        "Coordenar manutenção de ar-condicionado e frigoríficas"
+      ]
+    },
+    {
+      "id": "CMASM-11.1",
+      "tipo": "secao",
+      "nome": "Seção de Infraestrutura e Serviços Gerais",
+      "pai": "CMASM-11",
+      "cargo": "Encarregado(a) – Seção de Infraestrutura e Serviços Gerais",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-11.2",
+      "tipo": "secao",
+      "nome": "Seção de Transportes",
+      "pai": "CMASM-11",
+      "cargo": "Encarregado(a) – Seção de Transportes",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-12",
+      "tipo": "divisao",
+      "nome": "Divisão de Segurança",
+      "pai": "CMASM-10",
+      "cargo": "Encarregado(a) da Divisão de Segurança",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Zelar pela segurança do pessoal, material e instalações",
+        "Controlar armamento portátil",
+        "Operar o sistema de CFTV",
+        "Instruir militares para patrulha e escolta marítima"
+      ]
+    },
+    {
+      "id": "CMASM-12.1",
+      "tipo": "secao",
+      "nome": "Seção de Segurança de Área e Instalações",
+      "pai": "CMASM-12",
+      "cargo": "Encarregado(a) – Seção de Segurança de Área e Instalações",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-12.2",
+      "tipo": "secao",
+      "nome": "Seção de Escoceria",
+      "pai": "CMASM-12",
+      "cargo": "Encarregado(a) – Seção de Escoceria",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-12.3",
+      "tipo": "secao",
+      "nome": "Seção de Controle de Avarias",
+      "pai": "CMASM-12",
+      "cargo": "Encarregado(a) – Seção de Controle de Avarias",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-13",
+      "tipo": "divisao",
+      "nome": "Divisão de Manutenção Especializada",
+      "pai": "CMASM-10",
+      "cargo": "Encarregado(a) da Divisão de Manutenção Especializada",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Coordenar serviços de ferramentaria, carpintaria e pintura industrial",
+        "Coordenar manutenção de embarcações, motores e viaturas"
+      ]
+    },
+    {
+      "id": "CMASM-13.1",
+      "tipo": "secao",
+      "nome": "Seção de Apoio Industrial",
+      "pai": "CMASM-13",
+      "cargo": "Encarregado(a) – Seção de Apoio Industrial",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-13.2",
+      "tipo": "secao",
+      "nome": "Seção de Eletrônica",
+      "pai": "CMASM-13",
+      "cargo": "Encarregado(a) – Seção de Eletrônica",
+      "ct": "encarregado_secao",
+      "at": [
+        "Executar pedidos de serviço para reparo de equipamentos de eletrônica",
+        "Emitir laudos técnicos sobre estado do material eletrônico",
+        "Executar e controlar a periodicidade de calibração dos equipamentos"
+      ]
+    },
+    {
+      "id": "CMASM-20",
+      "tipo": "departamento",
+      "nome": "Departamento de Armas",
+      "pai": "CMASM-01",
+      "cargo": "Chefe do Departamento de Armas",
+      "ct": "chefe_departamento",
+      "at": [
+        "Supervisionar situação das armas geridas pelo CMASM",
+        "Supervisionar distribuição de mísseis e armas submarinas",
+        "Supervisionar atividades de teste, inspeção, manutenção, modificação e reparo",
+        "Investigar avarias e emitir parecer técnico",
+        "Elaborar procedimentos e propor normas à DSAM"
+      ]
+    },
+    {
+      "id": "CMASM-20.1",
+      "tipo": "secretaria",
+      "nome": "Secretário(a) do Depto de Armas",
+      "pai": "CMASM-20",
+      "cargo": "Secretário(a) do Depto de Armas",
+      "ct": "secretario_depto",
+      "at": [
+        "Atualizar e controlar agenda administrativa",
+        "Coordenar fluxo de informações internas"
+      ]
+    },
+    {
+      "id": "CMASM-21",
+      "tipo": "grupo",
+      "nome": "Grupo de Apoio à Munição Inteligente",
+      "pai": "CMASM-20",
+      "cargo": "Encarregado(a) do Grupo de Apoio à Munição Inteligente",
+      "ct": "encarregado_grupo",
+      "at": [
+        "Controlar atividades de movimentação e armazenagem do armamento, materiais inertes e explosivos",
+        "Fiscalizar conservação e manutenção dos paióis de armamento"
+      ]
+    },
+    {
+      "id": "CMASM-21.1",
+      "tipo": "divisao",
+      "nome": "Divisão de Material Controlado",
+      "pai": "CMASM-21",
+      "cargo": "Encarregado(a) da Divisão de Material Controlado",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Coordenar armazenagem e distribuição dos armamentos e componentes inertes",
+        "Coordenar registro das condições ambientais dos paióis",
+        "Coordenar recebimento de material do exterior"
+      ]
+    },
+    {
+      "id": "CMASM-21.1.1",
+      "tipo": "secao",
+      "nome": "Seção de Controle de Material Explosivo",
+      "pai": "CMASM-21.1",
+      "cargo": "Encarregado(a) – Seção de Controle de Material Explosivo",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-21.1.2",
+      "tipo": "secao",
+      "nome": "Seção de Sobressalentes Inertes",
+      "pai": "CMASM-21.1",
+      "cargo": "Encarregado(a) – Seção de Sobressalentes Inertes",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-21.2",
+      "tipo": "divisao",
+      "nome": "Divisão de Controle e Expedição",
+      "pai": "CMASM-21",
+      "cargo": "Encarregado(a) da Divisão de Controle e Expedição",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Coordenar movimentação interna e externa de mísseis, armas submarinas e componentes",
+        "Coordenar controle de inventário e localização dos armamentos"
+      ]
+    },
+    {
+      "id": "CMASM-21.2.1",
+      "tipo": "secao",
+      "nome": "Seção de Controle",
+      "pai": "CMASM-21.2",
+      "cargo": "Encarregado(a) – Seção de Controle",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-21.2.2",
+      "tipo": "secao",
+      "nome": "Seção de Expedição",
+      "pai": "CMASM-21.2",
+      "cargo": "Encarregado(a) – Seção de Expedição",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22",
+      "tipo": "grupo",
+      "nome": "Grupo de Armas Submarinas",
+      "pai": "CMASM-20",
+      "cargo": "Encarregado(a) do Grupo de Armas Submarinas",
+      "ct": "encarregado_grupo",
+      "at": [
+        "Fiscalizar execução de atividades de teste, manutenção, modificação e reparo",
+        "Coordenar elaboração dos relatórios de lançamento",
+        "Coordenar investigação de avarias",
+        "Coordenar adestramento e cursos"
+      ]
+    },
+    {
+      "id": "CMASM-22.1",
+      "tipo": "divisao",
+      "nome": "Divisão de Torpedos Leves",
+      "pai": "CMASM-22",
+      "cargo": "Encarregado(a) da Divisão de Torpedos Leves",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Controlar situação dos torpedos leves MK-46",
+        "Executar atividades de teste, manutenção, modificação e reparo",
+        "Elaborar relatórios de lançamento",
+        "Investigar avarias"
+      ]
+    },
+    {
+      "id": "CMASM-22.1.1",
+      "tipo": "secao",
+      "nome": "Seção de Eletrônica MK-46",
+      "pai": "CMASM-22.1",
+      "cargo": "Encarregado(a) – Seção de Eletrônica MK-46",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.1.2",
+      "tipo": "secao",
+      "nome": "Seção de Mecânica MK-46",
+      "pai": "CMASM-22.1",
+      "cargo": "Encarregado(a) – Seção de Mecânica MK-46",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.2",
+      "tipo": "divisao",
+      "nome": "Divisão de Torpedos Pesados",
+      "pai": "CMASM-22",
+      "cargo": "Encarregado(a) da Divisão de Torpedos Pesados",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Controlar situação dos torpedos pesados MK-48 e F21",
+        "Executar atividades de teste, manutenção, modificação e reparo"
+      ]
+    },
+    {
+      "id": "CMASM-22.2.1",
+      "tipo": "secao",
+      "nome": "Seção de Acessórios MK-48",
+      "pai": "CMASM-22.2",
+      "cargo": "Encarregado(a) – Seção de Acessórios MK-48",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.2.2",
+      "tipo": "secao",
+      "nome": "Seção de Eletrônica MK-48",
+      "pai": "CMASM-22.2",
+      "cargo": "Encarregado(a) – Seção de Eletrônica MK-48",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.2.3",
+      "tipo": "secao",
+      "nome": "Seção de Tanque MK-48",
+      "pai": "CMASM-22.2",
+      "cargo": "Encarregado(a) – Seção de Tanque MK-48",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.2.4",
+      "tipo": "secao",
+      "nome": "Seção de Propulsão MK-48",
+      "pai": "CMASM-22.2",
+      "cargo": "Encarregado(a) – Seção de Propulsão MK-48",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.2.5",
+      "tipo": "secao",
+      "nome": "Seção de Mecânica F21",
+      "pai": "CMASM-22.2",
+      "cargo": "Encarregado(a) – Seção de Mecânica F21",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.2.6",
+      "tipo": "secao",
+      "nome": "Seção de Eletrônica F21",
+      "pai": "CMASM-22.2",
+      "cargo": "Encarregado(a) – Seção de Eletrônica F21",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.2.7",
+      "tipo": "secao",
+      "nome": "Seção de Qualidade",
+      "pai": "CMASM-22.2",
+      "cargo": "Encarregado(a) – Seção de Qualidade",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.3",
+      "tipo": "divisao",
+      "nome": "Divisão de Minas e Bombas",
+      "pai": "CMASM-22",
+      "cargo": "Encarregado(a) da Divisão de Minas e Bombas",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Controlar e executar atividades de minas mecânicas e eletrônicas"
+      ]
+    },
+    {
+      "id": "CMASM-22.3.1",
+      "tipo": "secao",
+      "nome": "Seção de Minas Mecânicas e Bombas",
+      "pai": "CMASM-22.3",
+      "cargo": "Encarregado(a) – Seção de Minas Mecânicas e Bombas",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-22.3.2",
+      "tipo": "secao",
+      "nome": "Seção de Minas Eletrônicas",
+      "pai": "CMASM-22.3",
+      "cargo": "Encarregado(a) – Seção de Minas Eletrônicas",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-23",
+      "tipo": "grupo",
+      "nome": "Grupo de Mísseis",
+      "pai": "CMASM-20",
+      "cargo": "Encarregado(a) do Grupo de Mísseis",
+      "ct": "encarregado_grupo",
+      "at": [
+        "Fiscalizar execução das atividades de teste, manutenção, modificação e reparo de mísseis",
+        "Coordenar adestramento e cursos sobre mísseis"
+      ]
+    },
+    {
+      "id": "CMASM-23.1",
+      "tipo": "divisao",
+      "nome": "Divisão de Mísseis Especiais e Foguetes",
+      "pai": "CMASM-23",
+      "cargo": "Encarregado(a) da Divisão de Mísseis Especiais e Foguetes",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Controlar situação dos mísseis especiais e foguetes",
+        "Executar atividades de teste, manutenção, modificação e reparo"
+      ]
+    },
+    {
+      "id": "CMASM-23.1.1",
+      "tipo": "secao",
+      "nome": "Seção de Mísseis Especiais",
+      "pai": "CMASM-23.1",
+      "cargo": "Encarregado(a) – Seção de Mísseis Especiais",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-23.1.2",
+      "tipo": "secao",
+      "nome": "Seção de Foguetes",
+      "pai": "CMASM-23.1",
+      "cargo": "Encarregado(a) – Seção de Foguetes",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-23.2",
+      "tipo": "divisao",
+      "nome": "Divisão de Mísseis Exocet",
+      "pai": "CMASM-23",
+      "cargo": "Encarregado(a) da Divisão de Mísseis Exocet",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Controlar situação dos mísseis Exocet MM-40, AM-39 e SM-39"
+      ]
+    },
+    {
+      "id": "CMASM-23.2.1",
+      "tipo": "secao",
+      "nome": "Seção de Mísseis Exocet MM-40",
+      "pai": "CMASM-23.2",
+      "cargo": "Encarregado(a) – Seção de Mísseis Exocet MM-40",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-23.2.2",
+      "tipo": "secao",
+      "nome": "Seção de Mísseis Exocet AM-39 e SM-39",
+      "pai": "CMASM-23.2",
+      "cargo": "Encarregado(a) – Seção de Mísseis Exocet AM-39 e SM-39",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-30",
+      "tipo": "departamento",
+      "nome": "Departamento de Administração",
+      "pai": "CMASM-01",
+      "cargo": "Chefe do Departamento de Administração",
+      "ct": "chefe_departamento",
+      "at": [
+        "Prestar apoio administrativo aos demais departamentos",
+        "Supervisionar atividades médicas e odontológicas",
+        "Supervisionar recursos financeiros",
+        "Organizar e manter atualizada a carreira do pessoal"
+      ]
+    },
+    {
+      "id": "CMASM-30.1",
+      "tipo": "secretaria",
+      "nome": "Secretário(a) do Depto de Administração",
+      "pai": "CMASM-30",
+      "cargo": "Secretário(a) do Depto de Administração",
+      "ct": "secretario_depto",
+      "at": [
+        "Atualizar e controlar agenda administrativa",
+        "Auxiliar na elaboração e revisão de documentos administrativos"
+      ]
+    },
+    {
+      "id": "CMASM-31",
+      "tipo": "divisao",
+      "nome": "Divisão de Pessoal",
+      "pai": "CMASM-30",
+      "cargo": "Encarregado(a) da Divisão de Pessoal",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Coordenar aplicação da legislação de militares e civis",
+        "Coordenar atualização da TMFT",
+        "Assessorar em assuntos de legislação de pessoal",
+        "Controlar presença de servidores; elaborar ponto via QUANTUM"
+      ]
+    },
+    {
+      "id": "CMASM-31.1",
+      "tipo": "secao",
+      "nome": "Seção de Pessoal Militar",
+      "pai": "CMASM-31",
+      "cargo": "Encarregado(a) – Seção de Pessoal Militar",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-31.2",
+      "tipo": "secao",
+      "nome": "Seção de Pessoal Civil",
+      "pai": "CMASM-31",
+      "cargo": "Encarregado(a) – Seção de Pessoal Civil",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-31.3",
+      "tipo": "secao",
+      "nome": "Seção de Adestramento",
+      "pai": "CMASM-31",
+      "cargo": "Encarregado(a) – Seção de Adestramento",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-31.4",
+      "tipo": "secao",
+      "nome": "Seção de Direitos Pecuniários",
+      "pai": "CMASM-31",
+      "cargo": "Encarregado(a) – Seção de Direitos Pecuniários",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-32",
+      "tipo": "divisao",
+      "nome": "Divisão de Execução Financeira",
+      "pai": "CMASM-30",
+      "cargo": "Encarregado(a) da Divisão de Execução Financeira",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Coordenar encerramento do Exercício Financeiro",
+        "Acompanhar Programação Financeira e créditos disponíveis",
+        "Emitir autorização para empenhos via Solemp"
+      ]
+    },
+    {
+      "id": "CMASM-32.1",
+      "tipo": "secao",
+      "nome": "Seção de Gestão Financeira e Operação SIAFI",
+      "pai": "CMASM-32",
+      "cargo": "Encarregado(a) – Seção de Gestão Financeira e SIAFI",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-33",
+      "tipo": "divisao",
+      "nome": "Divisão de Municiamento",
+      "pai": "CMASM-30",
+      "cargo": "Encarregado(a) da Divisão de Municiamento",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Elaborar cardápios e pedidos de gêneros",
+        "Administrar atividades de rancho e Praça d'Armas",
+        "Zelar pelo funcionamento e higiene dos refeitórios"
+      ]
+    },
+    {
+      "id": "CMASM-33.1",
+      "tipo": "secao",
+      "nome": "Seção de Subsistência",
+      "pai": "CMASM-33",
+      "cargo": "Encarregado(a) – Seção de Subsistência",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-33.2",
+      "tipo": "secao",
+      "nome": "Seção de Armazenagem de Gêneros",
+      "pai": "CMASM-33",
+      "cargo": "Encarregado(a) – Seção de Armazenagem de Gêneros",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-34",
+      "tipo": "divisao",
+      "nome": "Divisão de Material",
+      "pai": "CMASM-30",
+      "cargo": "Encarregado(a) da Divisão de Material",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Executar atividades de Gestão Patrimonial",
+        "Executar destinação de material",
+        "Atividades concernentes ao Patrimônio Imobiliário"
+      ]
+    },
+    {
+      "id": "CMASM-34.1",
+      "tipo": "secao",
+      "nome": "Seção de Controle Patrimonial",
+      "pai": "CMASM-34",
+      "cargo": "Encarregado(a) – Seção de Controle Patrimonial",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-34.2",
+      "tipo": "secao",
+      "nome": "Seção de Almoxarifado",
+      "pai": "CMASM-34",
+      "cargo": "Encarregado(a) – Seção de Almoxarifado",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-34.3",
+      "tipo": "secao",
+      "nome": "Seção de Combustíveis, Lubrificantes e Graxas",
+      "pai": "CMASM-34",
+      "cargo": "Encarregado(a) – Seção de Combustíveis, Lubrificantes e Graxas",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-35",
+      "tipo": "divisao",
+      "nome": "Divisão de Obtenção",
+      "pai": "CMASM-30",
+      "cargo": "Encarregado(a) da Divisão de Obtenção",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Planejar e executar atividades do ciclo de obtenção de material e contratação de serviços",
+        "Coordenar processos licitatórios e acordos administrativos"
+      ]
+    },
+    {
+      "id": "CMASM-35.1",
+      "tipo": "secao",
+      "nome": "Seção de Licitações e Contratos",
+      "pai": "CMASM-35",
+      "cargo": "Encarregado(a) – Seção de Licitações e Contratos",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-36",
+      "tipo": "divisao",
+      "nome": "Divisão de Saúde",
+      "pai": "CMASM-30",
+      "cargo": "Encarregado(a) da Divisão de Saúde",
+      "ct": "encarregado_divisao",
+      "at": [
+        "Promover hábitos de higiene e saúde da tripulação",
+        "Assessorar a Vice-Direção sobre dispensas médicas",
+        "Elaborar Programa Anual de Adestramento em saúde; gerenciamento de resíduos"
+      ]
+    },
+    {
+      "id": "CMASM-36.1",
+      "tipo": "secao",
+      "nome": "Seção Médica",
+      "pai": "CMASM-36",
+      "cargo": "Encarregado(a) – Seção Médica",
+      "ct": "encarregado_secao",
+      "at": []
+    },
+    {
+      "id": "CMASM-36.2",
+      "tipo": "secao",
+      "nome": "Seção Odontológica",
+      "pai": "CMASM-36",
+      "cargo": "Encarregado(a) – Seção Odontológica",
+      "ct": "encarregado_secao",
+      "at": []
+    }
+  ],
+  "cargos": {
+    "CMASM-01": {
+      "usuario_id": "1775404932660",
+      "obs": ""
+    },
+    "CMASM-02": {
+      "usuario_id": 1775404932665,
+      "obs": ""
+    },
+    "CMASM-10": {
+      "usuario_id": 1775404932674,
+      "obs": ""
+    },
+    "CMASM-11": {
+      "usuario_id": 1775404932676,
+      "obs": ""
+    },
+    "CMASM-11.1": {
+      "usuario_id": 1775404932677,
+      "obs": ""
+    },
+    "CMASM-11.2": {
+      "usuario_id": 1775404932678,
+      "obs": ""
+    },
+    "CMASM-12": {
+      "usuario_id": 1775404932679,
+      "obs": ""
+    },
+    "CMASM-13": {
+      "usuario_id": 1775404932684,
+      "obs": ""
+    },
+    "CMASM-13.1": {
+      "usuario_id": 1775404932684,
+      "obs": ""
+    },
+    "CMASM-13.2": {
+      "usuario_id": 1775404932686,
+      "obs": ""
+    },
+    "CMASM-20": {
+      "usuario_id": 1775404932687,
+      "obs": ""
+    },
+    "CMASM-22": {
+      "usuario_id": 1775404932696,
+      "obs": ""
+    },
+    "CMASM-30": {
+      "usuario_id": 1775404932718,
+      "obs": ""
+    }
+  },
+  "users": [
+    {
+      "id": 1775404932660,
+      "nome": "Ramalho",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "admin",
+      "cargo_id": "CMASM-01"
+    },
+    {
+      "id": 1775404932665,
+      "nome": "Thomas Baptista",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "admin",
+      "cargo_id": "CMASM-02"
+    },
+    {
+      "id": 1775404932674,
+      "nome": "Patricia Yara",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "admin",
+      "cargo_id": "CMASM-10"
+    },
+    {
+      "id": 1775404932676,
+      "nome": "Geovanio",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "gestor",
+      "cargo_id": "CMASM-11"
+    },
+    {
+      "id": 1775404932677,
+      "nome": "Vanessa",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "gestor",
+      "cargo_id": "CMASM-11.1"
+    },
+    {
+      "id": 1775404932678,
+      "nome": "Bernardo Maia",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "gestor",
+      "cargo_id": "CMASM-11.2"
+    },
+    {
+      "id": 1775404932679,
+      "nome": "Perozzi",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "gestor",
+      "cargo_id": "CMASM-12"
+    },
+    {
+      "id": 1775404932684,
+      "nome": "Suellen",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "gestor",
+      "cargo_id": "CMASM-13"
+    },
+    {
+      "id": 1775404932686,
+      "nome": "Luciano Ferreira",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "admin",
+      "cargo_id": "CMASM-13.2"
+    },
+    {
+      "id": 1775404932687,
+      "nome": "Bianca",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "admin",
+      "cargo_id": "CMASM-20"
+    },
+    {
+      "id": 1775404932696,
+      "nome": "Pimentel",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "gestor",
+      "cargo_id": "CMASM-22"
+    },
+    {
+      "id": 1775404932718,
+      "nome": "Tarik",
+      "posto": "",
+      "mat": "",
+      "email": "",
+      "tel": "",
+      "tipo": "militar",
+      "role": "admin",
+      "cargo_id": "CMASM-30"
+    }
+  ],
+  "exportado_em": "2026-04-05T16:35:45.032Z"
+}

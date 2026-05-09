@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+	 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	 xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+	 version="3.1">
+    <context-param>
+        <param-name>javax.faces.PROJECT_STAGE</param-name>
+        <param-value>Production</param-value>
+    </context-param>
+    <servlet>
+        <servlet-name>Faces Servlet</servlet-name>
+        <servlet-class>javax.faces.webapp.FacesServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>Faces Servlet</servlet-name>
+        <url-pattern>*.xhtml</url-pattern>
+    </servlet-mapping>
+
+    <!-- Proxy para o Intelbras INC-OP (Intelligent Network Center) -->
+    <servlet>
+        <servlet-name>IncopProxy</servlet-name>
+        <servlet-class>tratamento.IncopProxyServlet</servlet-class>
+        <!-- Altere para o IP/porta real do servidor INC-OP na rede -->
+        <init-param>
+            <param-name>incop.url</param-name>
+            <param-value>http://192.168.10.5:8080</param-value>
+        </init-param>
+        <init-param>
+            <param-name>incop.user</param-name>
+            <param-value>admin</param-value>
+        </init-param>
+        <init-param>
+            <param-name>incop.password</param-name>
+            <param-value>admin</param-value>
+        </init-param>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>IncopProxy</servlet-name>
+        <url-pattern>/incop/*</url-pattern>
+    </servlet-mapping>
+    
+
+    <!-- Proxy direto para câmeras/DVRs Intelbras via API CGI (HTTP API V3.59) -->
+    <servlet>
+        <servlet-name>CameraProxy</servlet-name>
+        <servlet-class>tratamento.CameraProxyServlet</servlet-class>
+        <!-- Credenciais padrão das câmeras (pode ser sobreposto por ?user=&pass= na URL) -->
+        <init-param>
+            <param-name>cam.user</param-name>
+            <param-value>admin</param-value>
+        </init-param>
+        <init-param>
+            <param-name>cam.password</param-name>
+            <param-value>admin</param-value>
+        </init-param>
+        <load-on-startup>3</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>CameraProxy</servlet-name>
+        <url-pattern>/cam/*</url-pattern>
+    </servlet-mapping>
+
+    <welcome-file-list>
+        <welcome-file>index.xhtml</welcome-file>
+    </welcome-file-list>
+</web-app>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xPredial - Planejamento</title>
+  <link rel="stylesheet" href="assets/xpredial-core.css" />
+    <link rel="stylesheet" href="../../assets/fonts.css"></head>
+<body>
+  <header id="top"></header>
+  <main>
+    <div class="grid" style="grid-template-columns: 350px 1fr">
+      <section class="card">
+        <h2>Planejar Inspeção</h2>
+        <div class="fg">
+          <label>Local Predial</label>
+          <select id="local"></select>
+        </div>
+        <div class="fg">
+          <label>Título da Inspeção</label>
+          <input id="titulo" value="Inspeção Predial de Rotina" />
+        </div>
+        <div class="fg">
+          <label>Data Planejada</label>
+          <input id="data" type="date" />
+        </div>
+        <div class="fg">
+          <label>Responsável / Executante</label>
+          <select id="executante_id">
+            <option value="">(não atribuído)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Vincular a OS / PS (xServicos)</label>
+          <input id="servico_id" placeholder="Ex: OS-2026-001" />
+        </div>
+        <button id="criar" class="btn btn-p" style="width:100%">Gerar Ordem de Inspeção</button>
+      </section>
+
+      <section class="card">
+        <h2>Inspeções em Aguardo</h2>
+        <div class="tw">
+          <table>
+            <thead><tr><th>ID</th><th>Título</th><th>Local</th><th>Status</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script src="assets/predial-api.js?v=20260502"></script>
+  <script src="assets/predial.js?v=20260502"></script>
+  <script>
+    xPredialUI.setHeader("planejamento.html", "Planejamento e emissão de ordens de inspeção.");
+
+    async function refresh() {
+      try {
+        await xPredialUI.loadLocaisSelect("local");
+        
+        // Carrega usuários para o select de executante
+        const usuarios = await predialAPI.listUsuarios();
+        const execSelect = document.getElementById("executante_id");
+        execSelect.innerHTML = '<option value="">(não atribuído)</option>' + 
+          usuarios.map(u => `<option value="${u.id}">${u.posto || ''} ${u.nome}</option>`).join("");
+
+        const rows = await predialAPI.listInspecoes({ status: "planejada" });
+        document.getElementById("rows").innerHTML = rows.map(r =>
+          `<tr>
+            <td><span class="small" style="font-family:var(--mono)">#${r.id}</span></td>
+            <td><b style="color:var(--text)">${r.titulo}</b></td>
+            <td>${r.local_nome}</td>
+            <td>${xPredialUI.badge(r.status)}</td>
+          </tr>`
+        ).join("");
+      } catch (err) { xPredialUI.toast(err.message, "error"); }
+    }
+
+    document.getElementById("criar").addEventListener("click", async () => {
+      try {
+        await predialAPI.createInspecao({
+          local_id: Number(document.getElementById("local").value),
+          titulo: document.getElementById("titulo").value,
+          data_planejada: document.getElementById("data").value || null,
+          executante_id: document.getElementById("executante_id").value ? Number(document.getElementById("executante_id").value) : null,
+          servico_id: document.getElementById("servico_id").value || null,
+        });
+        xPredialUI.toast("Inspeção planejada com sucesso");
+        await refresh();
+      } catch (err) { xPredialUI.toast(err.message, "error"); }
+    });
+
+    refresh();
+  </script>
+</body>
+</html>

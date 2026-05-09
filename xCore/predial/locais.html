@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xPredial - Locais e Predios</title>
+  <link rel="stylesheet" href="assets/xpredial-core.css" />
+    <link rel="stylesheet" href="../../assets/fonts.css"><style>
+    .table-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
+    .moverlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+    .moverlay.open { display: flex; }
+    .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; width: min(560px, 95vw); max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+    .mhdr { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+    .mbody { padding: 18px; overflow-y: auto; flex: 1; }
+    .mfooter { padding: 12px 18px; border-top: 1px solid var(--line); display: flex; gap: 7px; justify-content: flex-end; }
+    .tree-cell { display: flex; align-items: center; gap: 8px; }
+  </style>
+</head>
+<body>
+  <header id="top"></header>
+  <main>
+    <section class="card">
+      <div class="table-toolbar">
+        <h2>Inventário de Locais</h2>
+        <div style="display:flex; gap:8px">
+          <button id="exportExcel" class="btn btn-s">Exportar Excel</button>
+          <button id="exportPdf" class="btn btn-s">Exportar PDF</button>
+          <button id="colapsarTudo" class="btn btn-s">Recolher</button>
+          <button id="expandirTudo" class="btn btn-s">Expandir</button>
+          <button id="adicionar" class="btn btn-p">+ Novo Local</button>
+        </div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>NEO</th><th>Nome</th><th>Tipo</th><th>Área</th><th>Ação</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="modalLocal" class="moverlay">
+    <div class="modal">
+      <div class="mhdr">
+        <h3 id="tituloModalLocal">Cadastrar Local Predial</h3>
+        <button id="fecharModal" class="btn btn-s" style="padding:4px 8px">✕</button>
+      </div>
+      <div class="mbody">
+        <div class="grid" style="grid-template-columns: 1fr 1fr">
+          <div class="fg" style="grid-column: 1 / -1">
+            <label>Nome do Local / Sala / Prédio</label>
+            <input id="nome" placeholder="Ex.: Prédio Administrativo" />
+          </div>
+          <div class="fg">
+            <label>Código NEO / Patrimônio</label>
+            <input id="codigo" placeholder="Ex.: CMASM-34.2" />
+          </div>
+          <div class="fg">
+            <label>Área CMASM</label>
+            <select id="area_cmasm">
+              <option value="">(não definida)</option>
+              <option value="ADM">ADM — Administrativa</option>
+              <option value="OPE">OPE — Operativa</option>
+              <option value="APA">APA — Preservação Ambiental</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Tipo de Espaço</label>
+            <select id="tipo">
+              <option value="OM">OM</option>
+              <option value="edificio">Edifício</option>
+              <option value="sala">Sala</option>
+              <option value="oficina">Oficina</option>
+              <option value="paiol">Paiol</option>
+              <option value="area_externa">Área Externa</option>
+              <option value="banheiro">Banheiro</option>
+              <option value="area_tecnica">Área Técnica</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Nível de Restrição</label>
+            <select id="restricao">
+              <option value="">(sem restrição)</option>
+              <option value="civil">Civil</option>
+              <option value="militar">Militar</option>
+              <option value="reservado">Reservado</option>
+              <option value="secreto">Secreto</option>
+              <option value="proibido">Proibido</option>
+            </select>
+          </div>
+          <div class="fg" style="grid-column: 1 / -1">
+            <label>Localização Hierárquica (Pai)</label>
+            <select id="parent"></select>
+          </div>
+          <div class="fg">
+            <label>Área Útil (m²)</label>
+            <input id="area" type="number" step="0.1" />
+          </div>
+        </div>
+      </div>
+      <div class="mfooter">
+        <button id="salvar" class="btn btn-p">Salvar Local</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalLocalDetalhes" class="moverlay">
+    <div class="modal" style="width: min(800px, 95vw);">
+      <div class="mhdr">
+        <h3 id="detalhesTitulo">Detalhes do Local</h3>
+        <button onclick="fecharModalDetalhes()" class="btn btn-s" style="padding:4px 8px">✕</button>
+      </div>
+      <div class="mbody" id="detalhesBody" style="padding: 18px;">
+        <!-- populated by js -->
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/predial-api.js"></script>
+  <script src="assets/predial.js"></script>
+  <script>
+    xPredialUI.setHeader("locais.html", "Gestão granular de ativos e espaços físicos.");
+
+    const modal = document.getElementById("modalLocal");
+    const collapsedNodes = new Set();
+    let currentLocais = [];
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function exportFileName(ext) {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+      return `locais_${stamp}.${ext}`;
+    }
+
+    function exportRows() {
+      return buildTree(currentLocais).map((r) => ({
+        neo: r.node.neo || "-",
+        nome: `${"  ".repeat(r.level)}${r.node.nome || ""}`,
+        tipo: r.node.tipo || "-",
+        area: r.node.area || "N/A",
+      }));
+    }
+
+    function downloadBlob(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportLocaisExcel() {
+      const rows = exportRows();
+      if (!rows.length) {
+        xPredialUI.toast("Sem dados para exportar", "error");
+        return;
+      }
+
+      const tableRows = rows.map((r) => `
+        <tr>
+          <td>${escapeHtml(r.neo)}</td>
+          <td>${escapeHtml(r.nome)}</td>
+          <td>${escapeHtml(r.tipo)}</td>
+          <td>${escapeHtml(r.area)}</td>
+        </tr>`).join("");
+
+      const html = `
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+        </head>
+        <body>
+          <table border="1">
+            <thead><tr><th>NEO</th><th>Nome</th><th>Tipo</th><th>Area</th></tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </body>
+      </html>`;
+
+      const blob = new Blob(["\ufeff", html], { type: "application/vnd.ms-excel;charset=utf-8" });
+      downloadBlob(blob, exportFileName("xls"));
+      xPredialUI.toast("Planilha exportada com sucesso");
+    }
+
+    function exportLocaisPdf() {
+      const rows = exportRows();
+      if (!rows.length) {
+        xPredialUI.toast("Sem dados para exportar", "error");
+        return;
+      }
+
+      const printWindow = window.open("", "_blank", "width=1000,height=700");
+      if (!printWindow) {
+        xPredialUI.toast("Nao foi possivel abrir a janela de impressao", "error");
+        return;
+      }
+
+      const tableRows = rows.map((r) => `
+        <tr>
+          <td>${escapeHtml(r.neo)}</td>
+          <td>${escapeHtml(r.nome)}</td>
+          <td>${escapeHtml(r.tipo)}</td>
+          <td>${escapeHtml(r.area)}</td>
+        </tr>`).join("");
+
+      const emittedAt = new Date().toLocaleString("pt-BR");
+      printWindow.document.write(`
+        <!doctype html>
+        <html lang="pt-BR">
+          <head>
+            <meta charset="UTF-8" />
+            <title>Locais - Exportacao PDF</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
+              h1 { font-size: 20px; margin: 0 0 8px; }
+              p { margin: 0 0 18px; color: #444; }
+              table { width: 100%; border-collapse: collapse; font-size: 12px; }
+              th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+              th { background: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+            <h1>Inventario de Locais</h1>
+            <p>Gerado em: ${escapeHtml(emittedAt)}</p>
+            <table>
+              <thead><tr><th>NEO</th><th>Nome</th><th>Tipo</th><th>Area</th></tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 250);
+      xPredialUI.toast("Janela de impressao PDF aberta");
+    }
+
+    function abrirModal() { modal.classList.add("open"); }
+    function fecharModal() { modal.classList.remove("open"); }
+    
+    function fecharModalDetalhes() { document.getElementById("modalLocalDetalhes").classList.remove("open"); }
+    function abrirModalDetalhes(id) {
+      const local = currentLocais.find(l => l.id === id);
+      if (!local) return;
+      document.getElementById("detalhesTitulo").textContent = `Ficha Técnica: ${local.nome} (${local.neo || 'Sem NEO'})`;
+      
+      const html = `
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+          <section class="card" style="padding: 16px; margin: 0; box-shadow: none; border: 1px solid var(--line); background: var(--bg2);">
+            <h4 style="margin-top: 0; color: var(--acc); border-bottom: 1px solid var(--line); padding-bottom: 8px;">Dados do Ativo Predial</h4>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div><span class="small" style="display:inline-block; width:120px">Tipo de Espaço:</span> <strong>${local.tipo}</strong></div>
+              <div><span class="small" style="display:inline-block; width:120px">Área CMASM:</span> <strong>${local.area || 'Não definida'}</strong></div>
+              <div><span class="small" style="display:inline-block; width:120px">Nível Restrição:</span> <strong>${local.restricao || 'Sem restrição'}</strong></div>
+              <div><span class="small" style="display:inline-block; width:120px">Área Útil:</span> <strong>${local.area_m2 ? local.area_m2 + ' m²' : 'Não informada'}</strong></div>
+            </div>
+          </section>
+
+          <section class="card" style="padding: 16px; margin: 0; box-shadow: none; border: 1px solid var(--line); background: var(--bg2);">
+            <h4 style="margin-top: 0; color: var(--acc); border-bottom: 1px solid var(--line); padding-bottom: 8px;">Classificação Normativa</h4>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+              <div class="fg" style="margin:0">
+                <label style="font-size: 11px;">Classe de Manutenção (NBR 5674)</label>
+                <select style="padding: 6px; font-size: 13px;">
+                  <option>Rotineira</option>
+                  <option>Preventiva</option>
+                  <option>Corretiva</option>
+                </select>
+              </div>
+              <div class="fg" style="margin:0">
+                <label style="font-size: 11px;">Vida Útil de Projeto (VUP - NBR 15575)</label>
+                <select style="padding: 6px; font-size: 13px;">
+                  <option>Mínimo (≥ 50 anos)</option>
+                  <option>Intermediário (≥ 75 anos)</option>
+                  <option>Superior (≥ 100 anos)</option>
+                </select>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="card" style="padding: 16px; margin-top: 16px; box-shadow: none; border: 1px solid var(--line); background: var(--bg2);">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--line); padding-bottom: 8px;">
+                <h4 style="margin: 0; color: var(--acc);">Sistemas Prediais Inspecionáveis</h4>
+                <button class="btn btn-s btn-sm">+ Adicionar Sistema</button>
+            </div>
+            <div class="tw" style="margin-top: 12px; border: 1px solid var(--line); border-radius: 6px; overflow:hidden;">
+              <table style="margin:0">
+                <thead style="background: var(--bg)">
+                  <tr>
+                    <th>Sistema</th>
+                    <th style="width:120px">Estado Atual</th>
+                    <th style="width:120px">Última Insp.</th>
+                  </tr>
+                </thead>
+                <tbody style="background: var(--bg3)">
+                  <tr>
+                    <td>Elétrico / Iluminação</td>
+                    <td><span class="badge" style="background: var(--green); color: #000; border-radius: 4px; padding: 2px 6px;">Operacional</span></td>
+                    <td style="font-family: var(--mono); font-size:12px">10/03/2026</td>
+                  </tr>
+                  <tr>
+                    <td>Hidrossanitário</td>
+                    <td><span class="badge" style="background: var(--amber); color: #000; border-radius: 4px; padding: 2px 6px;">Atenção</span></td>
+                    <td style="font-family: var(--mono); font-size:12px">15/02/2026</td>
+                  </tr>
+                  <tr>
+                    <td>Climatização (AVAC)</td>
+                    <td><span class="badge" style="background: var(--green); color: #000; border-radius: 4px; padding: 2px 6px;">Operacional</span></td>
+                    <td style="font-family: var(--mono); font-size:12px">01/04/2026</td>
+                  </tr>
+                  <tr>
+                    <td>Estrutural / Vedação</td>
+                    <td><span class="badge" style="background: var(--green); color: #000; border-radius: 4px; padding: 2px 6px;">Operacional</span></td>
+                    <td style="font-family: var(--mono); font-size:12px">10/01/2026</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+        </section>
+        <div style="margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end;">
+            <button class="btn btn-s">Ver Histórico</button>
+            <button class="btn btn-p" onclick="xPredialUI.toast('Classificação atualizada com sucesso'); fecharModalDetalhes()">Salvar Classificação</button>
+        </div>
+      `;
+      document.getElementById("detalhesBody").innerHTML = html;
+      document.getElementById("modalLocalDetalhes").classList.add("open");
+    }
+
+    async function carregarPais(locais) {
+      document.getElementById("parent").innerHTML = `<option value="">(raiz / sem pai)</option>` + locais.map(l => `<option value="${l.id}">${l.nome}</option>`).join("");
+    }
+
+    function buildTree(locais) {
+      const neoKey = (value) => (value || "~").toString();
+      const ordered = [...locais].sort((a, b) => neoKey(a.neo).localeCompare(neoKey(b.neo), "pt-BR", { numeric: true }));
+      const byParent = new Map();
+      for (const local of ordered) {
+        const key = local.parent_id || 0;
+        if (!byParent.has(key)) byParent.set(key, []);
+        byParent.get(key).push(local);
+      }
+
+      const rows = [];
+      function walk(parentId, level, hiddenByAncestor) {
+        const children = byParent.get(parentId || 0) || [];
+        for (const node of children) {
+          const hasChildren = (byParent.get(node.id) || []).length > 0;
+          const isCollapsed = collapsedNodes.has(node.id);
+          rows.push({ node, level, hasChildren, isCollapsed, hidden: hiddenByAncestor });
+          walk(node.id, level + 1, hiddenByAncestor || isCollapsed);
+        }
+      }
+      walk(null, 0, false);
+      return rows;
+    }
+
+    async function refresh() {
+      try {
+        const locais = await predialAPI.listLocais();
+        currentLocais = locais;
+        await carregarPais(locais);
+        const rows = buildTree(locais);
+        document.getElementById("rows").innerHTML = rows.map(r => {
+          const leftPad = r.level * 20;
+          const toggle = r.hasChildren
+            ? `<button class="tree-toggle" data-id="${r.node.id}">${r.isCollapsed ? "+" : "-"}</button>`
+            : `<div style="width:20px"></div>`;
+          return `
+          <tr ${r.hidden ? "style=\"display:none\"" : ""}>
+            <td><span style="font-family:var(--mono); font-size:11px">${r.node.neo || "-"}</span></td>
+            <td>
+              <div class="tree-cell" style="padding-left:${leftPad}px">
+                ${toggle}
+                <span style="font-weight:500; color:var(--text)">${r.node.nome}</span>
+              </div>
+            </td>
+            <td>${r.node.tipo}</td>
+            <td>${xPredialUI.badge(r.node.area || 'N/A')}</td>
+            <td><button class="btn btn-s btn-sm" onclick="abrirModalDetalhes(${r.node.id})">Detalhes / Ficha</button></td>
+          </tr>`;
+        }).join("");
+
+        document.querySelectorAll(".tree-toggle[data-id]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = Number(btn.dataset.id);
+            if (collapsedNodes.has(id)) collapsedNodes.delete(id);
+            else collapsedNodes.add(id);
+            refresh();
+          });
+        });
+      } catch (err) {
+        xPredialUI.toast(err.message, "error");
+      }
+    }
+
+    document.getElementById("salvar").addEventListener("click", async () => {
+      try {
+        await predialAPI.createLocal({
+          codigo: document.getElementById("codigo").value || null,
+          area: document.getElementById("area_cmasm").value || null,
+          restricao: document.getElementById("restricao").value || null,
+          nome: document.getElementById("nome").value,
+          tipo: document.getElementById("tipo").value,
+          parent_id: document.getElementById("parent").value ? Number(document.getElementById("parent").value) : null,
+          area_m2: document.getElementById("area").value ? Number(document.getElementById("area").value) : null,
+        });
+        xPredialUI.toast("Local salvo com sucesso");
+        fecharModal();
+        await refresh();
+      } catch (err) {
+        xPredialUI.toast(err.message, "error");
+      }
+    });
+
+    document.getElementById("adicionar").addEventListener("click", () => { abrirModal(); });
+    document.getElementById("fecharModal").addEventListener("click", fecharModal);
+    document.getElementById("exportExcel").addEventListener("click", exportLocaisExcel);
+    document.getElementById("exportPdf").addEventListener("click", exportLocaisPdf);
+    
+    document.getElementById("colapsarTudo").addEventListener("click", () => {
+      const pids = new Set(currentLocais.map(l => l.parent_id).filter(id => id));
+      collapsedNodes.clear();
+      pids.forEach(id => collapsedNodes.add(id));
+      refresh();
+    });
+
+    document.getElementById("expandirTudo").addEventListener("click", () => {
+      collapsedNodes.clear();
+      refresh();
+    });
+
+    refresh();
+  </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+    <h:head>
+        <title>Gerenciador de Câmeras</title>
+        <style>
+            body { font-family: Arial, sans-serif; }
+            .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+            .table-data { width: 100%; border-collapse: collapse; margin: 10px 0; }
+            .table-data th, .table-data td { padding: 8px; border: 1px solid #999; text-align: left; }
+            .table-data th { background: #f0f0f0; }
+            .btn { padding: 5px 10px; margin: 5px; }
+            input, select { padding: 5px; margin: 5px; }
+        </style>
+    </h:head>
+    <h:body>
+        <ui:decorate template="/templates/decoratorLogin.xhtml">
+            <h1>Gerenciador de Câmeras CFTV</h1>
+
+            <div class="section">
+                <h2>Alterar IP por Local</h2>
+                <h:form>
+                    <select value="#{camerasBean.selectedLocal}">
+                        <option value="">-- Selecione --</option>
+                        <ui:repeat var="local" value="#{camerasBean.locaisComCamera}">
+                            <option value="#{local}">#{local}</option>
+                        </ui:repeat>
+                    </select>
+                    <input type="text" value="#{camerasBean.newIPValue}" placeholder="Novo IP" />
+                    <h:commandButton value="Alterar" action="#{camerasBean.changeIPByLocal()}" />
+                </h:form>
+            </div>
+
+            <div class="section">
+                <h2>Lista de Câmeras</h2>
+                <h:form>
+                    <input type="text" value="#{camerasBean.filterTipo}" placeholder="Filtrar por tipo..." />
+
+                    <table class="table-data" border="1">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>IP</th>
+                                <th>Local</th>
+                                <th>Tipo</th>
+                                <th>Marca</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <ui:repeat var="cam" value="#{camerasBean.camerasFiltradas}">
+                                <tr>
+                                    <td>#{cam.id}</td>
+                                    <td>#{cam.ip}</td>
+                                    <td>#{cam.local}</td>
+                                    <td>#{cam.tipoEquipamento}</td>
+                                    <td>#{cam.marca}</td>
+                                    <td>
+                                        <h:commandButton value="Editar" action="#{camerasBean.selectCamera(cam)}" />
+                                    </td>
+                                </tr>
+                            </ui:repeat>
+                        </tbody>
+                    </table>
+                </h:form>
+            </div>
+
+            <h:panelGroup rendered="#{camerasBean.selectedCamera != null}">
+                <div class="section">
+                    <h2>Editar Câmera #{camerasBean.selectedCamera.id}</h2>
+                    <h:form>
+                        <label>IP: <h:inputText value="#{camerasBean.selectedCamera.ip}" /></label><br/>
+                        <label>Local: <h:inputText value="#{camerasBean.selectedCamera.local}" /></label><br/>
+                        <label>Tipo: <h:inputText value="#{camerasBean.selectedCamera.tipoEquipamento}" /></label><br/>
+                        <label>Marca: <h:inputText value="#{camerasBean.selectedCamera.marca}" /></label><br/>
+                        <h:commandButton value="Salvar" action="#{camerasBean.saveCameraEdit()}" />
+                        <h:commandButton value="Cancelar" action="#{camerasBean.cancelEdit()}" immediate="true" />
+                    </h:form>
+                </div>
+            </h:panelGroup>
+        </ui:decorate>
+    </h:body>
+</html>

@@ -1,0 +1,41 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "xFonoclama"
+		},
+		{
+			"path": "xPaiol"
+		},
+		{
+			"path": "xPredial"
+		},
+		{
+			"path": "xSeguranca"
+		},
+		{
+			"path": "aguada-web"
+		},
+		{
+			"path": "xCalibracao"
+		},
+		{
+			"path": "xCFTV"
+		}
+	],
+	"settings": {
+		"python-envs.defaultEnvManager": "ms-python.python:system"
+	},
+	"extensions": {
+		"recommendations": [
+			"anthropic.claude-code",
+			"piotrpalarz.vscode-gitignore-generator",
+			"ms-vscode.cpptools",
+			"devsense.composer-php-vscode",
+			"upstash.context7-mcp",
+			"ms-vscode-remote.remote-containers"
+		]
+	}
+}

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm install *)",
+      "Bash(pip install -r requirements.txt)",
+      "Bash(uvicorn *)",
+      "Bash(lsof -i *)"
+    ]
+  }
+}

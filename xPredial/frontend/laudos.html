@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xPredial · Laudos e ARTs</title>
+  <link rel="stylesheet" href="http://localhost:8010/assets/xcmasm-shell.css" />
+  <link rel="stylesheet" href="http://localhost:8010/assets/fonts.css" />
+  <style>
+    .moverlay { position: fixed; inset: 0; background: rgba(7, 17, 31, 0.75); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .moverlay.open { display: flex; }
+    .modal { background: var(--xc-bg2); border: 1px solid var(--xc-line2); border-radius: var(--xc-r3); width: min(600px, 95vw); max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--xc-shadow); animation: xc-modalin .2s ease; }
+    .mhdr { padding: 15px 20px; border-bottom: 1px solid var(--xc-line); display: flex; align-items: center; justify-content: space-between; }
+    .mbody { padding: 20px; overflow-y: auto; flex: 1; }
+    .mfooter { padding: 13px 20px; border-top: 1px solid var(--xc-line); display: flex; gap: 8px; justify-content: flex-end; }
+  </style>
+</head>
+<body class="xcmasm-shell">
+  <div id="app"></div>
+
+  <template id="page-content">
+    <div class="xc-card">
+      <div class="xc-card-head">
+        <div class="xc-card-title">Gestão de Laudos e ARTs</div>
+        <button class="xc-btn xc-btn-p xc-btn-sm" onclick="abrirModal()">+ Novo Laudo</button>
+      </div>
+      <div class="xc-table-wrap">
+        <table class="xc-table">
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>Tipo</th>
+              <th>Local</th>
+              <th>Emissão</th>
+              <th>Validade</th>
+              <th>Arquivo</th>
+              <th style="width: 140px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </template>
+
+  <div id="modalLaudo" class="moverlay">
+    <div class="modal" style="width:500px">
+      <div class="mhdr">
+        <h3 class="xc-tb-title">Cadastrar Novo Laudo</h3>
+        <button class="xc-btn xc-btn-g xc-btn-xs" onclick="fecharModal()" style="padding:4px 8px">✕</button>
+      </div>
+      <div class="mbody">
+        <div class="xc-fg xc-mb12">
+          <label class="xc-mono" style="font-size:10px">Título do Documento</label>
+          <input id="l-titulo" class="xc-search-inp" style="padding-left:12px" placeholder="Ex: ART Manutenção Elétrica 2026">
+        </div>
+        <div class="xc-g2">
+          <div class="xc-fg">
+            <label class="xc-mono" style="font-size:10px">Tipo</label>
+            <select id="l-tipo" class="xc-search-inp" style="padding-left:12px">
+              <option value="ART">ART</option>
+              <option value="RRT">RRT</option>
+              <option value="Garantia">Garantia</option>
+              <option value="Tecnico">Laudo Técnico</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="xc-fg">
+            <label class="xc-mono" style="font-size:10px">Local</label>
+            <select id="l-local" class="xc-search-inp" style="padding-left:12px"></select>
+          </div>
+          <div class="xc-fg">
+            <label class="xc-mono" style="font-size:10px">Emissão</label>
+            <input type="date" id="l-emissao" class="xc-search-inp" style="padding-left:12px">
+          </div>
+          <div class="xc-fg">
+            <label class="xc-mono" style="font-size:10px">Validade</label>
+            <input type="date" id="l-validade" class="xc-search-inp" style="padding-left:12px">
+          </div>
+        </div>
+        <div class="xc-fg xc-mt12">
+          <label class="xc-mono" style="font-size:10px">Arquivo (Caminho)</label>
+          <input id="l-path" class="xc-search-inp" style="padding-left:12px" placeholder="/uploads/laudos/doc.pdf">
+        </div>
+      </div>
+      <div class="mfooter">
+        <button class="xc-btn xc-btn-p" onclick="salvar()">Salvar Laudo</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalDetalhesLaudo" class="moverlay">
+    <div class="modal" style="width: min(800px, 95vw);">
+      <div class="mhdr">
+        <h3 id="detalhesLaudoTitulo" class="xc-tb-title">Análise Normativa - Laudo</h3>
+        <button class="xc-btn xc-btn-g xc-btn-xs" onclick="fecharModalDetalhesLaudo()" style="padding:4px 8px">✕</button>
+      </div>
+      <div class="mbody xc-tx2-col">
+        <div class="xc-g2 xc-mb16">
+          <div class="xc-fg">
+             <label class="xc-mono" style="font-size:10px">Referência Normativa Principal</label>
+             <input type="text" class="xc-search-inp" style="padding-left:12px" value="NBR 16747 - Inspeção Predial">
+          </div>
+          <div class="xc-fg">
+             <label class="xc-mono" style="font-size:10px">Grau de Risco (Geral)</label>
+             <select class="xc-search-inp" style="padding-left:12px">
+                <option>Crítico (Risco a saúde/segurança)</option>
+                <option>Regular (Perda de funcionalidade)</option>
+                <option>Mínimo (Pequenos reparos estéticos)</option>
+             </select>
+          </div>
+        </div>
+        
+        <div class="xc-card">
+          <div class="xc-card-head"><div class="xc-card-title">Matriz de Verificação Técnica</div></div>
+          <div class="xc-table-wrap">
+            <table class="xc-table">
+              <thead>
+                <tr>
+                  <th style="width:25%">Sistema</th>
+                  <th style="width:35%">Anomalia / Recomendação</th>
+                  <th style="width:20%">Origem</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b class="xc-tx">Elétrica</b></td>
+                  <td>Oxidação em QDC. <i class="xc-tx3-col">Instalar DR.</i></td>
+                  <td>Funcional</td>
+                  <td><button class="xc-btn xc-btn-g xc-btn-xs">Edit</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="mfooter">
+        <button class="xc-btn xc-btn-p" onclick="fecharModalDetalhesLaudo()">Salvar Matriz</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="http://localhost:8010/assets/xcmasm-shell.js"></script>
+  <script src="assets/predial-api.js"></script>
+  <script>
+    xShell.init({
+      activePage: 'predial',
+      pageTitle: 'xPredial · Acervo Técnico',
+      subtitle: 'Responsabilidades e Laudos (NBR 5674)'
+    });
+    document.getElementById('xc-content').appendChild(document.getElementById('page-content').content.cloneNode(true));
+
+    let currentLaudos = [];
+    async function refresh() {
+      try {
+        const laudos = await predialAPI.listLaudos();
+        currentLaudos = laudos;
+        document.getElementById("rows").innerHTML = laudos.map(l => `
+          <tr>
+            <td><b class="xc-tx">${l.titulo}</b></td>
+            <td><span class="xc-badge xc-badge-acc">${l.tipo}</span></td>
+            <td class="xc-tx2-col">${l.local_nome}</td>
+            <td class="xc-mono" style="font-size:11px">${l.data_emissao || '-'}</td>
+            <td class="xc-mono" style="font-size:11px">${l.validade || '-'}</td>
+            <td class="xc-tx3-col" style="font-size:10px">${l.arquivo_path || '-'}</td>
+            <td><button class="xc-btn xc-btn-g xc-btn-xs" onclick="abrirModalDetalhesLaudo(${l.id})">Análise</button></td>
+          </tr>
+        `).join("");
+      } catch (err) { console.error(err); }
+    }
+
+    function abrirModal() { 
+      document.getElementById("modalLaudo").classList.add("open");
+      predialAPI.listLocais().then(locais => {
+        document.getElementById("l-local").innerHTML = locais.map(l => `<option value="${l.id}">${l.nome}</option>`).join("");
+      });
+    }
+    function fecharModal() { document.getElementById("modalLaudo").classList.remove("open"); }
+    function abrirModalDetalhesLaudo(id) { document.getElementById("modalDetalhesLaudo").classList.add("open"); }
+    function fecharModalDetalhesLaudo() { document.getElementById("modalDetalhesLaudo").classList.remove("open"); }
+
+    async function salvar() {
+      try {
+        await predialAPI.createLaudo({
+          titulo: document.getElementById("l-titulo").value,
+          tipo: document.getElementById("l-tipo").value,
+          local_id: Number(document.getElementById("l-local").value),
+          data_emissao: document.getElementById("l-emissao").value,
+          validade: document.getElementById("l-validade").value,
+          arquivo_path: document.getElementById("l-path").value
+        });
+        fecharModal();
+        refresh();
+      } catch (err) { alert(err.message); }
+    }
+
+    refresh();
+  </script>
+</body>
+</html>
+

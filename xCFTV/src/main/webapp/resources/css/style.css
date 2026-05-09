@@ -1,0 +1,438 @@
+h2{
+    color: black;
+    text-align: center;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+h1{
+    color: black;
+    text-align: center;
+    margin-top: 15px;
+    margin-bottom: -30px;
+} 
+
+#content {
+    width: 96%;
+    margin: 0 auto;
+}
+
+table#painel{
+    box-shadow: 6px 6px 3px #888888;
+    background-color: #d6d6d6;
+	width: 100%;
+	text-align: center;
+	height: 50px;
+    border-spacing: 4px;
+}
+
+table#painel td{
+        background-color: darkgreen;
+    height: 50px;
+    width: 92px;
+    color: #ffffff;
+        text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+        border-collapse:separate;
+        border:solid black 1px;
+        border-radius:6px;
+}
+
+table#painel td:hover{
+	background-color: dodgerblue;
+        color: #ffffff;
+	cursor: pointer;
+}
+
+body {
+    background-color: #f3f3f3;
+}
+
+*{
+    font-family: Verdana;
+}
+
+#ativaSom{
+    background-color: yellowgreen;
+    height: 42px;
+    width: 260px;
+    color: black;
+    text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+    border-collapse:separate;
+    border:solid black 1px;
+    border-radius:6px;
+}
+
+#ativaSom:hover{
+    background-color: dodgerblue;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.secao-box{
+    background: #e3e3e3;
+    border: 1px solid #777;
+    border-radius: 6px;
+    box-shadow: 4px 4px 2px #999;
+    margin: 12px auto;
+    padding: 8px;
+}
+
+.toolbar td{
+    padding: 6px;
+}
+
+.btnGrupo{
+    background-color: #1f5d1f;
+    color: #fff;
+    border: 1px solid #0f3f0f;
+    border-radius: 5px;
+    font-size: 12px;
+    text-align: center;
+    min-width: 96px;
+    cursor: pointer;
+}
+
+.btnGrupo:hover{
+    background-color: #2266b3;
+}
+
+#output{
+    margin-top: 6px;
+    text-align: center;
+    font-size: 12px;
+}
+
+#inventario, #comandos, #plantas{
+    width: 100%;
+    border-collapse: collapse;
+    background: #fbfbfb;
+}
+
+#inventario th, #inventario td,
+#comandos td,
+#plantas td{
+    border: 1px solid #444;
+    font-size: 12px;
+    padding: 6px;
+}
+
+#inventario th{
+    background: #c2d8c2;
+}
+
+.cmd{
+    font-family: monospace;
+    background: #eff1ef;
+}
+
+.cmdBtn{
+    width: 90px;
+    text-align: center;
+    cursor: pointer;
+    background-color: #1f5d1f;
+    color: #fff;
+    font-weight: bold;
+}
+
+.cmdBtn:hover{
+    background-color: #2266b3;
+}
+
+.xmapa-box .xmapaTable{
+    width: 100%;
+    border-collapse: collapse;
+    background: #fbfbfb;
+}
+
+.xmapa-box .xmapaTable td,
+.xmapa-box .xmapaTable th{
+    border: 1px solid #444;
+    font-size: 12px;
+    padding: 6px;
+}
+
+.xmapa-box .xmapaTable th{
+    background: #c2d8c2;
+}
+
+.xmapaBtn{
+    width: 130px;
+    text-align: center;
+    cursor: pointer;
+    background-color: #1f5d1f;
+    color: #fff;
+    font-weight: bold;
+}
+
+.xmapaBtn:hover{
+    background-color: #2266b3;
+}
+
+#mapaOperacional {
+    position: relative;
+    width: 100%;
+    height: 420px;
+    border: 1px solid #264b72;
+    border-radius: 8px;
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 42px 42px,
+        linear-gradient(0deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0 / 42px 42px,
+        radial-gradient(circle at 20% 15%, rgba(59, 130, 246, 0.18), transparent 35%),
+        radial-gradient(circle at 75% 80%, rgba(6, 182, 212, 0.16), transparent 30%),
+        linear-gradient(180deg, #07111f 0%, #0d1e33 100%);
+    overflow: hidden;
+}
+
+#mapaCanvas {
+    position: absolute;
+    inset: 0;
+}
+
+.zona {
+    position: absolute;
+    z-index: 1;
+    font-size: 11px;
+    font-weight: bold;
+    border: 1px dashed rgba(255, 255, 255, 0.35);
+    color: #e5eef8;
+    padding: 4px 6px;
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+.zona-azul {
+    top: 10px;
+    left: 10px;
+    width: 46%;
+    height: 46%;
+    background: rgba(37, 99, 235, 0.10);
+}
+
+.zona-vermelha {
+    top: 10px;
+    right: 10px;
+    width: 44%;
+    height: 46%;
+    background: rgba(220, 38, 38, 0.10);
+}
+
+.zona-perimetro {
+    bottom: 10px;
+    left: 10px;
+    width: 30%;
+    height: 42%;
+    background: rgba(245, 158, 11, 0.11);
+}
+
+.zona-paiois {
+    bottom: 10px;
+    left: 34%;
+    width: 30%;
+    height: 42%;
+    background: rgba(34, 197, 94, 0.11);
+}
+
+.zona-internas {
+    bottom: 10px;
+    right: 10px;
+    width: 34%;
+    height: 42%;
+    background: rgba(139, 92, 246, 0.12);
+}
+
+.mapa-pin {
+    position: absolute;
+    z-index: 2;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid #ffffff;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+}
+
+.mapa-pin::after {
+    content: attr(data-name);
+    position: absolute;
+    top: 14px;
+    left: 8px;
+    white-space: nowrap;
+    font-size: 10px;
+    color: #ffffff;
+    text-shadow: 0 1px 2px #000;
+}
+
+.mapa-pin.azul { background: #3b82f6; }
+.mapa-pin.vermelha { background: #ef4444; }
+.mapa-pin.perimetro { background: #f59e0b; }
+.mapa-pin.paiois { background: #22c55e; }
+.mapa-pin.internas { background: #a78bfa; }
+
+.mapa-pin.off {
+    opacity: 0.22;
+}
+
+#mapaLegenda {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #10263f;
+}
+
+/* ═══════════════════════════════════════════════
+   STATUS INC-OP — células do painel + inventário
+   ═══════════════════════════════════════════════ */
+
+table#painel td.incop-online {
+    border: 2px solid #22c55e;
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+}
+
+table#painel td.incop-offline {
+    border: 2px solid #ef4444;
+    background-color: #3b0a0a !important;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+table#painel td.incop-unknown {
+    border: 2px solid #4b6280;
+}
+
+/* Barra de status INC-OP no topo do painel */
+.incop-statusbar {
+    text-align: center;
+    padding: 4px 0 6px 0;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* Badges de status: Online / Offline / aguardando */
+.incop-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+}
+
+.incop-ok      { background: #14532d; color: #86efac; border: 1px solid #22c55e; }
+.incop-off     { background: #450a0a; color: #fca5a5; border: 1px solid #ef4444; }
+.incop-unknown { background: #1e2d40; color: #64748b; border: 1px solid #334155; }
+
+/* Botão ping inline na tabela */
+.incop-ping-btn {
+    margin-left: 6px;
+    padding: 1px 7px;
+    font-size: 10px;
+    background: #1e3a5f;
+    color: #7dd3fc;
+    border: 1px solid #2563eb;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.incop-ping-btn:hover { background: #2563eb; color: #fff; }
+
+/* Pins do mapa com status INC-OP */
+.mapa-pin.incop-online  { box-shadow: 0 0 0 3px rgba(34,197,94,0.7),  0 0 10px rgba(34,197,94,0.5); }
+.mapa-pin.incop-offline { box-shadow: 0 0 0 3px rgba(239,68,68,0.8),  0 0 10px rgba(239,68,68,0.5); opacity: 0.6; }
+
+/* ═══════════════════════════════════════════════
+   SNAPSHOT MODAL — câmera via API CGI Intelbras
+   ═══════════════════════════════════════════════ */
+
+.snap-modal {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(3px);
+}
+
+.snap-modal-box {
+    background: #0d1e33;
+    border: 1px solid #1e3a5f;
+    border-radius: 10px;
+    min-width: 380px;
+    max-width: 900px;
+    width: 90%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+}
+
+.snap-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid #1e3a5f;
+    background: #0a1828;
+    border-radius: 10px 10px 0 0;
+    font-size: 14px;
+    font-weight: bold;
+    color: #7dd3fc;
+}
+
+.snap-modal-header button {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+.snap-modal-header button:hover { color: #ef4444; }
+
+.snap-modal-body {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    min-height: 200px;
+}
+
+.snap-modal-body img {
+    max-width: 100%;
+    max-height: 540px;
+    border-radius: 6px;
+    border: 1px solid #1e3a5f;
+    background: #07111f;
+}
+
+.snap-info {
+    font-size: 12px;
+    color: #94a3b8;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.snap-modal-footer {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 10px 16px;
+    border-top: 1px solid #1e3a5f;
+    background: #0a1828;
+    border-radius: 0 0 10px 10px;
+}
+
+.snap-modal-footer button {
+    padding: 5px 14px;
+    background: #1e3a5f;
+    color: #7dd3fc;
+    border: 1px solid #2563eb;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.snap-modal-footer button:hover { background: #2563eb; color: #fff; }
+}

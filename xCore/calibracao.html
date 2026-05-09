@@ -1,0 +1,3882 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CMASM — Controle de Calibração</title>
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/erp-module-shell.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07111f;--sf:#0f2035;--sf2:#0d1e33;--bd:#1f3552;--bd2:#2e4b72;
+  --tx:#e2e8f0;--tx2:#9fb4d1;--tx3:#6f86a8;
+  --blue:#00b4d8;--blue-bg:#0b2b45;--blue-lt:#16456b;
+  --green:#22c55e;--green-bg:#0b2f1c;
+  --red:#ef4444;--red-bg:#351316;--red-lt:#5a1e24;
+  --amber:#f59e0b;--amber-bg:#3b2a0d;
+  --orange:#fb923c;--orange-bg:#3a220f;
+  --purple:#8b5cf6;--purple-bg:#251a3c;
+  --r:8px;--rl:12px;
+}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);font-size:14px}
+.app{display:flex;height:100vh;overflow:hidden}
+.sb{width:220px;background:#0f172a;color:#fff;display:flex;flex-direction:column;flex-shrink:0;transition:width .2s}
+.sb.c{width:52px}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:16px 14px;border-bottom:1px solid #1e293b}
+.sb-icon{width:28px;height:28px;background:#1d4ed8;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.sb-txt{font-weight:700;font-size:14px;line-height:1.2;white-space:nowrap}
+.sb-sub{font-size:11px;color:#64748b}
+nav{flex:1;padding:8px;overflow-y:auto}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r);cursor:pointer;color:#94a3b8;transition:all .15s;border:none;background:none;width:100%;text-align:left;white-space:nowrap;overflow:hidden;font-size:13px}
+.ni:hover{background:#1e293b;color:#fff}
+.ni.act{background:#1d4ed8;color:#fff}
+.ni-ico{font-size:16px;flex-shrink:0}
+.ni-lbl{flex:1;font-weight:500}
+.ni-bdg{background:#ef4444;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center}
+.sb-tog{padding:10px;border-top:1px solid #1e293b;cursor:pointer;color:#64748b;display:flex;justify-content:center;border:none;background:none;width:100%}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:var(--sf);border-bottom:1px solid var(--bd);padding:10px 20px;display:flex;align-items:center;gap:6px;font-size:13px;flex-shrink:0}
+.tb-c{color:var(--tx3)}
+.tb-s{color:var(--bd2)}
+.tb-p{font-weight:600}
+.content{flex:1;overflow-y:auto;padding:20px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rl);padding:16px 20px}
+.ct{font-size:11px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.kpi-g{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px}
+.kpi{border-radius:var(--rl);padding:14px 16px;cursor:pointer;transition:all .15s;border:1px solid transparent}
+.kpi:hover{box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.kv{font-size:28px;font-weight:700;line-height:1}
+.kl{font-size:11px;margin-top:4px;opacity:.8}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.twrap{overflow-x:auto;border-radius:var(--rl);border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--sf2);border-bottom:1px solid var(--bd)}
+th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--bd);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--sf2)}
+td{padding:9px 12px;vertical-align:middle}
+.bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-ok{background:var(--green-bg);color:var(--green)}
+.b-d{background:var(--red-bg);color:var(--red)}
+.b-w{background:var(--amber-bg);color:var(--amber)}
+.b-i{background:var(--blue-bg);color:var(--blue)}
+.b-o{background:var(--orange-bg);color:var(--orange)}
+.b-p{background:var(--purple-bg);color:var(--purple)}
+.b-s{background:var(--sf2);color:var(--tx2);border:1px solid var(--bd)}
+.tag{background:var(--sf2);border:1px solid var(--bd);border-radius:4px;padding:1px 6px;font-size:11px;font-weight:500;color:var(--tx2)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);border:1px solid var(--bd2);background:var(--sf);color:var(--tx);cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.btn:hover{background:var(--sf2)}
+.btn.pr{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.pr:hover{background:#1e40af}
+.btn.dr{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.sm{padding:4px 10px;font-size:12px}
+.bico{padding:5px;border-radius:var(--r);border:none;background:none;cursor:pointer;font-size:14px}
+.bico:hover{background:var(--sf2)}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.fr.f{grid-template-columns:1fr}
+.fr.c3{grid-template-columns:1fr 1fr 1fr}
+.fld{display:flex;flex-direction:column;gap:4px}
+label{font-size:12px;font-weight:600;color:var(--tx2)}
+input,select,textarea{padding:7px 10px;border:1px solid var(--bd2);border-radius:var(--r);font-size:13px;color:var(--tx);background:var(--sf);width:100%;transition:border .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
+textarea{resize:vertical;min-height:60px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.mod{background:var(--sf);border-radius:var(--rl);width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mod.sm{max-width:420px}
+.mod.md{max-width:640px}
+.mod.lg{max-width:880px}
+.mh{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.mt{font-size:16px;font-weight:700}
+.mb{padding:20px}
+.mf{padding:14px 20px;border-top:1px solid var(--bd);display:flex;gap:8px;justify-content:flex-end}
+.filt{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.sw{position:relative;flex:1;min-width:200px}
+.sw input{padding-left:32px}
+.si{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--tx3)}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.ptit{font-size:20px;font-weight:700}
+.psub{font-size:13px;color:var(--tx3);margin-top:2px}
+.br{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bl{width:140px;font-size:12px;color:var(--tx2);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt{flex:1;height:6px;background:var(--sf2);border-radius:3px;overflow:hidden}
+.bf{height:100%;border-radius:3px}
+.bc{font-size:12px;color:var(--tx2);width:32px;text-align:right;flex-shrink:0}
+.ai{padding:10px 12px;border-radius:var(--r);margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-left:3px solid}
+.ai-d{background:var(--red-bg);border-color:var(--red)}
+.ai-w{background:var(--amber-bg);border-color:var(--amber)}
+.ai-i{background:var(--blue-bg);border-color:var(--blue)}
+.pst{display:flex;flex-direction:column;gap:6px}
+.psi{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--bd);border-radius:var(--r);background:var(--sf2)}
+.psn{font-family:monospace;font-weight:700;font-size:13px;color:var(--blue);width:140px;flex-shrink:0}
+.emp{text-align:center;padding:40px;color:var(--tx3);font-size:13px}
+.snt{font-family:monospace;font-size:11px;background:var(--sf2);border:1px solid var(--bd);padding:1px 6px;border-radius:4px;color:var(--tx2)}
+.rbox{background:var(--red-bg);border:1px solid var(--red-lt);border-radius:var(--r);padding:10px 12px;display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:12px;color:var(--red)}
+.ssep{font-size:11px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--bd)}
+@media(max-width:768px){.kpi-g{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr}.sb{width:52px}}
+</style>
+</head>
+<body class="erp-calibracao-body">
+<a href="cmasm-erp.html" class="calib-home" title="Portal CMASM">⇚ CMASM</a>
+<div id="root"></div>
+
+<!-- React e ReactDOM carregados de forma síncrona ANTES do app -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- App pré-compilado (sem necessidade de Babel no browser) -->
+<script>
+const {
+  useState,
+  useMemo,
+  useEffect
+} = React;
+const STATUS_CFG = {
+  CALIBRADO: {
+    lbl: 'Calibrado',
+    cls: 'b-ok'
+  },
+  DESCALIBRADO: {
+    lbl: 'Descalibrado',
+    cls: 'b-d'
+  },
+  EM_REPARO: {
+    lbl: 'Em reparo',
+    cls: 'b-p'
+  },
+  AGUARDANDO_CALIBRACAO: {
+    lbl: 'Aguard. calibração',
+    cls: 'b-o'
+  },
+  SEM_CERTIFICADO: {
+    lbl: 'Sem certificado',
+    cls: 'b-w'
+  },
+  NAO_UTILIZADO: {
+    lbl: 'Não utilizado',
+    cls: 'b-s'
+  },
+  DESCARTADO: {
+    lbl: 'Descartado',
+    cls: 'b-s'
+  }
+};
+const PS_ST = {
+  RASCUNHO: {
+    lbl: 'Rascunho',
+    cls: 'b-s'
+  },
+  EMITIDO: {
+    lbl: 'Emitido',
+    cls: 'b-i'
+  },
+  ENVIADO: {
+    lbl: 'Enviado',
+    cls: 'b-p'
+  },
+  EM_CALIBRACAO: {
+    lbl: 'Em calibração',
+    cls: 'b-w'
+  },
+  CONCLUIDO: {
+    lbl: 'Concluído',
+    cls: 'b-ok'
+  },
+  CANCELADO: {
+    lbl: 'Cancelado',
+    cls: 'b-d'
+  }
+};
+const TIPO_PS = {
+  calibracao_rotina: 'Cal. Rotina',
+  calibracao_inicial: 'Cal. Inicial',
+  reparo: 'Reparo',
+  verificacao: 'Verificação'
+};
+const LAB_TIPO = {
+  marinha: 'Marinha',
+  pregao: 'Pregão',
+  dispensa: 'Dispensa',
+  autorizada: 'Aut. Exclusiva'
+};
+const LAB_COR = {
+  marinha: 'b-i',
+  pregao: 'b-s',
+  dispensa: 'b-p',
+  autorizada: 'b-d'
+};
+const DIVISOES = ['F-21', 'MK-46', 'MK-48', 'EXOCET', 'MISTRAL', 'MINAS E BOMBAS', 'SEASKUA', 'PENGUIN'];
+const TIPOS = ['Multímetro', 'Multímetro 6 Dígitos', 'Osciloscópio', 'Gerador de Funções', 'Fonte DC', 'Contador', 'Calibrador Multifunção', 'Megôhmetro', 'Ohmímetro', 'Analisador de Espectro', 'Amplificador', 'Amplificador Transcond.', 'Termômetro Digital', 'Termohigrômetro', 'Manômetro Analógico', 'Manômetro Digital', 'Transdutor de Pressão', 'Torquímetro', 'Paquímetro', 'Micrometro Prof.', 'Dinamômetro Digital', 'Balança Digital', 'Ground Strap Tester', 'Igniter Circuit Test', 'Hydraulic Deadweight Tester', 'Differential Probe', 'Reflectômetro', 'Outro'];
+function dv(d) {
+  if (!d) return null;
+  const [a, m, y] = d.split('/');
+  return Math.floor((new Date(+y, +m - 1, +a) - Date.now()) / 86400000);
+}
+function fmt(v) {
+  return v > 0 ? v.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }) : '—';
+}
+function SBdg({
+  s
+}) {
+  const c = STATUS_CFG[s] || {
+    lbl: s,
+    cls: 'b-s'
+  };
+  return /*#__PURE__*/React.createElement("span", {
+    className: `bdg ${c.cls}`
+  }, c.lbl);
+}
+function PBdg({
+  s
+}) {
+  const c = PS_ST[s] || {
+    lbl: s,
+    cls: 'b-s'
+  };
+  return /*#__PURE__*/React.createElement("span", {
+    className: `bdg ${c.cls}`
+  }, c.lbl);
+}
+function VBdg({
+  d
+}) {
+  const n = dv(d);
+  if (n === null) return /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--tx3)'
+    }
+  }, "\u2014");
+  if (n < 0) return /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--red)',
+      fontWeight: 700,
+      fontSize: 12
+    }
+  }, "Venc. ", Math.abs(n), "d");
+  if (n <= 30) return /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--red)',
+      fontWeight: 700,
+      fontSize: 12
+    }
+  }, n, "d");
+  if (n <= 90) return /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--orange)',
+      fontWeight: 600,
+      fontSize: 12
+    }
+  }, n, "d");
+  return /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--tx3)',
+      fontSize: 12
+    }
+  }, d);
+}
+const LABS = [{
+  id: 'cms',
+  code: 'CMS',
+  nome: 'CMS — Centro de Metrologia da Marinha',
+  tipo: 'marinha',
+  acred: 'RBC/INMETRO',
+  esp: ['Elétrico', 'Eletrônico', 'Dimensional', 'Temperatura'],
+  obs: null,
+  ativo: true
+}, {
+  id: 'bacs',
+  code: 'BACS',
+  nome: 'BACS — Base de Abastecimento da Marinha',
+  tipo: 'marinha',
+  acred: 'RBC/INMETRO',
+  esp: ['Pressão (água salgada)', 'Mecânico'],
+  obs: null,
+  ativo: true
+}, {
+  id: 'mv',
+  code: 'MV',
+  nome: 'MV Metrologia',
+  tipo: 'pregao',
+  acred: 'RBC',
+  esp: ['Mecânico', 'Pressão', 'Torquímetros', 'Dimensional'],
+  obs: null,
+  ativo: true
+}, {
+  id: 'mqt',
+  code: 'MQT',
+  nome: 'MQT Metrologia',
+  tipo: 'pregao',
+  acred: 'RBC',
+  esp: ['Dimensional', 'Manômetros', 'Micrometros'],
+  obs: null,
+  ativo: true
+}, {
+  id: 'msmi',
+  code: 'MSMI',
+  nome: 'MSMI — Metrologia e Serviços',
+  tipo: 'pregao',
+  acred: 'Rastreável INMETRO',
+  esp: ['Torquímetros', 'Paquímetros'],
+  obs: null,
+  ativo: true
+}, {
+  id: 'lmc',
+  code: 'LMC',
+  nome: 'LMC — Lab. de Metrologia',
+  tipo: 'pregao',
+  acred: 'RBC',
+  esp: ['Temperatura', 'Pressão digital'],
+  obs: null,
+  ativo: true
+}, {
+  id: 'ametek',
+  code: 'AMETEK',
+  nome: 'AMETEK Sigton (São Paulo)',
+  tipo: 'autorizada',
+  acred: 'Fabricante exclusivo',
+  esp: ['Deadweight Tester', 'Fontes AMETEK'],
+  obs: 'ATENÇÃO: Única empresa autorizada AMETEK. Fora do pregão padrão. Solicitar orçamento direto.',
+  ativo: true
+}, {
+  id: 'ipt',
+  code: 'IPT',
+  nome: 'IPT São Paulo — NI Certified Center',
+  tipo: 'autorizada',
+  acred: 'NI Certified Center',
+  esp: ['NI PXI', 'NI PXIE', 'National Instruments'],
+  obs: 'ATENÇÃO: Único NI Certified Center no Brasil. Obrigatório para equipamentos NI. Fora do pregão.',
+  ativo: true
+}];
+
+// Equipamentos: cada um é único, identificado pelo SN físico
+// SN null = não cadastrado (a ser preenchido fisicamente)
+const EQS = [{
+  id: 'e001',
+  sn: null,
+  pat: 'F21-DPROBE-01',
+  cat: 'ELE',
+  tipo: 'Differential Probe',
+  fab: 'TESTEC',
+  mod: 'TT-SI 9001',
+  faixa: null,
+  div: 'F-21',
+  labId: 'cms',
+  per: 12,
+  ult: '12/03/2024',
+  prox: '12/03/2025',
+  cert: '2142016/2024',
+  status: 'CALIBRADO',
+  cC: 373.83,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e002',
+  sn: null,
+  pat: 'F21-FONTDC-AMXG',
+  cat: 'ELE',
+  tipo: 'Fonte DC',
+  fab: 'AMETEK',
+  mod: 'XG 300-2.8',
+  faixa: '300V/2.8A',
+  div: 'F-21',
+  labId: 'mqt',
+  per: 12,
+  ult: '12/12/2024',
+  prox: '12/12/2025',
+  cert: '2142107/2024',
+  status: 'CALIBRADO',
+  cC: 1164.35,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e003',
+  sn: null,
+  pat: 'F21-FONTDC-AMSG',
+  cat: 'ELE',
+  tipo: 'Fonte DC',
+  fab: 'AMETEK',
+  mod: 'SGA-600625D',
+  faixa: '600V/25A',
+  div: 'F-21',
+  labId: 'ametek',
+  per: 12,
+  ult: '26/01/2021',
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 560.75,
+  cR: 0,
+  rest: 'Calibração exclusiva AMETEK Sigton (SP). NÃO pode ir ao CMS ou pregão.',
+  obs: null,
+  ativo: true
+}, {
+  id: 'e004',
+  sn: null,
+  pat: 'F21-NIPXIE',
+  cat: 'ELE',
+  tipo: 'Multímetro NI PXIe',
+  fab: 'NI',
+  mod: 'PXIE-4080',
+  faixa: '24 bits',
+  div: 'F-21',
+  labId: 'ipt',
+  per: 24,
+  ult: '03/08/2020',
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 560.75,
+  cR: 0,
+  rest: 'Somente NI Certified Center — IPT São Paulo. Fora do pregão.',
+  obs: null,
+  ativo: true
+}, {
+  id: 'e005',
+  sn: null,
+  pat: 'F21-NIPXI-5122',
+  cat: 'ELE',
+  tipo: 'Osciloscópio PXI NI',
+  fab: 'NI',
+  mod: 'NI-PXI-5122',
+  faixa: '24 bits',
+  div: 'F-21',
+  labId: 'ipt',
+  per: 24,
+  ult: '27/09/2022',
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 776.23,
+  cR: 0,
+  rest: 'Somente NI Certified Center — IPT São Paulo. Fora do pregão.',
+  obs: null,
+  ativo: true
+}, {
+  id: 'e006',
+  sn: null,
+  pat: 'F21-MULT-FK711-1',
+  cat: 'ELE',
+  tipo: 'Multímetro',
+  fab: 'FACOM',
+  mod: '711B',
+  faixa: null,
+  div: 'F-21',
+  labId: 'cms',
+  per: 12,
+  ult: '12/12/2024',
+  prox: '12/12/2025',
+  cert: '2142109/2024',
+  status: 'CALIBRADO',
+  cC: 1164.35,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e007',
+  sn: null,
+  pat: 'F21-MULT-FK711-2',
+  cat: 'ELE',
+  tipo: 'Multímetro',
+  fab: 'FACOM',
+  mod: '711B',
+  faixa: null,
+  div: 'F-21',
+  labId: 'cms',
+  per: 12,
+  ult: null,
+  prox: null,
+  cert: null,
+  status: 'NAO_UTILIZADO',
+  cC: 776.23,
+  cR: 0,
+  rest: null,
+  obs: 'Ferramenta não utilizada — avaliar descarte',
+  ativo: true
+}, {
+  id: 'e008',
+  sn: null,
+  pat: 'F21-MULT-FL17B',
+  cat: 'ELE',
+  tipo: 'Multímetro',
+  fab: 'FLUKE',
+  mod: '17B+',
+  faixa: null,
+  div: 'F-21',
+  labId: 'cms',
+  per: 12,
+  ult: '04/02/2025',
+  prox: '04/02/2026',
+  cert: '2142004/2025',
+  status: 'CALIBRADO',
+  cC: 776.23,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e009',
+  sn: null,
+  pat: 'F21-MULT6D-KS1',
+  cat: 'ELE',
+  tipo: 'Multímetro 6 Dígitos',
+  fab: 'KEYSIGHT',
+  mod: '34461A',
+  faixa: null,
+  div: 'F-21',
+  labId: 'cms',
+  per: 12,
+  ult: '12/05/2023',
+  prox: '12/05/2025',
+  cert: '2142036/2023',
+  status: 'CALIBRADO',
+  cC: 667.04,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e010',
+  sn: null,
+  pat: 'F21-MAGOHM-FL',
+  cat: 'ELE',
+  tipo: 'Megôhmetro',
+  fab: 'FLUKE',
+  mod: '1507',
+  faixa: '10GΩ',
+  div: 'F-21',
+  labId: 'mqt',
+  per: 12,
+  ult: '03/10/2024',
+  prox: '03/10/2025',
+  cert: 'MQT31184/24',
+  status: 'CALIBRADO',
+  cC: 373.83,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e011',
+  sn: null,
+  pat: 'F21-PAQ-FK805-1',
+  cat: 'MEC',
+  tipo: 'Paquímetro',
+  fab: 'FACOM',
+  mod: '805.1',
+  faixa: '0-150mm',
+  div: 'F-21',
+  labId: 'mv',
+  per: 12,
+  ult: '22/10/2024',
+  prox: '22/10/2025',
+  cert: null,
+  status: 'SEM_CERTIFICADO',
+  cC: 84.33,
+  cR: 0,
+  rest: null,
+  obs: 'MSMI LOTE 01 — falta certificado físico',
+  ativo: true
+}, {
+  id: 'e012',
+  sn: null,
+  pat: 'F21-MIC-FK806',
+  cat: 'MEC',
+  tipo: 'Micrometro Prof.',
+  fab: 'FACOM',
+  mod: '806.F',
+  faixa: '0-25mm',
+  div: 'F-21',
+  labId: 'mqt',
+  per: 12,
+  ult: '30/09/2024',
+  prox: '30/09/2025',
+  cert: 'MQT31051/24',
+  status: 'CALIBRADO',
+  cC: 84.33,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e013',
+  sn: null,
+  pat: 'EXO-ESPECT-RS',
+  cat: 'ELE',
+  tipo: 'Analisador de Espectro',
+  fab: 'R&S',
+  mod: 'FSL18',
+  faixa: '10Hz-18GHz',
+  div: 'EXOCET',
+  labId: 'cms',
+  per: 12,
+  ult: '13/09/2024',
+  prox: '13/09/2025',
+  cert: '2142090/2024',
+  status: 'CALIBRADO',
+  cC: 3104.95,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e014',
+  sn: null,
+  pat: 'EXO-GERFUN-AG33',
+  cat: 'ELE',
+  tipo: 'Gerador de Funções',
+  fab: 'AGILENT',
+  mod: '33220A',
+  faixa: '20MHz',
+  div: 'EXOCET',
+  labId: 'cms',
+  per: 12,
+  ult: '10/09/2024',
+  prox: '10/09/2025',
+  cert: '2142088/2024',
+  status: 'CALIBRADO',
+  cC: 1552.47,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e015',
+  sn: null,
+  pat: 'EXO-OSCI-TDS210',
+  cat: 'ELE',
+  tipo: 'Osciloscópio',
+  fab: 'TEKTRONIX',
+  mod: 'TDS210',
+  faixa: '60MHz',
+  div: 'EXOCET',
+  labId: 'cms',
+  per: 12,
+  ult: '10/11/2023',
+  prox: '10/11/2025',
+  cert: '2142116/2023',
+  status: 'CALIBRADO',
+  cC: 747.66,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e016',
+  sn: null,
+  pat: 'EXO-OHM-AGI',
+  cat: 'ELE',
+  tipo: 'Ohmímetro',
+  fab: 'AGI',
+  mod: '1681A',
+  faixa: null,
+  div: 'EXOCET',
+  labId: 'mv',
+  per: 12,
+  ult: '12/11/2024',
+  prox: '12/11/2025',
+  cert: null,
+  status: 'SEM_CERTIFICADO',
+  cC: 776.23,
+  cR: 0,
+  rest: null,
+  obs: 'MSMI LOTE 02 — falta certificado',
+  ativo: true
+}, {
+  id: 'e017',
+  sn: null,
+  pat: 'T46-CONT-HP5328-1',
+  cat: 'ELE',
+  tipo: 'Contador',
+  fab: 'HP',
+  mod: '5328B',
+  faixa: '500MHz',
+  div: 'MK-46',
+  labId: 'cms',
+  per: 12,
+  ult: '10/08/2023',
+  prox: '10/08/2025',
+  cert: '2142076/2023',
+  status: 'CALIBRADO',
+  cC: 1552.47,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e018',
+  sn: null,
+  pat: 'T46-CONT-HP5328-2',
+  cat: 'ELE',
+  tipo: 'Contador',
+  fab: 'HP',
+  mod: '5328B',
+  faixa: '500MHz',
+  div: 'MK-46',
+  labId: 'cms',
+  per: 12,
+  ult: null,
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 4269.30,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e019',
+  sn: null,
+  pat: 'T46-CONT-HP5328-3',
+  cat: 'ELE',
+  tipo: 'Contador',
+  fab: 'HP',
+  mod: '5328B',
+  faixa: '500MHz',
+  div: 'MK-46',
+  labId: 'cms',
+  per: 12,
+  ult: null,
+  prox: null,
+  cert: null,
+  status: 'EM_REPARO',
+  cC: 1552.47,
+  cR: 500,
+  rest: null,
+  obs: 'Em reparo CMS',
+  ativo: true
+}, {
+  id: 'e020',
+  sn: null,
+  pat: 'T46-GERFUN-HP3325',
+  cat: 'ELE',
+  tipo: 'Gerador de Funções',
+  fab: 'HP',
+  mod: '3325B',
+  faixa: '20MHz',
+  div: 'MK-46',
+  labId: 'cms',
+  per: 12,
+  ult: '14/11/2023',
+  prox: '14/11/2025',
+  cert: '2142012/2024',
+  status: 'CALIBRADO',
+  cC: 1869.16,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e021',
+  sn: null,
+  pat: 'T46-GERFUN-RACAL',
+  cat: 'ELE',
+  tipo: 'Gerador de Funções',
+  fab: 'RACAL',
+  mod: '3152B VXI',
+  faixa: null,
+  div: 'MK-46',
+  labId: 'mqt',
+  per: 12,
+  ult: null,
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 1552.47,
+  cR: 0,
+  rest: null,
+  obs: 'CMS NÃO CALIBRA — encaminhar MQT',
+  ativo: true
+}, {
+  id: 'e022',
+  sn: null,
+  pat: 'T46-CONT-AST-1',
+  cat: 'ELE',
+  tipo: 'Contador',
+  fab: 'ASTRONICS',
+  mod: '2461-CD',
+  faixa: null,
+  div: 'MK-46',
+  labId: 'mqt',
+  per: 12,
+  ult: null,
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 1552.47,
+  cR: 0,
+  rest: null,
+  obs: 'Não foi possível calibrar — verificar viabilidade',
+  ativo: true
+}, {
+  id: 'e023',
+  sn: null,
+  pat: 'T48-CALIB-FL5100-1',
+  cat: 'ELE',
+  tipo: 'Calibrador Multifunção',
+  fab: 'FLUKE',
+  mod: '5100B',
+  faixa: '7 fontes',
+  div: 'MK-48',
+  labId: 'cms',
+  per: 12,
+  ult: '10/01/2025',
+  prox: '10/01/2026',
+  cert: '2142002/2025',
+  status: 'CALIBRADO',
+  cC: 3104.95,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e024',
+  sn: null,
+  pat: 'T48-CALIB-FL5100-2',
+  cat: 'ELE',
+  tipo: 'Calibrador Multifunção',
+  fab: 'FLUKE',
+  mod: '5100B',
+  faixa: '7 fontes',
+  div: 'MK-48',
+  labId: 'cms',
+  per: 12,
+  ult: '19/01/2023',
+  prox: '19/01/2025',
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 3104.95,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e025',
+  sn: null,
+  pat: 'T48-MAGOHM-TG',
+  cat: 'ELE',
+  tipo: 'Megôhmetro',
+  fab: 'TEGAM',
+  mod: 'R1M-A',
+  faixa: '36MΩ',
+  div: 'MK-48',
+  labId: 'cms',
+  per: 12,
+  ult: '07/02/2025',
+  prox: '07/02/2026',
+  cert: '2142010/2025',
+  status: 'CALIBRADO',
+  cC: 674.72,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e026',
+  sn: null,
+  pat: 'T48-OSCI-THS730',
+  cat: 'ELE',
+  tipo: 'Osciloscópio',
+  fab: 'TEKTRONIX',
+  mod: 'THS730A',
+  faixa: '200MHz',
+  div: 'MK-48',
+  labId: 'cms',
+  per: 12,
+  ult: '18/08/2022',
+  prox: '18/08/2024',
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 747.66,
+  cR: 0,
+  rest: null,
+  obs: 'Descalibrado >3 anos (PS 046/2023)',
+  ativo: true
+}, {
+  id: 'e027',
+  sn: null,
+  pat: 'T48-DWT-AMETEK-1',
+  cat: 'MEC',
+  tipo: 'Hydraulic Deadweight Tester',
+  fab: 'AMETEK',
+  mod: 'DM-T-100/C',
+  faixa: '15000 PSI',
+  div: 'MK-48',
+  labId: 'ametek',
+  per: 24,
+  ult: '18/10/2017',
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 84.33,
+  cR: 0,
+  rest: 'Calibração exclusiva AMETEK Sigton (SP). NÃO pode ir ao CMS ou pregão.',
+  obs: 'Descalibrado desde 2017 (>8 anos)',
+  ativo: true
+}, {
+  id: 'e028',
+  sn: null,
+  pat: 'T48-DWT-AMETEK-2',
+  cat: 'MEC',
+  tipo: 'Hydraulic Deadweight Tester',
+  fab: 'AMETEK',
+  mod: 'DM-T-100/C',
+  faixa: '15000 PSI',
+  div: 'MK-48',
+  labId: 'ametek',
+  per: 24,
+  ult: '04/04/2017',
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 84.33,
+  cR: 0,
+  rest: 'Calibração exclusiva AMETEK Sigton (SP). NÃO pode ir ao CMS ou pregão.',
+  obs: 'Descalibrado desde 2017 (>8 anos)',
+  ativo: true
+}, {
+  id: 'e029',
+  sn: null,
+  pat: 'T48-IGNIT-101-1',
+  cat: 'ELE',
+  tipo: 'Igniter Circuit Test',
+  fab: '',
+  mod: '101-5BFAA',
+  faixa: '36V',
+  div: 'MK-48',
+  labId: 'mv',
+  per: 36,
+  ult: '22/10/2024',
+  prox: '22/10/2025',
+  cert: null,
+  status: 'SEM_CERTIFICADO',
+  cC: 776.23,
+  cR: 0,
+  rest: null,
+  obs: 'MSMI LOTE 01 — falta certificado',
+  ativo: true
+}, {
+  id: 'e030',
+  sn: null,
+  pat: 'T48-AMPL-FL5220',
+  cat: 'ELE',
+  tipo: 'Amplificador Transcond.',
+  fab: 'FLUKE',
+  mod: '5220A',
+  faixa: '32A',
+  div: 'MK-48',
+  labId: 'cms',
+  per: 12,
+  ult: '24/11/2023',
+  prox: '24/11/2025',
+  cert: '2142130/2023',
+  status: 'CALIBRADO',
+  cC: 776.23,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e031',
+  sn: null,
+  pat: 'T48-TERM-OMEGA',
+  cat: 'ELE',
+  tipo: 'Termômetro Digital',
+  fab: 'OMEGA',
+  mod: 'HH11B',
+  faixa: '750°C',
+  div: 'MK-48',
+  labId: 'lmc',
+  per: 12,
+  ult: '03/10/2024',
+  prox: '03/10/2025',
+  cert: 'CMASM-IDM-T48-062',
+  status: 'CALIBRADO',
+  cC: 84.33,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e032',
+  sn: null,
+  pat: 'MST-FONTDC-HP6255',
+  cat: 'ELE',
+  tipo: 'Fonte DC',
+  fab: 'HP',
+  mod: '6255A',
+  faixa: '50V/10A',
+  div: 'MISTRAL',
+  labId: 'cms',
+  per: 12,
+  ult: '18/12/2024',
+  prox: '18/12/2025',
+  cert: '2142110/2024',
+  status: 'CALIBRADO',
+  cC: 560.75,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e033',
+  sn: null,
+  pat: 'MST-MULT6D-KS34461',
+  cat: 'ELE',
+  tipo: 'Multímetro 6 Dígitos',
+  fab: 'KEYSIGHT',
+  mod: '34461A',
+  faixa: null,
+  div: 'MISTRAL',
+  labId: 'cms',
+  per: 12,
+  ult: '05/10/2017',
+  prox: null,
+  cert: null,
+  status: 'EM_REPARO',
+  cC: 776.23,
+  cR: 800,
+  rest: null,
+  obs: 'Em reparo CMS desde 2017 (>7 anos) — avaliar descarte',
+  ativo: true
+}, {
+  id: 'e034',
+  sn: null,
+  pat: 'MB-MULT-FL77',
+  cat: 'ELE',
+  tipo: 'Multímetro',
+  fab: 'FLUKE',
+  mod: '77DMM',
+  faixa: null,
+  div: 'MINAS E BOMBAS',
+  labId: 'cms',
+  per: 12,
+  ult: '09/11/2023',
+  prox: '09/11/2025',
+  cert: '2142113/2023',
+  status: 'CALIBRADO',
+  cC: 776.23,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e035',
+  sn: null,
+  pat: 'MB-MAN-FAM3',
+  cat: 'MEC',
+  tipo: 'Manômetro Analógico',
+  fab: 'FAMABRAS',
+  mod: '0-3 kgf/cm²',
+  faixa: '3 kgf/cm²',
+  div: 'MINAS E BOMBAS',
+  labId: 'mqt',
+  per: 24,
+  ult: '24/01/2024',
+  prox: '24/01/2026',
+  cert: 'P-006396',
+  status: 'CALIBRADO',
+  cC: 90.00,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e036',
+  sn: null,
+  pat: 'EXO-TORQ-FACOM75',
+  cat: 'MEC',
+  tipo: 'Torquímetro',
+  fab: 'FACOM',
+  mod: 'A-301 MT',
+  faixa: '75 Nm',
+  div: 'EXOCET',
+  labId: 'msmi',
+  per: 12,
+  ult: '16/09/2024',
+  prox: '16/09/2025',
+  cert: '1643/23 MV',
+  status: 'CALIBRADO',
+  cC: 100.00,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e037',
+  sn: null,
+  pat: 'T46-TORQ-SNPON',
+  cat: 'MEC',
+  tipo: 'Torquímetro',
+  fab: 'SNAP-ON',
+  mod: 'TE250FU',
+  faixa: '250 ft-lb',
+  div: 'MK-46',
+  labId: 'msmi',
+  per: 12,
+  ult: '26/07/2024',
+  prox: '26/07/2025',
+  cert: '218985/24',
+  status: 'CALIBRADO',
+  cC: 100.00,
+  cR: 0,
+  rest: null,
+  obs: null,
+  ativo: true
+}, {
+  id: 'e038',
+  sn: null,
+  pat: 'T46-TORQ-UTICA',
+  cat: 'MEC',
+  tipo: 'Torquímetro',
+  fab: 'UTICA',
+  mod: 'TCI-150',
+  faixa: '15 Nm',
+  div: 'MK-46',
+  labId: 'msmi',
+  per: 12,
+  ult: null,
+  prox: null,
+  cert: null,
+  status: 'DESCALIBRADO',
+  cC: 100.00,
+  cR: 0,
+  rest: null,
+  obs: 'MSMSI TORQ LOTE 05 DEZ',
+  ativo: true
+}];
+
+// Histórico de PS — 1 equipamento → N PS ao longo do tempo
+const PS_INIT = [{
+  id: 'p001',
+  num: 'PS-CMS-24-023',
+  eqId: 'e001',
+  labId: 'cms',
+  tipo: 'calibracao_rotina',
+  status: 'CONCLUIDO',
+  emi: '05/03/2024',
+  env: '06/03/2024',
+  cal: '12/03/2024',
+  ret: '14/03/2024',
+  cert: '2142016/2024',
+  res: 'aprovado',
+  vM: 373.83,
+  vE: 373.83,
+  nf: null,
+  ctr: null,
+  emi_nm: 'Encarregado Metrologia',
+  obs: null
+}, {
+  id: 'p002',
+  num: 'PS-CMS-24-031',
+  eqId: 'e002',
+  labId: 'mqt',
+  tipo: 'calibracao_rotina',
+  status: 'CONCLUIDO',
+  emi: '23/08/2024',
+  env: '24/08/2024',
+  cal: '12/12/2024',
+  ret: '31/01/2025',
+  cert: '2142107/2024',
+  res: 'aprovado',
+  vM: 1164.35,
+  vE: 1164.35,
+  nf: 'NF-2024-891',
+  ctr: 'ATA-MQT/2024',
+  emi_nm: 'Encarregado Metrologia',
+  obs: null
+}, {
+  id: 'p003',
+  num: 'PS-CMS-24-041',
+  eqId: 'e006',
+  labId: 'cms',
+  tipo: 'calibracao_rotina',
+  status: 'CONCLUIDO',
+  emi: '23/08/2024',
+  env: '05/09/2024',
+  cal: '12/12/2024',
+  ret: '31/01/2025',
+  cert: '2142109/2024',
+  res: 'aprovado',
+  vM: 1164.35,
+  vE: 1164.35,
+  nf: null,
+  ctr: null,
+  emi_nm: 'Encarregado Metrologia',
+  obs: null
+}, {
+  id: 'p004',
+  num: 'PS-CMS-25-003',
+  eqId: 'e023',
+  labId: 'cms',
+  tipo: 'calibracao_rotina',
+  status: 'CONCLUIDO',
+  emi: '05/01/2025',
+  env: '05/01/2025',
+  cal: '10/01/2025',
+  ret: '15/01/2025',
+  cert: '2142002/2025',
+  res: 'aprovado',
+  vM: 3104.95,
+  vE: 3104.95,
+  nf: 'NF-2025-012',
+  ctr: 'ATA-CMS/2025',
+  emi_nm: 'Encarregado Metrologia',
+  obs: null
+}, {
+  id: 'p005',
+  num: 'PS-CMS-25-007',
+  eqId: 'e013',
+  labId: 'cms',
+  tipo: 'calibracao_rotina',
+  status: 'CONCLUIDO',
+  emi: '21/08/2024',
+  env: '22/08/2024',
+  cal: '13/09/2024',
+  ret: '16/09/2024',
+  cert: '2142090/2024',
+  res: 'aprovado',
+  vM: 3104.95,
+  vE: 3104.95,
+  nf: 'NF-2024-632',
+  ctr: 'ATA-CMS/2024',
+  emi_nm: 'Encarregado Metrologia',
+  obs: null
+},
+// PS em aberto — ciclo atual
+{
+  id: 'p006',
+  num: 'PS-CMS-26-001',
+  eqId: 'e024',
+  labId: 'cms',
+  tipo: 'calibracao_rotina',
+  status: 'ENVIADO',
+  emi: '05/01/2026',
+  env: '08/01/2026',
+  cal: null,
+  ret: null,
+  cert: null,
+  res: null,
+  vM: 3104.95,
+  vE: null,
+  nf: null,
+  ctr: 'ATA-CMS/2026',
+  emi_nm: 'Encarregado Metrologia',
+  obs: null
+}, {
+  id: 'p007',
+  num: 'PS-CMS-26-002',
+  eqId: 'e003',
+  labId: 'ametek',
+  tipo: 'calibracao_rotina',
+  status: 'EMITIDO',
+  emi: '15/01/2026',
+  env: null,
+  cal: null,
+  ret: null,
+  cert: null,
+  res: null,
+  vM: 560.75,
+  vE: null,
+  nf: null,
+  ctr: null,
+  emi_nm: 'Encarregado Metrologia',
+  obs: 'ATENÇÃO: empresa autorizada AMETEK — solicitar orçamento direto'
+}, {
+  id: 'p008',
+  num: 'PS-CMS-26-003',
+  eqId: 'e027',
+  labId: 'ametek',
+  tipo: 'calibracao_rotina',
+  status: 'EMITIDO',
+  emi: '15/01/2026',
+  env: null,
+  cal: null,
+  ret: null,
+  cert: null,
+  res: null,
+  vM: 84.33,
+  vE: null,
+  nf: null,
+  ctr: null,
+  emi_nm: 'Encarregado Metrologia',
+  obs: 'ATENÇÃO: empresa autorizada AMETEK — descalibrado desde 2017'
+}, {
+  id: 'p009',
+  num: 'PS-CMS-26-004',
+  eqId: 'e004',
+  labId: 'ipt',
+  tipo: 'calibracao_rotina',
+  status: 'EMITIDO',
+  emi: '20/01/2026',
+  env: null,
+  cal: null,
+  ret: null,
+  cert: null,
+  res: null,
+  vM: 560.75,
+  vE: null,
+  nf: null,
+  ctr: null,
+  emi_nm: 'Encarregado Metrologia',
+  obs: 'ATENÇÃO: NI Certified Center — IPT SP'
+}, {
+  id: 'p010',
+  num: 'PS-CMS-26-005',
+  eqId: 'e019',
+  labId: 'cms',
+  tipo: 'reparo',
+  status: 'EM_CALIBRACAO',
+  emi: '05/01/2026',
+  env: '08/01/2026',
+  cal: null,
+  ret: null,
+  cert: null,
+  res: null,
+  vM: 1552.47,
+  vE: null,
+  nf: null,
+  ctr: 'ATA-CMS/2026',
+  emi_nm: 'Encarregado Metrologia',
+  obs: 'Contador HP 5328B — em reparo'
+}, {
+  id: 'p011',
+  num: 'PS-CMS-26-006',
+  eqId: 'e026',
+  labId: 'cms',
+  tipo: 'calibracao_rotina',
+  status: 'ENVIADO',
+  emi: '20/01/2026',
+  env: '22/01/2026',
+  cal: null,
+  ret: null,
+  cert: null,
+  res: null,
+  vM: 747.66,
+  vE: null,
+  nf: null,
+  ctr: 'ATA-CMS/2026',
+  emi_nm: 'Encarregado Metrologia',
+  obs: null
+}, {
+  id: 'p012',
+  num: 'PS-CMS-26-007',
+  eqId: 'e001',
+  labId: 'cms',
+  tipo: 'calibracao_rotina',
+  status: 'EMITIDO',
+  emi: '10/03/2026',
+  env: null,
+  cal: null,
+  ret: null,
+  cert: null,
+  res: null,
+  vM: 373.83,
+  vE: null,
+  nf: null,
+  ctr: null,
+  emi_nm: 'Encarregado Metrologia',
+  obs: null
+}];
+function useStore() {
+  const [eqs, setEqs] = useState(EQS);
+  const [labs, setLabs] = useState(LABS);
+  const [pss, setPss] = useState(PS_INIT);
+  const [cnt, setCnt] = useState(PS_INIT.length + 1);
+  const lm = useMemo(() => Object.fromEntries(labs.map(l => [l.id, l])), [labs]);
+  const em = useMemo(() => Object.fromEntries(eqs.map(e => [e.id, e])), [eqs]);
+  function getPSByEq(id) {
+    return pss.filter(p => p.eqId === id);
+  }
+  function addEq(d) {
+    const e = {
+      ...d,
+      id: `e${Date.now()}`,
+      ativo: true
+    };
+    setEqs(p => [...p, e]);
+    return e;
+  }
+  function updEq(id, d) {
+    setEqs(p => p.map(e => e.id === id ? {
+      ...e,
+      ...d
+    } : e));
+  }
+  function delEq(id) {
+    const ab = pss.find(p => p.eqId === id && !['CONCLUIDO', 'CANCELADO'].includes(p.status));
+    if (ab) return 'PS em aberto — cancele antes';
+    setEqs(p => p.map(e => e.id === id ? {
+      ...e,
+      ativo: false
+    } : e));
+    return null;
+  }
+  function addLab(d) {
+    setLabs(p => [...p, {
+      ...d,
+      id: `lab${Date.now()}`,
+      ativo: true
+    }]);
+  }
+  function updLab(id, d) {
+    setLabs(p => p.map(l => l.id === id ? {
+      ...l,
+      ...d
+    } : l));
+  }
+  function emitPS(eqId, tipo, labId, extra = {}) {
+    const eq = eqs.find(e => e.id === eqId);
+    const a = new Date().getFullYear().toString().slice(2);
+    const n = `PS-CMS-${a}-${String(cnt).padStart(3, '0')}`;
+    const ps = {
+      id: `p${Date.now()}`,
+      num: n,
+      eqId,
+      labId: labId || eq.labId,
+      tipo,
+      status: 'EMITIDO',
+      emi: new Date().toLocaleDateString('pt-BR'),
+      env: null,
+      cal: null,
+      ret: null,
+      cert: null,
+      res: null,
+      vM: tipo === 'reparo' ? eq.cR : eq.cC,
+      vE: null,
+      nf: null,
+      ctr: null,
+      emi_nm: 'Encarregado Metrologia',
+      ...extra
+    };
+    setPss(p => [...p, ps]);
+    setCnt(c => c + 1);
+    return ps;
+  }
+  function updPS(id, d) {
+    setPss(p => p.map(x => x.id === id ? {
+      ...x,
+      ...d
+    } : x));
+    const ps = pss.find(p => p.id === id);
+    if (d.status === 'CONCLUIDO' && ps && ps.tipo !== 'reparo') {
+      const cal = d.cal || ps.cal;
+      const cert = d.cert || ps.cert;
+      const eq = eqs.find(e => e.id === ps.eqId);
+      if (eq && cal) {
+        const [dd, mm, yy] = cal.split('/');
+        const nx = new Date(+yy, +mm - 1, +dd);
+        nx.setMonth(nx.getMonth() + eq.per);
+        updEq(ps.eqId, {
+          status: 'CALIBRADO',
+          ult: cal,
+          cert,
+          prox: nx.toLocaleDateString('pt-BR')
+        });
+      }
+    }
+    if (d.status === 'CONCLUIDO' && ps?.tipo === 'reparo') {
+      updEq(ps.eqId, {
+        status: 'AGUARDANDO_CALIBRACAO'
+      });
+    }
+  }
+  function canPS(id) {
+    setPss(p => p.map(x => x.id === id ? {
+      ...x,
+      status: 'CANCELADO'
+    } : x));
+  }
+  return {
+    eqs,
+    labs,
+    pss,
+    lm,
+    em,
+    cnt,
+    getPSByEq,
+    addEq,
+    updEq,
+    delEq,
+    addLab,
+    updLab,
+    emitPS,
+    updPS,
+    canPS
+  };
+}
+function Modal({
+  open,
+  onClose,
+  title,
+  size = 'md',
+  children,
+  footer
+}) {
+  if (!open) return null;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "ov",
+    onClick: e => e.target === e.currentTarget && onClose()
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `mod ${size}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mh"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "mt"
+  }, title), /*#__PURE__*/React.createElement("button", {
+    className: "btn sm",
+    onClick: onClose
+  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
+    className: "mb"
+  }, children), footer && /*#__PURE__*/React.createElement("div", {
+    className: "mf"
+  }, footer)));
+}
+function Dashboard({
+  s,
+  nav
+}) {
+  const {
+    eqs,
+    pss,
+    labs,
+    lm
+  } = s;
+  const at = eqs.filter(e => e.ativo);
+  const cnt = {};
+  Object.keys(STATUS_CFG).forEach(k => {
+    cnt[k] = at.filter(e => e.status === k).length;
+  });
+  const v30 = at.filter(e => {
+    const d = dv(e.prox);
+    return d !== null && d >= 0 && d <= 30;
+  });
+  const vcd = at.filter(e => {
+    const d = dv(e.prox);
+    return d !== null && d < 0 && e.status === 'CALIBRADO';
+  });
+  const rst = at.filter(e => e.rest);
+  const psAb = pss.filter(p => !['CONCLUIDO', 'CANCELADO'].includes(p.status));
+  const ct = at.reduce((s, e) => s + (e.cC || 0), 0);
+  const dm = {};
+  at.forEach(e => {
+    if (!dm[e.div]) dm[e.div] = {
+      t: 0,
+      ok: 0
+    };
+    dm[e.div].t++;
+    if (e.status === 'CALIBRADO') dm[e.div].ok++;
+  });
+  const mx = Math.max(...Object.values(dm).map(d => d.t));
+  const kpis = [{
+    lbl: 'Descalibrados',
+    v: cnt.DESCALIBRADO,
+    bg: 'var(--red-bg)',
+    fg: 'var(--red)',
+    p: 'equipamentos'
+  }, {
+    lbl: 'Sem certificado',
+    v: cnt.SEM_CERTIFICADO,
+    bg: 'var(--amber-bg)',
+    fg: 'var(--amber)',
+    p: 'equipamentos'
+  }, {
+    lbl: 'Vencendo ≤30d',
+    v: v30.length,
+    bg: 'var(--orange-bg)',
+    fg: 'var(--orange)',
+    p: 'equipamentos'
+  }, {
+    lbl: 'Calibrados',
+    v: cnt.CALIBRADO,
+    bg: 'var(--green-bg)',
+    fg: 'var(--green)',
+    p: 'equipamentos'
+  }, {
+    lbl: 'Em reparo',
+    v: cnt.EM_REPARO,
+    bg: 'var(--purple-bg)',
+    fg: 'var(--purple)',
+    p: 'equipamentos'
+  }, {
+    lbl: 'PS em aberto',
+    v: psAb.length,
+    bg: 'var(--blue-bg)',
+    fg: 'var(--blue)',
+    p: 'ps'
+  }];
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ph"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ptit"
+  }, "CMASM \u2014 Controle de Calibra\xE7\xE3o"), /*#__PURE__*/React.createElement("div", {
+    className: "psub"
+  }, at.length, " instrumentos \xB7 ", labs.filter(l => l.ativo).length, " laborat\xF3rios")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'right'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)'
+    }
+  }, "Custo estimado total"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 20,
+      fontWeight: 700,
+      color: 'var(--blue)'
+    }
+  }, fmt(ct)))), /*#__PURE__*/React.createElement("div", {
+    className: "kpi-g"
+  }, kpis.map(k => /*#__PURE__*/React.createElement("div", {
+    key: k.lbl,
+    className: "kpi",
+    onClick: () => nav(k.p),
+    style: {
+      background: k.bg,
+      borderColor: k.bg
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "kv",
+    style: {
+      color: k.fg
+    }
+  }, k.v), /*#__PURE__*/React.createElement("div", {
+    className: "kl",
+    style: {
+      color: k.fg
+    }
+  }, k.lbl)))), /*#__PURE__*/React.createElement("div", {
+    className: "g2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, "\uD83D\uDCCA Status por divis\xE3o"), Object.entries(dm).sort((a, b) => b[1].t - a[1].t).map(([div, d]) => /*#__PURE__*/React.createElement("div", {
+    key: div,
+    className: "br"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bl"
+  }, div), /*#__PURE__*/React.createElement("div", {
+    className: "bt",
+    style: {
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${d.t / mx * 100}%`,
+      background: 'var(--sf2)',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      height: '100%',
+      borderRadius: 3
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${d.ok / d.t * 100}%`,
+      background: 'var(--green)',
+      position: 'relative',
+      height: '100%',
+      borderRadius: 3,
+      zIndex: 1
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "bc"
+  }, d.ok, "/", d.t)))), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, "\u26A0\uFE0F Aten\xE7\xE3o imediata"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxHeight: 230,
+      overflowY: 'auto'
+    }
+  }, rst.map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    className: "ai ai-d",
+    style: {
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600
+    }
+  }, e.tipo, " ", e.mod, " \u2014 ", e.div), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 2,
+      opacity: .85
+    }
+  }, e.rest)), /*#__PURE__*/React.createElement(SBdg, {
+    s: e.status
+  }))), vcd.map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    className: "ai ai-w",
+    style: {
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600
+    }
+  }, e.tipo, " ", e.mod, " \u2014 ", e.div), /*#__PURE__*/React.createElement("div", null, "Cal. vencida: ", e.prox)))), rst.length === 0 && vcd.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "emp"
+  }, "Nenhum alerta cr\xEDtico")))), v30.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, "\uD83D\uDCC5 Vencendo nos pr\xF3ximos 30 dias (", v30.length, ")"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))',
+      gap: 8
+    }
+  }, v30.map(e => {
+    const d = dv(e.prox);
+    return /*#__PURE__*/React.createElement("div", {
+      key: e.id,
+      style: {
+        background: 'var(--orange-bg)',
+        border: '1px solid var(--orange-lt)',
+        borderRadius: 8,
+        padding: '8px 12px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 600,
+        fontSize: 12
+      }
+    }, e.tipo, " \u2014 ", e.mod), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--tx2)'
+      }
+    }, e.div)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: d <= 7 ? 'var(--red)' : 'var(--orange)',
+        fontWeight: 700,
+        fontSize: 14
+      }
+    }, d, "d"));
+  }))));
+}
+const EEQ = {
+  sn: '',
+  pat: '',
+  cat: 'ELE',
+  tipo: '',
+  fab: '',
+  mod: '',
+  faixa: '',
+  div: 'MK-46',
+  labId: 'cms',
+  per: 12,
+  ult: '',
+  prox: '',
+  cert: '',
+  status: 'DESCALIBRADO',
+  cC: 0,
+  cR: 0,
+  rest: '',
+  obs: '',
+  ativo: true
+};
+function Equipamentos({
+  s,
+  onPS
+}) {
+  const {
+    eqs,
+    labs,
+    lm,
+    getPSByEq,
+    addEq,
+    updEq,
+    delEq
+  } = s;
+  const [srch, setSrch] = useState('');
+  const [fD, setFD] = useState('');
+  const [fS, setFS] = useState('');
+  const [fL, setFL] = useState('');
+  const [mod, setMod] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [fm, setFm] = useState(EEQ);
+  const [cDel, setCDel] = useState(null);
+  const [dErr, setDE] = useState('');
+  const at = useMemo(() => eqs.filter(e => {
+    if (!e.ativo) return false;
+    if (fD && e.div !== fD) return false;
+    if (fS && e.status !== fS) return false;
+    if (fL && e.labId !== fL) return false;
+    if (srch) {
+      const q = srch.toLowerCase();
+      if (!`${e.tipo} ${e.fab} ${e.mod} ${e.div} ${e.pat || ''} ${e.sn || ''} ${e.cert || ''}`.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  }), [eqs, srch, fD, fS, fL]);
+  function sf(k, v) {
+    setFm(f => ({
+      ...f,
+      [k]: v
+    }));
+  }
+  function salvar() {
+    const d = {
+      ...fm,
+      rest: fm.rest || null,
+      obs: fm.obs || null
+    };
+    if (mod === 'new') addEq(d);else updEq(sel.id, d);
+    setMod(null);
+  }
+  function conDel() {
+    const e = delEq(cDel);
+    if (e) {
+      setDE(e);
+      return;
+    }
+    setCDel(null);
+    setDE('');
+  }
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ph"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ptit"
+  }, "Equipamentos"), /*#__PURE__*/React.createElement("div", {
+    className: "psub"
+  }, at.length, " de ", eqs.filter(e => e.ativo).length)), /*#__PURE__*/React.createElement("button", {
+    className: "btn pr",
+    onClick: () => {
+      setFm({
+        ...EEQ
+      });
+      setMod('new');
+    }
+  }, "+ Novo equipamento")), /*#__PURE__*/React.createElement("div", {
+    className: "filt"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sw"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "si"
+  }, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "Buscar tipo, modelo, SN, PAT...",
+    value: srch,
+    onChange: e => setSrch(e.target.value)
+  })), /*#__PURE__*/React.createElement("select", {
+    style: {
+      width: 155
+    },
+    value: fD,
+    onChange: e => setFD(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Todas divis\xF5es"), DIVISOES.map(d => /*#__PURE__*/React.createElement("option", {
+    key: d,
+    value: d
+  }, d))), /*#__PURE__*/React.createElement("select", {
+    style: {
+      width: 165
+    },
+    value: fS,
+    onChange: e => setFS(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Todos status"), Object.entries(STATUS_CFG).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: k
+  }, v.lbl))), /*#__PURE__*/React.createElement("select", {
+    style: {
+      width: 150
+    },
+    value: fL,
+    onChange: e => setFL(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Todos labs"), labs.filter(l => l.ativo).map(l => /*#__PURE__*/React.createElement("option", {
+    key: l.id,
+    value: l.id
+  }, l.code)))), /*#__PURE__*/React.createElement("div", {
+    className: "twrap"
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "PAT / SN"), /*#__PURE__*/React.createElement("th", null, "Instrumento"), /*#__PURE__*/React.createElement("th", null, "Fab / Modelo"), /*#__PURE__*/React.createElement("th", null, "Divis\xE3o"), /*#__PURE__*/React.createElement("th", null, "Lab."), /*#__PURE__*/React.createElement("th", null, "Pr\xF3x. cal."), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null, "PS"), /*#__PURE__*/React.createElement("th", null, "Custo m\xE1x."), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, at.map(e => {
+    const lab = lm[e.labId];
+    const ps = getPSByEq(e.id);
+    const psAb = ps.filter(p => !['CONCLUIDO', 'CANCELADO'].includes(p.status)).length;
+    return /*#__PURE__*/React.createElement("tr", {
+      key: e.id
+    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 600,
+        fontSize: 12
+      }
+    }, e.pat || '—'), e.sn ? /*#__PURE__*/React.createElement("span", {
+      className: "snt"
+    }, "SN:", e.sn) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: 'var(--tx3)'
+      }
+    }, "SN: \u2014")), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 500
+      }
+    }, e.tipo), e.rest && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--red)',
+        marginTop: 2
+      }
+    }, "\u26A0\uFE0F Restri\xE7\xE3o"), /*#__PURE__*/React.createElement("span", {
+      className: `bdg ${e.cat === 'ELE' ? 'b-i' : 'b-ok'}`,
+      style: {
+        fontSize: 10,
+        marginTop: 3
+      }
+    }, e.cat)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12
+      }
+    }, e.fab || '—'), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--tx3)'
+      }
+    }, e.mod)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      className: "tag"
+    }, e.div)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        maxWidth: 110,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      },
+      title: lab?.nome
+    }, lab?.code), lab && /*#__PURE__*/React.createElement("span", {
+      className: `bdg ${LAB_COR[lab.tipo]}`,
+      style: {
+        fontSize: 10
+      }
+    }, LAB_TIPO[lab.tipo])), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(VBdg, {
+      d: e.prox
+    })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(SBdg, {
+      s: e.status
+    })), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12
+      }
+    }, ps.length), psAb > 0 && /*#__PURE__*/React.createElement("span", {
+      className: "bdg b-i",
+      style: {
+        fontSize: 10,
+        marginLeft: 4
+      }
+    }, psAb, "ab")), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 12,
+        color: 'var(--tx2)'
+      }
+    }, e.cC > 0 ? fmt(e.cC) : '—'), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 1
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "bico",
+      title: "Detalhes",
+      onClick: () => {
+        setSel(e);
+        setMod('det');
+      }
+    }, "\uD83D\uDC41\uFE0F"), /*#__PURE__*/React.createElement("button", {
+      className: "bico",
+      title: "Editar",
+      onClick: () => {
+        setFm({
+          ...e,
+          rest: e.rest || '',
+          obs: e.obs || ''
+        });
+        setSel(e);
+        setMod('edit');
+      }
+    }, "\u270F\uFE0F"), /*#__PURE__*/React.createElement("button", {
+      className: "bico",
+      title: "Emitir PS",
+      onClick: () => onPS(e)
+    }, "\uD83D\uDCCB"), /*#__PURE__*/React.createElement("button", {
+      className: "bico",
+      title: "Remover",
+      onClick: () => {
+        setCDel(e.id);
+        setDE('');
+      }
+    }, "\uD83D\uDDD1\uFE0F"))));
+  }), at.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 10,
+    className: "emp"
+  }, "Nenhum equipamento encontrado"))))), /*#__PURE__*/React.createElement(Modal, {
+    open: mod === 'new' || mod === 'edit',
+    onClose: () => setMod(null),
+    title: mod === 'new' ? 'Novo equipamento' : 'Editar equipamento',
+    size: "lg",
+    footer: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => setMod(null)
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      className: "btn pr",
+      onClick: salvar,
+      disabled: !fm.tipo || !fm.mod
+    }, "Salvar"))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fr c3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Categoria"), /*#__PURE__*/React.createElement("select", {
+    value: fm.cat,
+    onChange: e => sf('cat', e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "ELE"
+  }, "ELE"), /*#__PURE__*/React.createElement("option", {
+    value: "MEC"
+  }, "MEC"))), /*#__PURE__*/React.createElement("div", {
+    className: "fld",
+    style: {
+      gridColumn: 'span 2'
+    }
+  }, /*#__PURE__*/React.createElement("label", null, "Tipo *"), /*#__PURE__*/React.createElement("select", {
+    value: fm.tipo,
+    onChange: e => sf('tipo', e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Selecionar..."), TIPOS.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t
+  }, t))))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Fabricante"), /*#__PURE__*/React.createElement("input", {
+    value: fm.fab,
+    onChange: e => sf('fab', e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Modelo *"), /*#__PURE__*/React.createElement("input", {
+    value: fm.mod,
+    onChange: e => sf('mod', e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "N\xBA S\xE9rie (SN)"), /*#__PURE__*/React.createElement("input", {
+    value: fm.sn || '',
+    onChange: e => sf('sn', e.target.value),
+    placeholder: "SN f\xEDsico do instrumento"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "C\xF3digo patrim\xF4nio (PAT)"), /*#__PURE__*/React.createElement("input", {
+    value: fm.pat || '',
+    onChange: e => sf('pat', e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Faixa/Toler\xE2ncia"), /*#__PURE__*/React.createElement("input", {
+    value: fm.faixa || '',
+    onChange: e => sf('faixa', e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Divis\xE3o *"), /*#__PURE__*/React.createElement("select", {
+    value: fm.div,
+    onChange: e => sf('div', e.target.value)
+  }, DIVISOES.map(d => /*#__PURE__*/React.createElement("option", {
+    key: d
+  }, d))))), /*#__PURE__*/React.createElement("div", {
+    className: "fr c3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Periodicidade (meses)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    min: 1,
+    max: 60,
+    value: fm.per,
+    onChange: e => sf('per', +e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "\xDAltima cal."), /*#__PURE__*/React.createElement("input", {
+    value: fm.ult || '',
+    onChange: e => sf('ult', e.target.value),
+    placeholder: "DD/MM/AAAA"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Pr\xF3xima cal."), /*#__PURE__*/React.createElement("input", {
+    value: fm.prox || '',
+    onChange: e => sf('prox', e.target.value),
+    placeholder: "DD/MM/AAAA"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Status"), /*#__PURE__*/React.createElement("select", {
+    value: fm.status,
+    onChange: e => sf('status', e.target.value)
+  }, Object.entries(STATUS_CFG).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: k
+  }, v.lbl)))), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Laborat\xF3rio *"), /*#__PURE__*/React.createElement("select", {
+    value: fm.labId,
+    onChange: e => sf('labId', e.target.value)
+  }, labs.filter(l => l.ativo).map(l => /*#__PURE__*/React.createElement("option", {
+    key: l.id,
+    value: l.id
+  }, l.code, " \u2014 ", l.nome.split('—')[0].trim()))))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Custo m\xE1x. calibra\xE7\xE3o (R$)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: 0.01,
+    min: 0,
+    value: fm.cC,
+    onChange: e => sf('cC', +e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Custo m\xE1x. reparo (R$)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: 0.01,
+    min: 0,
+    value: fm.cR,
+    onChange: e => sf('cR', +e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr f"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "\xDAltimo certificado"), /*#__PURE__*/React.createElement("input", {
+    value: fm.cert || '',
+    onChange: e => sf('cert', e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr f"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      color: 'var(--red)'
+    }
+  }, "\u26A0\uFE0F Restri\xE7\xE3o especial de calibra\xE7\xE3o"), /*#__PURE__*/React.createElement("textarea", {
+    value: fm.rest || '',
+    onChange: e => sf('rest', e.target.value),
+    rows: 2,
+    placeholder: "Ex: Calibra\xE7\xE3o exclusiva AMETEK Sigton SP. N\xE3o pode ir ao preg\xE3o."
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr f"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Observa\xE7\xF5es"), /*#__PURE__*/React.createElement("textarea", {
+    value: fm.obs || '',
+    onChange: e => sf('obs', e.target.value),
+    rows: 2
+  })))), sel && /*#__PURE__*/React.createElement(Modal, {
+    open: mod === 'det',
+    onClose: () => setMod(null),
+    title: `${sel.tipo} — ${sel.mod}`,
+    size: "lg",
+    footer: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => setMod(null)
+    }, "Fechar"), /*#__PURE__*/React.createElement("button", {
+      className: "btn pr",
+      onClick: () => {
+        setMod(null);
+        onPS(sel);
+      }
+    }, "\uD83D\uDCCB Emitir PS"))
+  }, sel.rest && /*#__PURE__*/React.createElement("div", {
+    className: "rbox"
+  }, "\u26A0\uFE0F ", /*#__PURE__*/React.createElement("strong", null, "Restri\xE7\xE3o especial:"), " ", sel.rest), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '8px 20px',
+      marginBottom: 14
+    }
+  }, [['PAT', sel.pat || '—'], ['SN', sel.sn || 'Não cadastrado'], ['Categoria', sel.cat], ['Tipo', sel.tipo], ['Fabricante', sel.fab || '—'], ['Modelo', sel.mod], ['Faixa', sel.faixa || '—'], ['Divisão', sel.div], ['Periodicidade', `${sel.per} meses`], ['Status', /*#__PURE__*/React.createElement(SBdg, {
+    s: sel.status
+  })], ['Última cal.', sel.ult || '—'], ['Próxima cal.', /*#__PURE__*/React.createElement(VBdg, {
+    d: sel.prox
+  })], ['Certificado', sel.cert || '—'], ['Custo máx. cal.', fmt(sel.cC)]].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)',
+      fontWeight: 600,
+      textTransform: 'uppercase',
+      marginBottom: 2
+    }
+  }, k), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 500
+    }
+  }, v)))), sel.obs && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--sf2)',
+      border: '1px solid var(--bd)',
+      borderRadius: 8,
+      padding: '8px 12px',
+      fontSize: 12,
+      marginBottom: 12
+    }
+  }, sel.obs), lm[sel.labId] && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "ssep"
+  }, "Laborat\xF3rio respons\xE1vel"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--sf2)',
+      border: '1px solid var(--bd)',
+      borderRadius: 8,
+      padding: '10px 14px',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600
+    }
+  }, lm[sel.labId].nome), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--tx2)',
+      marginTop: 2
+    }
+  }, lm[sel.labId].esp.join(' · ')), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: `bdg ${LAB_COR[lm[sel.labId].tipo]}`
+  }, LAB_TIPO[lm[sel.labId].tipo]), /*#__PURE__*/React.createElement("span", {
+    className: "bdg b-ok",
+    style: {
+      marginLeft: 6
+    }
+  }, lm[sel.labId].acred)), lm[sel.labId].obs && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--red)',
+      marginTop: 6,
+      fontWeight: 600
+    }
+  }, lm[sel.labId].obs))), /*#__PURE__*/React.createElement("div", {
+    className: "ssep"
+  }, "Hist\xF3rico de Pedidos de Servi\xE7o (", getPSByEq(sel.id).length, ")"), /*#__PURE__*/React.createElement("div", {
+    className: "pst"
+  }, getPSByEq(sel.id).length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: 'var(--tx3)'
+    }
+  }, "Nenhum PS emitido ainda."), getPSByEq(sel.id).sort((a, b) => b.num.localeCompare(a.num)).map(ps => /*#__PURE__*/React.createElement("div", {
+    key: ps.id,
+    className: "psi"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "psn"
+  }, ps.num), /*#__PURE__*/React.createElement("span", {
+    className: "bdg b-s",
+    style: {
+      fontSize: 11
+    }
+  }, TIPO_PS[ps.tipo]), /*#__PURE__*/React.createElement(PBdg, {
+    s: ps.status
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)',
+      marginLeft: 4
+    }
+  }, ps.emi), ps.cert && /*#__PURE__*/React.createElement("span", {
+    className: "snt",
+    style: {
+      marginLeft: 'auto',
+      fontSize: 11
+    }
+  }, ps.cert), ps.vE > 0 && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx2)',
+      marginLeft: 8
+    }
+  }, fmt(ps.vE)))))), /*#__PURE__*/React.createElement(Modal, {
+    open: !!cDel,
+    onClose: () => setCDel(null),
+    title: "Remover equipamento?",
+    size: "sm",
+    footer: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => setCDel(null)
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      className: "btn dr",
+      onClick: conDel
+    }, "Remover"))
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13,
+      color: 'var(--tx2)'
+    }
+  }, "O equipamento ser\xE1 inativado. O hist\xF3rico de PS \xE9 mantido."), dErr && /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: 'var(--red)',
+      fontSize: 12,
+      marginTop: 8
+    }
+  }, "\u26A0\uFE0F ", dErr)));
+}
+function PedidosServico({
+  s,
+  eqInit,
+  onClear
+}) {
+  const {
+    eqs,
+    labs,
+    pss,
+    lm,
+    em,
+    cnt,
+    getPSByEq,
+    emitPS,
+    updPS,
+    canPS
+  } = s;
+  const [srch, setSrch] = useState('');
+  const [fS, setFS] = useState('');
+  const [fT, setFT] = useState('');
+  const [emMod, setEmMod] = useState(!!eqInit);
+  const [eqSel, setEqSel] = useState(eqInit || null);
+  const [tipPS, setTipPS] = useState('calibracao_rotina');
+  const [labSel, setLabSel] = useState(eqInit?.labId || '');
+  const [xObs, setXObs] = useState('');
+  const [emOk, setEmOk] = useState(null);
+  const [editPs, setEditPs] = useState(null);
+  const [ef, setEf] = useState({});
+  const [viewPs, setViewPs] = useState(null);
+  useEffect(() => {
+    if (eqInit) {
+      setEqSel(eqInit);
+      setLabSel(eqInit.labId);
+      setEmMod(true);
+    }
+  }, [eqInit]);
+  const filt = useMemo(() => pss.filter(p => {
+    if (fS && p.status !== fS) return false;
+    if (fT && p.tipo !== fT) return false;
+    if (srch) {
+      const eq = em[p.eqId];
+      const h = `${p.num} ${eq?.tipo || ''} ${eq?.mod || ''} ${eq?.div || ''} ${p.cert || ''}`.toLowerCase();
+      if (!h.includes(srch.toLowerCase())) return false;
+    }
+    return true;
+  }).sort((a, b) => b.num.localeCompare(a.num)), [pss, srch, fS, fT, em]);
+  function conEmit() {
+    if (!eqSel) return;
+    const ps = emitPS(eqSel.id, tipPS, labSel, {
+      obs: xObs || null
+    });
+    setEmOk(ps);
+    setEmMod(false);
+    onClear?.();
+  }
+  function salvarEd() {
+    updPS(editPs.id, ef);
+    setEditPs(null);
+  }
+  function sfe(k, v) {
+    setEf(f => ({
+      ...f,
+      [k]: v
+    }));
+  }
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ph"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ptit"
+  }, "Pedidos de Servi\xE7o"), /*#__PURE__*/React.createElement("div", {
+    className: "psub"
+  }, filt.length, " PS \xB7 um PS por calibra\xE7\xE3o/reparo por instrumento")), /*#__PURE__*/React.createElement("button", {
+    className: "btn pr",
+    onClick: () => setEmMod(true)
+  }, "+ Emitir PS")), /*#__PURE__*/React.createElement("div", {
+    className: "filt"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sw"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "si"
+  }, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "N\xBA PS, instrumento, certificado...",
+    value: srch,
+    onChange: e => setSrch(e.target.value)
+  })), /*#__PURE__*/React.createElement("select", {
+    style: {
+      width: 155
+    },
+    value: fS,
+    onChange: e => setFS(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Todos status"), Object.entries(PS_ST).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: k
+  }, v.lbl))), /*#__PURE__*/React.createElement("select", {
+    style: {
+      width: 150
+    },
+    value: fT,
+    onChange: e => setFT(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Todos tipos"), Object.entries(TIPO_PS).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: k
+  }, v)))), /*#__PURE__*/React.createElement("div", {
+    className: "twrap"
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "N\xFAmero PS"), /*#__PURE__*/React.createElement("th", null, "Tipo"), /*#__PURE__*/React.createElement("th", null, "Instrumento"), /*#__PURE__*/React.createElement("th", null, "SN / PAT"), /*#__PURE__*/React.createElement("th", null, "Div."), /*#__PURE__*/React.createElement("th", null, "Lab."), /*#__PURE__*/React.createElement("th", null, "Emiss\xE3o"), /*#__PURE__*/React.createElement("th", null, "Calibra\xE7\xE3o"), /*#__PURE__*/React.createElement("th", null, "Certificado"), /*#__PURE__*/React.createElement("th", null, "Status"), /*#__PURE__*/React.createElement("th", null, "Valor"), /*#__PURE__*/React.createElement("th", null))), /*#__PURE__*/React.createElement("tbody", null, filt.map(ps => {
+    const eq = em[ps.eqId];
+    const lab = lm[ps.labId];
+    return /*#__PURE__*/React.createElement("tr", {
+      key: ps.id
+    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: 'monospace',
+        fontWeight: 700,
+        color: 'var(--blue)',
+        fontSize: 13
+      }
+    }, ps.num)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      className: "bdg b-s",
+      style: {
+        fontSize: 11
+      }
+    }, TIPO_PS[ps.tipo])), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 500,
+        fontSize: 12
+      }
+    }, eq?.tipo), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--tx3)'
+      }
+    }, eq?.fab, " ", eq?.mod)), /*#__PURE__*/React.createElement("td", null, eq?.sn && /*#__PURE__*/React.createElement("span", {
+      className: "snt"
+    }, "SN:", eq.sn), eq?.pat && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--tx3)'
+      }
+    }, eq.pat)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      className: "tag"
+    }, eq?.div)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 12,
+        maxWidth: 110,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      },
+      title: lab?.nome
+    }, lab?.code), lab && /*#__PURE__*/React.createElement("span", {
+      className: `bdg ${LAB_COR[lab.tipo]}`,
+      style: {
+        fontSize: 10
+      }
+    }, LAB_TIPO[lab.tipo])), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 12,
+        color: 'var(--tx2)'
+      }
+    }, ps.emi || '—'), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 12,
+        color: 'var(--tx2)'
+      }
+    }, ps.cal || '—'), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 11,
+        fontFamily: 'monospace'
+      }
+    }, ps.cert || '—'), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement(PBdg, {
+      s: ps.status
+    })), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 12
+      }
+    }, ps.vE ? fmt(ps.vE) : ps.vM ? fmt(ps.vM) : '—'), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 1
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      className: "bico",
+      onClick: () => setViewPs(ps),
+      title: "Ver PS"
+    }, "\uD83D\uDC41\uFE0F"), /*#__PURE__*/React.createElement("button", {
+      className: "bico",
+      onClick: () => {
+        setEditPs(ps);
+        setEf({
+          ...ps
+        });
+      },
+      title: "Atualizar"
+    }, "\u270F\uFE0F"), !['CONCLUIDO', 'CANCELADO'].includes(ps.status) && /*#__PURE__*/React.createElement("button", {
+      className: "bico",
+      onClick: () => canPS(ps.id),
+      title: "Cancelar"
+    }, "\u2715"))));
+  }), filt.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 12,
+    className: "emp"
+  }, "Nenhum PS encontrado"))))), /*#__PURE__*/React.createElement(Modal, {
+    open: emMod,
+    onClose: () => {
+      setEmMod(false);
+      onClear?.();
+    },
+    title: "Emitir Pedido de Servi\xE7o",
+    size: "md",
+    footer: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => {
+        setEmMod(false);
+        onClear?.();
+      }
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      className: "btn pr",
+      onClick: conEmit,
+      disabled: !eqSel || !labSel
+    }, "Emitir PS"))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld",
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("label", null, "Equipamento *"), /*#__PURE__*/React.createElement("select", {
+    value: eqSel?.id || '',
+    onChange: e => {
+      const eq = eqs.find(x => x.id === e.target.value);
+      setEqSel(eq);
+      setLabSel(eq?.labId || '');
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Selecionar instrumento..."), eqs.filter(e => e.ativo).map(e => /*#__PURE__*/React.createElement("option", {
+    key: e.id,
+    value: e.id
+  }, e.tipo, " \u2014 ", e.fab, " ", e.mod, " (", e.div, ")", e.sn ? ` SN:${e.sn}` : '')))), eqSel && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: 'var(--sf2)',
+      border: '1px solid var(--bd)',
+      borderRadius: 8,
+      padding: '12px 14px',
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '4px 16px',
+      fontSize: 13
+    }
+  }, [['Instrumento', eqSel.tipo], ['Modelo', `${eqSel.fab} ${eqSel.mod}`], ['Divisão', eqSel.div], ['PAT/SN', `${eqSel.pat || '—'} / ${eqSel.sn || '—'}`], ['Periodicidade', `${eqSel.per} meses`], ['Custo máx.', fmt(eqSel.cC)]].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--tx3)',
+      fontSize: 11
+    }
+  }, k, ": "), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 500
+    }
+  }, v)))), eqSel.rest && /*#__PURE__*/React.createElement("div", {
+    className: "rbox",
+    style: {
+      marginTop: 10,
+      marginBottom: 0
+    }
+  }, "\u26A0\uFE0F ", eqSel.rest)), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Tipo de servi\xE7o *"), /*#__PURE__*/React.createElement("select", {
+    value: tipPS,
+    onChange: e => setTipPS(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "calibracao_rotina"
+  }, "Calibra\xE7\xE3o rotina"), /*#__PURE__*/React.createElement("option", {
+    value: "calibracao_inicial"
+  }, "Calibra\xE7\xE3o inicial"), /*#__PURE__*/React.createElement("option", {
+    value: "reparo"
+  }, "Reparo"), /*#__PURE__*/React.createElement("option", {
+    value: "verificacao"
+  }, "Verifica\xE7\xE3o"))), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Laborat\xF3rio executor *"), /*#__PURE__*/React.createElement("select", {
+    value: labSel,
+    onChange: e => setLabSel(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Selecionar..."), labs.filter(l => l.ativo).map(l => /*#__PURE__*/React.createElement("option", {
+    key: l.id,
+    value: l.id
+  }, l.code, " \u2014 ", l.nome.split('—')[0].trim()))))), labSel && lm[labSel] && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      background: 'var(--blue-bg)',
+      padding: '6px 10px',
+      borderRadius: 6,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: `bdg ${LAB_COR[lm[labSel].tipo]}`
+  }, LAB_TIPO[lm[labSel].tipo]), "\xA0", lm[labSel].acred, " \xB7 ", lm[labSel].esp.join(', '), lm[labSel].obs && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--red)',
+      fontWeight: 600,
+      marginTop: 4
+    }
+  }, "\u26A0\uFE0F ", lm[labSel].obs)), /*#__PURE__*/React.createElement("div", {
+    className: "fr f"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Observa\xE7\xF5es"), /*#__PURE__*/React.createElement("textarea", {
+    value: xObs,
+    onChange: e => setXObs(e.target.value),
+    rows: 2
+  }))), eqSel && /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: '1px solid var(--bd)',
+      paddingTop: 10,
+      marginTop: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)'
+    }
+  }, "Pr\xF3ximo n\xFAmero: "), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: 'monospace',
+      fontWeight: 700,
+      fontSize: 16,
+      color: 'var(--blue)'
+    }
+  }, "PS-CMS-", new Date().getFullYear().toString().slice(2), "-", String(cnt).padStart(3, '0')))), emOk && /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    size: "sm",
+    onClose: () => setEmOk(null),
+    title: "PS emitido",
+    footer: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => setEmOk(null)
+    }, "Fechar"), /*#__PURE__*/React.createElement("button", {
+      className: "btn pr",
+      onClick: () => {
+        setViewPs(emOk);
+        setEmOk(null);
+      }
+    }, "\uD83D\uDC41\uFE0F Visualizar"))
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'center',
+      padding: '16px 0'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 36,
+      marginBottom: 8
+    }
+  }, "\u2705"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 16
+    }
+  }, "PS emitido com sucesso"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'monospace',
+      fontWeight: 700,
+      fontSize: 24,
+      color: 'var(--blue)',
+      margin: '8px 0'
+    }
+  }, emOk.num), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: 'var(--tx2)'
+    }
+  }, "Emitido em ", emOk.emi))), editPs && /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: () => setEditPs(null),
+    title: `Atualizar — ${editPs.num}`,
+    size: "md",
+    footer: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => setEditPs(null)
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      className: "btn pr",
+      onClick: salvarEd
+    }, "Salvar"))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Status"), /*#__PURE__*/React.createElement("select", {
+    value: ef.status,
+    onChange: e => sfe('status', e.target.value)
+  }, Object.entries(PS_ST).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: k
+  }, v.lbl)))), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Lab. executor"), /*#__PURE__*/React.createElement("select", {
+    value: ef.labId,
+    onChange: e => sfe('labId', e.target.value)
+  }, labs.filter(l => l.ativo).map(l => /*#__PURE__*/React.createElement("option", {
+    key: l.id,
+    value: l.id
+  }, l.code))))), /*#__PURE__*/React.createElement("div", {
+    className: "fr c3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Data envio"), /*#__PURE__*/React.createElement("input", {
+    value: ef.env || '',
+    onChange: e => sfe('env', e.target.value),
+    placeholder: "DD/MM/AAAA"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Data calibra\xE7\xE3o"), /*#__PURE__*/React.createElement("input", {
+    value: ef.cal || '',
+    onChange: e => sfe('cal', e.target.value),
+    placeholder: "DD/MM/AAAA"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Data retorno"), /*#__PURE__*/React.createElement("input", {
+    value: ef.ret || '',
+    onChange: e => sfe('ret', e.target.value),
+    placeholder: "DD/MM/AAAA"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "N\xBA Certificado"), /*#__PURE__*/React.createElement("input", {
+    value: ef.cert || '',
+    onChange: e => sfe('cert', e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Resultado"), /*#__PURE__*/React.createElement("select", {
+    value: ef.res || '',
+    onChange: e => sfe('res', e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014"), /*#__PURE__*/React.createElement("option", {
+    value: "aprovado"
+  }, "Aprovado"), /*#__PURE__*/React.createElement("option", {
+    value: "reprovado"
+  }, "Reprovado")))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Valor executado (R$)"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    step: 0.01,
+    value: ef.vE || '',
+    onChange: e => sfe('vE', +e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "NF / NE"), /*#__PURE__*/React.createElement("input", {
+    value: ef.nf || '',
+    onChange: e => sfe('nf', e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Contrato / ATA"), /*#__PURE__*/React.createElement("input", {
+    value: ef.ctr || '',
+    onChange: e => sfe('ctr', e.target.value)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Aprovado por"), /*#__PURE__*/React.createElement("input", {
+    value: ef.apv || '',
+    onChange: e => sfe('apv', e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr f"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Observa\xE7\xF5es"), /*#__PURE__*/React.createElement("textarea", {
+    value: ef.obs || '',
+    onChange: e => sfe('obs', e.target.value),
+    rows: 2
+  })))), viewPs && /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: () => setViewPs(null),
+    title: `PS — ${viewPs.num}`,
+    size: "lg",
+    footer: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => setViewPs(null)
+    }, "Fechar"), /*#__PURE__*/React.createElement("button", {
+      className: "btn pr",
+      onClick: () => window.print()
+    }, "\uD83D\uDDA8\uFE0F Imprimir"))
+  }, /*#__PURE__*/React.createElement(PSPrev, {
+    ps: viewPs,
+    eq: em[viewPs.eqId],
+    lab: lm[viewPs.labId]
+  })));
+}
+function PSPrev({
+  ps,
+  eq,
+  lab
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      border: '1px solid var(--bd)',
+      borderRadius: 10,
+      overflow: 'hidden',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: '#0f172a',
+      color: '#fff',
+      padding: '14px 18px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#64748b',
+      letterSpacing: '.08em',
+      textTransform: 'uppercase'
+    }
+  }, "Marinha do Brasil \xB7 CMASM"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 15,
+      marginTop: 2
+    }
+  }, "Pedido de Servi\xE7o de Calibra\xE7\xE3o")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: 'right'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: 'monospace',
+      fontWeight: 700,
+      fontSize: 20,
+      color: '#60a5fa'
+    }
+  }, ps.num), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: '#64748b',
+      marginTop: 2
+    }
+  }, "Emitido em ", ps.emi))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      borderBottom: '1px solid var(--bd)'
+    }
+  }, [['Laboratório/Empresa', lab?.nome || '—'], ['Divisão/Setor', eq?.div || '—'], ['Tipo de serviço', TIPO_PS[ps.tipo]]].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    style: {
+      padding: '10px 14px',
+      borderRight: '1px solid var(--bd)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)',
+      marginBottom: 2
+    }
+  }, k), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 12
+    }
+  }, v)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '14px 18px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 600,
+      color: 'var(--tx3)',
+      textTransform: 'uppercase',
+      marginBottom: 10
+    }
+  }, "Instrumento de medi\xE7\xE3o"), eq?.rest && /*#__PURE__*/React.createElement("div", {
+    className: "rbox",
+    style: {
+      marginBottom: 12
+    }
+  }, "\u26A0\uFE0F ", /*#__PURE__*/React.createElement("strong", null, "RESTRI\xC7\xC3O ESPECIAL:"), " ", eq.rest), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4,1fr)',
+      gap: '8px 16px',
+      marginBottom: 14
+    }
+  }, [['Categoria', eq?.cat], ['Tipo', eq?.tipo], ['Fabricante', eq?.fab || '—'], ['Modelo', eq?.mod], ['Nº Série (SN)', eq?.sn || 'Não cadastrado'], ['PAT', eq?.pat || '—'], ['Faixa/Tolerância', eq?.faixa || '—'], ['Periodicidade', `${eq?.per} meses`], ['Última calibração', eq?.ult || '—'], ['Custo máx.', fmt(eq?.cC)]].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: 'var(--tx3)',
+      marginBottom: 1
+    }
+  }, k), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600
+    }
+  }, v))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr 1fr',
+      borderTop: '1px solid var(--bd)'
+    }
+  }, [['Status', /*#__PURE__*/React.createElement(PBdg, {
+    s: ps.status
+  })], ['Data de calibração', ps.cal || '—'], ['Certificado', ps.cert || '—'], ['Valor', ps.vE ? fmt(ps.vE) : ps.vM ? `Máx ${fmt(ps.vM)}` : '—']].map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    style: {
+      padding: '10px 14px',
+      borderRight: '1px solid var(--bd)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)',
+      marginBottom: 4
+    }
+  }, k), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600,
+      fontSize: 12
+    }
+  }, v)))), (eq?.obs || ps.obs) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderTop: '1px solid var(--bd)',
+      padding: '10px 18px',
+      background: 'var(--sf2)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)',
+      marginBottom: 4
+    }
+  }, "Observa\xE7\xF5es"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12
+    }
+  }, [eq?.obs, ps.obs].filter(Boolean).join(' | '))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      borderTop: '1px solid var(--bd)'
+    }
+  }, [['Elaborado por', 'Encarregado de Metrologia / CMASM'], ['Aprovado por', 'Chefe da Divisão Técnica'], ['Recebido por', lab?.nome?.split('—')[0] || 'Laboratório']].map(([t, c]) => /*#__PURE__*/React.createElement("div", {
+    key: t,
+    style: {
+      padding: '16px 14px',
+      borderRight: '1px solid var(--bd)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      borderBottom: '1px solid var(--bd2)',
+      marginBottom: 28
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 600
+    }
+  }, t), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)',
+      marginTop: 2
+    }
+  }, c), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)',
+      marginTop: 6
+    }
+  }, "Data: ___/___/______")))));
+}
+const LEMPTY = {
+  code: '',
+  nome: '',
+  tipo: 'pregao',
+  acred: 'RBC',
+  esp: [],
+  obs: '',
+  ativo: true
+};
+function Laboratorios({
+  s
+}) {
+  const {
+    labs,
+    eqs,
+    addLab,
+    updLab
+  } = s;
+  const [mod, setMod] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [fm, setFm] = useState(LEMPTY);
+  const [es, setEs] = useState('');
+  function sf(k, v) {
+    setFm(f => ({
+      ...f,
+      [k]: v
+    }));
+  }
+  function salvar() {
+    const esp = es.split(',').map(x => x.trim()).filter(Boolean);
+    const d = {
+      ...fm,
+      esp
+    };
+    if (mod === 'new') addLab(d);else updLab(sel.id, d);
+    setMod(null);
+  }
+  const epl = Object.fromEntries(labs.map(l => [l.id, eqs.filter(e => e.ativo && e.labId === l.id).length]));
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ph"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ptit"
+  }, "Laborat\xF3rios"), /*#__PURE__*/React.createElement("div", {
+    className: "psub"
+  }, "Marinha, preg\xE3o, dispensa e empresas autorizadas")), /*#__PURE__*/React.createElement("button", {
+    className: "btn pr",
+    onClick: () => {
+      setFm({
+        ...LEMPTY
+      });
+      setEs('');
+      setMod('new');
+    }
+  }, "+ Novo laborat\xF3rio")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 14
+    }
+  }, labs.filter(l => l.ativo).map(l => /*#__PURE__*/React.createElement("div", {
+    key: l.id,
+    style: {
+      background: 'var(--sf)',
+      border: '1px solid var(--bd)',
+      borderRadius: 12,
+      padding: '16px 18px',
+      borderLeftWidth: l.tipo === 'autorizada' ? 4 : 1,
+      borderLeftColor: l.tipo === 'autorizada' ? 'var(--red)' : 'var(--bd)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 14,
+      marginBottom: 4,
+      lineHeight: 1.3
+    }
+  }, l.nome)), /*#__PURE__*/React.createElement("button", {
+    className: "btn sm",
+    onClick: () => {
+      setFm({
+        ...l
+      });
+      setEs(l.esp?.join(', ') || '');
+      setSel(l);
+      setMod('edit');
+    }
+  }, "\u270F\uFE0F")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 6,
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    className: `bdg ${LAB_COR[l.tipo]}`
+  }, LAB_TIPO[l.tipo]), /*#__PURE__*/React.createElement("span", {
+    className: "bdg b-ok"
+  }, l.acred), /*#__PURE__*/React.createElement("span", {
+    className: "bdg b-s"
+  }, epl[l.id] || 0, " instrumentos")), l.esp?.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 4,
+      marginBottom: 8
+    }
+  }, l.esp.map(e => /*#__PURE__*/React.createElement("span", {
+    key: e,
+    className: "tag",
+    style: {
+      fontSize: 11
+    }
+  }, e))), l.obs && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      padding: '7px 10px',
+      borderRadius: 6,
+      background: l.tipo === 'autorizada' ? 'var(--red-bg)' : 'var(--sf2)',
+      color: l.tipo === 'autorizada' ? 'var(--red)' : 'var(--tx2)',
+      fontWeight: l.tipo === 'autorizada' ? 600 : 400
+    }
+  }, l.obs)))), /*#__PURE__*/React.createElement(Modal, {
+    open: mod === 'new' || mod === 'edit',
+    onClose: () => setMod(null),
+    title: mod === 'new' ? 'Novo laboratório' : 'Editar laboratório',
+    size: "md",
+    footer: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      className: "btn",
+      onClick: () => setMod(null)
+    }, "Cancelar"), /*#__PURE__*/React.createElement("button", {
+      className: "btn pr",
+      onClick: salvar,
+      disabled: !fm.nome || !fm.code
+    }, "Salvar"))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "C\xF3digo (sigla) *"), /*#__PURE__*/React.createElement("input", {
+    value: fm.code,
+    onChange: e => sf('code', e.target.value.toUpperCase()),
+    placeholder: "MQT, AMETEK..."
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Tipo *"), /*#__PURE__*/React.createElement("select", {
+    value: fm.tipo,
+    onChange: e => sf('tipo', e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "marinha"
+  }, "Marinha"), /*#__PURE__*/React.createElement("option", {
+    value: "pregao"
+  }, "Preg\xE3o"), /*#__PURE__*/React.createElement("option", {
+    value: "dispensa"
+  }, "Dispensa"), /*#__PURE__*/React.createElement("option", {
+    value: "autorizada"
+  }, "Aut. Exclusiva")))), /*#__PURE__*/React.createElement("div", {
+    className: "fr f"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Nome completo *"), /*#__PURE__*/React.createElement("input", {
+    value: fm.nome,
+    onChange: e => sf('nome', e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Acredita\xE7\xE3o"), /*#__PURE__*/React.createElement("input", {
+    value: fm.acred,
+    onChange: e => sf('acred', e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr f"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Especialidades (v\xEDrgula)"), /*#__PURE__*/React.createElement("input", {
+    value: es,
+    onChange: e => setEs(e.target.value),
+    placeholder: "Torqu\xEDmetros, Dimensional..."
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "fr f"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "fld"
+  }, /*#__PURE__*/React.createElement("label", null, "Observa\xE7\xF5es / Restri\xE7\xF5es"), /*#__PURE__*/React.createElement("textarea", {
+    value: fm.obs || '',
+    onChange: e => sf('obs', e.target.value),
+    rows: 3
+  })))));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CERTIFICADOS
+// ═══════════════════════════════════════════════════════════════
+function Certificados({
+  s
+}) {
+  const {
+    eqs,
+    pss,
+    em,
+    lm
+  } = s;
+  const [srch, setSrch] = useState('');
+  // PS concluídos com certificado = calibrações com cert registrado
+  const certs = useMemo(() => pss.filter(p => {
+    if (p.status !== 'CONCLUIDO' || !p.cert) return false;
+    if (srch) {
+      const eq = em[p.eqId];
+      const h = `${p.cert} ${eq?.tipo || ''} ${eq?.mod || ''} ${eq?.div || ''} ${p.num}`.toLowerCase();
+      if (!h.includes(srch.toLowerCase())) return false;
+    }
+    return true;
+  }).sort((a, b) => b.cert.localeCompare(a.cert)), [pss, srch, em]);
+
+  // Equipamentos sem certificado
+  const semCert = eqs.filter(e => e.ativo && (e.status === 'SEM_CERTIFICADO' || e.status === 'CALIBRADO' && !e.cert));
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ph"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ptit"
+  }, "Certificados de Calibra\xE7\xE3o"), /*#__PURE__*/React.createElement("div", {
+    className: "psub"
+  }, certs.length, " certificados registrados \xB7 ", semCert.length, " instrumentos sem certificado")), /*#__PURE__*/React.createElement("button", {
+    className: "btn",
+    onClick: () => {
+      const rows = [['Certificado', 'PS', 'Instrumento', 'Fabricante', 'Modelo', 'Divisão', 'Laboratório', 'Data Cal.', 'Resultado', 'Valor']];
+      certs.forEach(p => {
+        const eq = em[p.eqId];
+        const lab = lm[p.labId];
+        rows.push([p.cert, p.num, eq?.tipo || '', eq?.fab || '', eq?.mod || '', eq?.div || '', lab?.code || '', p.cal || '', p.res || '', p.vE || p.vM || '']);
+      });
+      const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+      a.download = 'certificados_cmasm.csv';
+      a.click();
+    }
+  }, "\u2B07\uFE0F Exportar CSV")), semCert.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 16,
+      borderLeft: '3px solid var(--amber)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct",
+    style: {
+      color: 'var(--amber)'
+    }
+  }, "\u26A0\uFE0F Instrumentos sem certificado (", semCert.length, ")"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))',
+      gap: 6
+    }
+  }, semCert.map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    style: {
+      background: 'var(--amber-bg)',
+      border: '1px solid var(--amber-lt)',
+      borderRadius: 6,
+      padding: '8px 10px',
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 600
+    }
+  }, e.tipo, " \u2014 ", e.mod), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: 'var(--tx2)',
+      marginTop: 2
+    }
+  }, e.div, " \xB7 ", e.pat || 'sem PAT'), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4
+    }
+  }, /*#__PURE__*/React.createElement(SBdg, {
+    s: e.status
+  })))))), /*#__PURE__*/React.createElement("div", {
+    className: "filt"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sw"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "si"
+  }, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("input", {
+    placeholder: "Buscar certificado, instrumento, PS...",
+    value: srch,
+    onChange: e => setSrch(e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "twrap"
+  }, /*#__PURE__*/React.createElement("table", null, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "N\xBA Certificado"), /*#__PURE__*/React.createElement("th", null, "PS"), /*#__PURE__*/React.createElement("th", null, "Instrumento"), /*#__PURE__*/React.createElement("th", null, "Divis\xE3o"), /*#__PURE__*/React.createElement("th", null, "Laborat\xF3rio"), /*#__PURE__*/React.createElement("th", null, "Data cal."), /*#__PURE__*/React.createElement("th", null, "Resultado"), /*#__PURE__*/React.createElement("th", null, "Valor exec."))), /*#__PURE__*/React.createElement("tbody", null, certs.map(p => {
+    const eq = em[p.eqId];
+    const lab = lm[p.labId];
+    return /*#__PURE__*/React.createElement("tr", {
+      key: p.id
+    }, /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: 'monospace',
+        fontWeight: 700,
+        fontSize: 12,
+        color: 'var(--blue)'
+      }
+    }, p.cert)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: 'monospace',
+        fontSize: 11,
+        color: 'var(--tx2)'
+      }
+    }, p.num)), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 500,
+        fontSize: 12
+      }
+    }, eq?.tipo), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--tx3)'
+      }
+    }, eq?.fab, " ", eq?.mod, " \xB7 ", eq?.pat || '')), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("span", {
+      className: "tag"
+    }, eq?.div)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 12
+      }
+    }, lab?.code), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 12,
+        color: 'var(--tx2)'
+      }
+    }, p.cal || '—'), /*#__PURE__*/React.createElement("td", null, p.res === 'aprovado' ? /*#__PURE__*/React.createElement("span", {
+      className: "bdg b-ok"
+    }, "Aprovado") : p.res === 'reprovado' ? /*#__PURE__*/React.createElement("span", {
+      className: "bdg b-d"
+    }, "Reprovado") : /*#__PURE__*/React.createElement("span", {
+      className: "bdg b-s"
+    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
+      style: {
+        fontSize: 12
+      }
+    }, p.vE ? p.vE.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }) : '—'));
+  }), certs.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: 8,
+    className: "emp"
+  }, "Nenhum certificado encontrado"))))));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RELATÓRIO DE CONFORMIDADE
+// ═══════════════════════════════════════════════════════════════
+function Relatorio({
+  s
+}) {
+  const {
+    eqs,
+    pss,
+    labs,
+    em,
+    lm
+  } = s;
+  const at = eqs.filter(e => e.ativo);
+  const ano = new Date().getFullYear();
+  const cnt = {};
+  Object.keys(STATUS_CFG).forEach(k => {
+    cnt[k] = at.filter(e => e.status === k).length;
+  });
+  const total = at.length;
+  const conf = cnt.CALIBRADO || 0;
+  const pctConf = total > 0 ? Math.round(conf / total * 100) : 0;
+  const psAno = pss.filter(p => p.emi && p.emi.includes(String(ano)));
+  const psConcl = psAno.filter(p => p.status === 'CONCLUIDO');
+  const custoTotal = psConcl.reduce((s, p) => s + (p.vE || 0), 0);
+  const custoMax = at.reduce((s, e) => s + (e.cC || 0), 0);
+  const porDiv = {};
+  at.forEach(e => {
+    if (!porDiv[e.div]) porDiv[e.div] = {
+      t: 0,
+      ok: 0,
+      desc: 0,
+      sc: 0,
+      rep: 0,
+      custo: 0
+    };
+    porDiv[e.div].t++;
+    if (e.status === 'CALIBRADO') porDiv[e.div].ok++;
+    if (e.status === 'DESCALIBRADO') porDiv[e.div].desc++;
+    if (e.status === 'SEM_CERTIFICADO') porDiv[e.div].sc++;
+    if (e.status === 'EM_REPARO' || e.status === 'AGUARDANDO_CALIBRACAO') porDiv[e.div].rep++;
+    porDiv[e.div].custo += e.cC || 0;
+  });
+  const rst = at.filter(e => e.rest);
+  const v30 = at.filter(e => {
+    const d = dv(e.prox);
+    return d !== null && d >= 0 && d <= 30;
+  });
+  const venc = at.filter(e => {
+    const d = dv(e.prox);
+    return d !== null && d < 0;
+  });
+  function exportCSV() {
+    const rows = [['RELATÓRIO DE CONFORMIDADE — CMASM', `Gerado em ${new Date().toLocaleDateString('pt-BR')}`, '', '', '', ''], ['', '', '', '', '', ''], ['RESUMO EXECUTIVO', '', '', '', '', ''], ['Total de instrumentos', total, '', 'Conformidade geral', `${pctConf}%`, ''], ['Calibrados', conf, '', 'Descalibrados', cnt.DESCALIBRADO, ''], ['Em reparo', cnt.EM_REPARO, '', 'Sem certificado', cnt.SEM_CERTIFICADO, ''], ['Custo estimado (pregão)', custoMax.toFixed(2), '', 'Custo executado ' + ano, custoTotal.toFixed(2), ''], ['', '', '', '', '', ''], ['STATUS POR DIVISÃO', '', '', '', '', ''], ['Divisão', 'Total', 'Calibrados', 'Descalibrados', 'Sem Cert.', 'Em Reparo'], ...Object.entries(porDiv).sort((a, b) => b[1].t - a[1].t).map(([d, v]) => [d, v.t, v.ok, v.desc, v.sc, v.rep]), ['', '', '', '', '', ''], ['INSTRUMENTOS DESCALIBRADOS', '', '', '', '', ''], ['PAT', 'Tipo', 'Fabricante/Modelo', 'Divisão', 'Laboratório', 'Obs.'], ...at.filter(e => e.status === 'DESCALIBRADO').map(e => [e.pat || '', e.tipo, `${e.fab} ${e.mod}`, e.div, lm[e.labId]?.code || '', e.obs || '']), ['', '', '', '', '', ''], ['RESTRIÇÕES ESPECIAIS', '', '', '', '', ''], ['PAT', 'Tipo', 'Modelo', 'Divisão', 'Status', 'Restrição'], ...rst.map(e => [e.pat || '', e.tipo, e.mod, e.div, STATUS_CFG[e.status]?.lbl || '', e.rest || ''])];
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+    a.download = `CMASM_Relatorio_Conformidade_${ano}.csv`;
+    a.click();
+  }
+  const barW = (v, t) => t > 0 ? `${Math.round(v / t * 100)}%` : '0%';
+  const cor = pct => pct >= 90 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red)';
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ph"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "ptit"
+  }, "Relat\xF3rio de Conformidade"), /*#__PURE__*/React.createElement("div", {
+    className: "psub"
+  }, "ISO/IEC 17025 \xB7 Situa\xE7\xE3o em ", new Date().toLocaleDateString('pt-BR'))), /*#__PURE__*/React.createElement("button", {
+    className: "btn pr",
+    onClick: exportCSV
+  }, "\u2B07\uFE0F Exportar CSV")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4,1fr)',
+      gap: 12,
+      marginBottom: 16
+    }
+  }, [{
+    lbl: 'Conformidade geral',
+    v: `${pctConf}%`,
+    cor: cor(pctConf),
+    sub: `${conf} de ${total} calibrados`
+  }, {
+    lbl: 'Descalibrados',
+    v: cnt.DESCALIBRADO,
+    cor: cnt.DESCALIBRADO > 0 ? 'var(--red)' : 'var(--green)',
+    sub: 'necessitam calibração'
+  }, {
+    lbl: 'PS concluídos ' + ano,
+    v: psConcl.length,
+    cor: 'var(--blue)',
+    sub: `de ${psAno.length} emitidos`
+  }, {
+    lbl: 'Custo executado ' + ano,
+    v: custoTotal.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }),
+    cor: 'var(--blue)',
+    sub: `máximo: ${custoMax.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    })}`
+  }].map(k => /*#__PURE__*/React.createElement("div", {
+    key: k.lbl,
+    className: "card",
+    style: {
+      textAlign: 'center'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 28,
+      fontWeight: 700,
+      color: k.cor,
+      lineHeight: 1
+    }
+  }, k.v), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      fontWeight: 600,
+      marginTop: 4
+    }
+  }, k.lbl), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: 'var(--tx3)',
+      marginTop: 2
+    }
+  }, k.sub)))), /*#__PURE__*/React.createElement("div", {
+    className: "card",
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, "\uD83D\uDCCA Conformidade por divis\xE3o"), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, ['Divisão', 'Total', 'Calibrados', 'Desc.', 'Sem Cert.', 'Em Reparo', 'Conformidade', 'Custo máx.'].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      textAlign: 'left',
+      padding: '6px 10px',
+      fontSize: 11,
+      fontWeight: 600,
+      color: 'var(--tx2)',
+      borderBottom: '1px solid var(--bd)'
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, Object.entries(porDiv).sort((a, b) => b[1].t - a[1].t).map(([div, d]) => {
+    const pct = Math.round(d.ok / d.t * 100);
+    return /*#__PURE__*/React.createElement("tr", {
+      key: div,
+      style: {
+        borderBottom: '1px solid var(--bd)'
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '8px 10px',
+        fontWeight: 600
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "tag"
+    }, div)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '8px 10px'
+      }
+    }, d.t), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '8px 10px'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--green)',
+        fontWeight: 600
+      }
+    }, d.ok)), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '8px 10px'
+      }
+    }, d.desc > 0 ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--red)',
+        fontWeight: 600
+      }
+    }, d.desc) : '—'), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '8px 10px'
+      }
+    }, d.sc > 0 ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--amber)',
+        fontWeight: 600
+      }
+    }, d.sc) : '—'), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '8px 10px'
+      }
+    }, d.rep > 0 ? /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--purple)',
+        fontWeight: 600
+      }
+    }, d.rep) : '—'), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '8px 10px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        height: 6,
+        background: 'var(--sf2)',
+        borderRadius: 3,
+        overflow: 'hidden'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: barW(d.ok, d.t),
+        height: '100%',
+        background: cor(pct),
+        borderRadius: 3
+      }
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 12,
+        fontWeight: 700,
+        color: cor(pct),
+        width: 36
+      }
+    }, pct, "%"))), /*#__PURE__*/React.createElement("td", {
+      style: {
+        padding: '8px 10px',
+        fontSize: 12,
+        color: 'var(--tx2)'
+      }
+    }, d.custo.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    })));
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "g2"
+  }, (v30.length > 0 || venc.length > 0) && /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, "\uD83D\uDCC5 A\xE7\xE3o necess\xE1ria"), venc.map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    className: "ai ai-d",
+    style: {
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, e.tipo, " ", e.mod), " \u2014 ", e.div, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+    style: {
+      opacity: .8
+    }
+  }, "Cal. vencida em ", e.prox)), /*#__PURE__*/React.createElement("span", null, e.pat || '—'))), v30.map(e => {
+    const d = dv(e.prox);
+    return /*#__PURE__*/React.createElement("div", {
+      key: e.id,
+      className: "ai ai-w",
+      style: {
+        fontSize: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 600
+      }
+    }, e.tipo, " ", e.mod), " \u2014 ", e.div, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+      style: {
+        opacity: .8
+      }
+    }, "Vence em ", e.prox)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        color: 'var(--orange)',
+        fontWeight: 700
+      }
+    }, d, "d"));
+  }), v30.length === 0 && venc.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "emp"
+  }, "Nenhum vencendo em 30 dias")), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, "\uD83D\uDD12 Restri\xE7\xF5es especiais (", rst.length, ")"), rst.map(e => /*#__PURE__*/React.createElement("div", {
+    key: e.id,
+    className: "ai ai-d",
+    style: {
+      fontSize: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontWeight: 600
+    }
+  }, e.tipo, " ", e.mod), " \u2014 ", e.div, /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+    style: {
+      opacity: .85,
+      fontSize: 11
+    }
+  }, e.rest)), /*#__PURE__*/React.createElement(SBdg, {
+    s: e.status
+  }))), rst.length === 0 && /*#__PURE__*/React.createElement("div", {
+    className: "emp"
+  }, "Nenhuma restri\xE7\xE3o"))), /*#__PURE__*/React.createElement("div", {
+    className: "card"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ct"
+  }, "\uD83D\uDD2C Distribui\xE7\xE3o por laborat\xF3rio"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))',
+      gap: 10
+    }
+  }, labs.filter(l => l.ativo).map(l => {
+    const tot = at.filter(e => e.labId === l.id).length;
+    if (tot === 0) return null;
+    const ok = at.filter(e => e.labId === l.id && e.status === 'CALIBRADO').length;
+    return /*#__PURE__*/React.createElement("div", {
+      key: l.id,
+      style: {
+        background: 'var(--sf2)',
+        border: '1px solid var(--bd)',
+        borderRadius: 8,
+        padding: '10px 12px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontWeight: 600,
+        fontSize: 12,
+        marginBottom: 4
+      }
+    }, l.code), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: 'var(--tx2)',
+        marginBottom: 6
+      }
+    }, l.nome.split('—')[0].trim()), /*#__PURE__*/React.createElement("span", {
+      className: `bdg ${LAB_COR[l.tipo]}`,
+      style: {
+        fontSize: 10
+      }
+    }, LAB_TIPO[l.tipo]), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 8,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        height: 5,
+        background: 'var(--sf)',
+        borderRadius: 3,
+        border: '1px solid var(--bd)',
+        overflow: 'hidden'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: tot > 0 ? `${Math.round(ok / tot * 100)}%` : '0%',
+        height: '100%',
+        background: 'var(--green)',
+        borderRadius: 3
+      }
+    })), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: 'var(--tx2)'
+      }
+    }, ok, "/", tot)));
+  }))));
+}
+const PAGES = [{
+  id: 'dashboard',
+  lbl: 'Dashboard',
+  ico: '📊'
+}, {
+  id: 'equipamentos',
+  lbl: 'Equipamentos',
+  ico: '🔧'
+}, {
+  id: 'ps',
+  lbl: 'Pedidos de Serviço',
+  ico: '📋'
+}, {
+  id: 'certificados',
+  lbl: 'Certificados',
+  ico: '📜'
+}, {
+  id: 'relatorio',
+  lbl: 'Relatório',
+  ico: '📈'
+}, {
+  id: 'laboratorios',
+  lbl: 'Laboratórios',
+  ico: '🔬'
+}];
+function App() {
+  const s = useStore();
+  const [pg, setPg] = useState('dashboard');
+  const [sb, setSb] = useState(true);
+  const [eqPS, setEqPS] = useState(null);
+  const bdEq = s.eqs.filter(e => e.ativo && ['DESCALIBRADO', 'EM_REPARO', 'SEM_CERTIFICADO'].includes(e.status)).length;
+  const bdPS = s.pss.filter(p => !['CONCLUIDO', 'CANCELADO'].includes(p.status)).length;
+  function onPS(eq) {
+    setEqPS(eq);
+    setPg('ps');
+  }
+  const bdCert = s.eqs.filter(e => e.ativo && e.status === 'SEM_CERTIFICADO').length;
+  function getBd(id) {
+    if (id === 'equipamentos') return bdEq || null;
+    if (id === 'ps') return bdPS || null;
+    if (id === 'certificados') return bdCert || null;
+    return null;
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    className: "app"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `sb ${sb ? '' : 'c'}`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sb-logo"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sb-icon"
+  }, "\u2693"), sb && /*#__PURE__*/React.createElement("div", {
+    className: "sb-txt"
+  }, /*#__PURE__*/React.createElement("div", null, "CMASM"), /*#__PURE__*/React.createElement("div", {
+    className: "sb-sub"
+  }, "Calibra\xE7\xE3o"))), /*#__PURE__*/React.createElement("nav", null, PAGES.map(p => {
+    const b = getBd(p.id);
+    return /*#__PURE__*/React.createElement("button", {
+      key: p.id,
+      className: `ni ${pg === p.id ? 'act' : ''}`,
+      onClick: () => setPg(p.id)
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "ni-ico"
+    }, p.ico), sb && /*#__PURE__*/React.createElement("span", {
+      className: "ni-lbl"
+    }, p.lbl), sb && b && /*#__PURE__*/React.createElement("span", {
+      className: "ni-bdg"
+    }, b));
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "sb-tog",
+    onClick: () => setSb(o => !o)
+  }, sb ? '◀' : '▶')), /*#__PURE__*/React.createElement("div", {
+    className: "main"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "topbar"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "tb-c"
+  }, "CMASM"), /*#__PURE__*/React.createElement("span", {
+    className: "tb-s"
+  }, "\u203A"), /*#__PURE__*/React.createElement("span", {
+    className: "tb-p"
+  }, PAGES.find(p => p.id === pg)?.lbl)), /*#__PURE__*/React.createElement("div", {
+    className: "content"
+  }, pg === 'dashboard' && /*#__PURE__*/React.createElement(Dashboard, {
+    s: s,
+    nav: setPg
+  }), pg === 'equipamentos' && /*#__PURE__*/React.createElement(Equipamentos, {
+    s: s,
+    onPS: onPS
+  }), pg === 'ps' && /*#__PURE__*/React.createElement(PedidosServico, {
+    s: s,
+    eqInit: eqPS,
+    onClear: () => setEqPS(null)
+  }), pg === 'laboratorios' && /*#__PURE__*/React.createElement(Laboratorios, {
+    s: s
+  }), pg === 'certificados' && /*#__PURE__*/React.createElement(Certificados, {
+    s: s
+  }), pg === 'relatorio' && /*#__PURE__*/React.createElement(Relatorio, {
+    s: s
+  }))));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
+</script>
+</body>
+</html>

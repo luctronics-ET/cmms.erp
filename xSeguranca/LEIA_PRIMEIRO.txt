@@ -1,0 +1,103 @@
+# 🎬 SISTEMA DE VIGILÂNCIA - COMEÇAR AGORA (3 min)
+
+---
+
+## 👇 SIGA EXATAMENTE ISTO
+
+### 1. Abra terminal/CMD nesta pasta
+
+```bash
+# Verificar que tem os arquivos:
+ls -la start.sh    # macOS/Linux
+dir start.bat      # Windows
+```
+
+### 2. Rodar 1 comando
+
+**macOS/Linux:**
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+**Windows:**
+```
+Duplo clique em: start.bat
+# ou abra CMD aqui e digite: start.bat
+```
+
+### 3. Aguarde 30 segundos
+
+Browser abrirá sozinho em: **http://localhost:3000**
+
+### 4. Verificar
+
+```
+✅ Mapa aparece
+✅ 2 câmeras: 🎥 🎥
+✅ Status: "🟢 2/2 câmeras online"
+```
+
+**Pronto! Sistema rodando.** 🎉
+
+---
+
+## 🎯 E se não funcionar?
+
+**Problema:** Câmeras aparecem 🔴 (offline)
+
+```bash
+# Terminal:
+ping 192.168.0.198
+ping 192.168.0.199
+# Devem responder
+```
+
+**Problema:** "Docker not found"
+
+→ Instale: https://www.docker.com/products/docker-desktop
+
+**Problema:** Qualquer outro erro
+
+→ Ler arquivo: **TESTE_PRATICO_2_CAMERAS.md** (troubleshooting)
+
+---
+
+## 📅 Amanhã (quando chegar as 3 térmicas)
+
+Arquivo: **AMANHA_ADICIONAR_TERMICAS.md**
+
+Resumo:
+1. Conectar 3 câmeras à rede
+2. Editar `app.py` (3 linhas, descomentar)
+3. Rodas: `docker-compose restart vigilancia-backend`
+4. F5 no navegador
+5. Verificar 5/5 online
+
+**5 minutos, sem parar nada.**
+
+---
+
+## 📂 Arquivos úteis
+
+| Preciso | Arquivo |
+|--------|---------|
+| Troubleshooting | TESTE_PRATICO_2_CAMERAS.md |
+| Instruções amanhã | AMANHA_ADICIONAR_TERMICAS.md |
+| Ver tudo | INDICE_COMPLETO.md |
+| Entender tudo | README.md |
+
+---
+
+## 🔑 Lembre
+
+- Câmeras: 192.168.0.198 e 192.168.0.199 (admin / 971001)
+- UI: http://localhost:3000
+- Parar tudo: `docker-compose down`
+- Rodar novamente: `./start.sh` (ou `start.bat`)
+
+---
+
+**Pronto? Vá rodar `./start.sh` agora!** 🚀
+
+Qualquer coisa durante o teste, avise. 🎬

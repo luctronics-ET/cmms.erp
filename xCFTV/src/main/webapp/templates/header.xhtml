@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://xmlns.jcp.org/jsf/html">
+    
+   <head><title>#{msgs.loginTitle}</title></head>
+   <body>
+      <ui:composition>
+
+         <header id="cabecalho" align="center">
+
+             <table id="mb" align="center">
+                 <tr>
+                     <td><h:graphicImage class="logo" library="images" name="om.png" width="150" /> </td>
+                     <td><h1>Controle de Câmeras dos Paióis</h1></td>
+                 </tr>
+             </table>
+
+             <nav id="menu" align="center">
+                 <table>
+                     <tr>
+                         <td><h:link value="Painel Principal" outcome="index" /></td>
+                         <td>|</td>
+                         <td><h:link value="Gerenciador de Câmeras" outcome="modulos/cameras" /></td>
+                         <td>|</td>
+                         <td><h:link value="Monitoramento" outcome="modulos/monitoramento" /></td>
+                     </tr>
+                 </table>
+             </nav>
+
+         </header>
+          
+      </ui:composition>
+   </body>
+</html>

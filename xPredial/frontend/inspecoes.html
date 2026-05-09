@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xPredial · Execução de Inspeção</title>
+  <link rel="stylesheet" href="http://localhost:8010/assets/xcmasm-shell.css" />
+  <link rel="stylesheet" href="http://localhost:8010/assets/fonts.css" />
+  <style>
+    textarea { width: 100%; min-height: 80px; resize: vertical; }
+  </style>
+</head>
+<body class="xcmasm-shell">
+  <div id="app"></div>
+
+  <template id="page-content">
+    <div class="xc-g2 xc-mb16">
+      <div class="xc-card">
+        <div class="xc-card-head"><div class="xc-card-title">Controle de Inspeção</div></div>
+        <div class="xc-card-body">
+          <div class="xc-fg xc-mb12">
+            <label class="xc-mono" style="font-size:10px">Selecionar Inspeção Ativa ou Planejada</label>
+            <select id="inspecao" class="xc-search-inp" style="padding-left:12px"></select>
+          </div>
+          <div id="meta" class="xc-mb16 xc-tx2-col" style="font-size:11px"></div>
+          <div class="xc-flex xc-gap8">
+            <button id="iniciar" class="xc-btn xc-btn-p">Iniciar Execução</button>
+            <button id="historicoBtn" class="xc-btn xc-btn-g">Ver Histórico</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="xc-card">
+        <div class="xc-card-head"><div class="xc-card-title">Análise Técnica (NBR 5674)</div></div>
+        <div class="xc-card-body">
+          <div class="xc-fg xc-mb12">
+            <label class="xc-mono" style="font-size:10px">Degradação Encontrada</label>
+            <textarea id="degradacao_desc" class="xc-search-inp" placeholder="Fissuras, infiltrações, oxidação..."></textarea>
+          </div>
+          <div class="xc-fg">
+            <label class="xc-mono" style="font-size:10px">Perda de Desempenho Estimada</label>
+            <textarea id="perda_desempenho_estimada" class="xc-search-inp" placeholder="Impacto na VUP e riscos..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="xc-card xc-mb16">
+      <div class="xc-card-head"><div class="xc-card-title">Checklist de Verificação</div></div>
+      <div class="xc-table-wrap">
+        <table class="xc-table">
+          <thead>
+            <tr>
+              <th>Item / Ref. Normativa</th>
+              <th style="width:140px">Condição</th>
+              <th style="width:140px">Prioridade</th>
+              <th>Observações Técnicas</th>
+              <th style="width:80px"></th>
+            </tr>
+          </thead>
+          <tbody id="itens"></tbody>
+        </table>
+      </div>
+      <div class="xc-card-body xc-flex-end xc-gap8">
+        <button id="salvarAnalise" class="xc-btn xc-btn-g">Salvar Análise Técnica</button>
+        <button id="enviar" class="xc-btn xc-btn-p">Enviar para Aprovação</button>
+      </div>
+    </div>
+  </template>
+
+  <script src="http://localhost:8010/assets/xcmasm-shell.js"></script>
+  <script src="assets/predial-api.js"></script>
+  <script>
+    xShell.init({
+      activePage: 'predial',
+      pageTitle: 'xPredial · Execução Técnica',
+      subtitle: 'Diagnóstico de Sistemas Prediais'
+    });
+    document.getElementById('xc-content').appendChild(document.getElementById('page-content').content.cloneNode(true));
+
+    async function refreshSelect() {
+      try {
+        const [planejadas, emExec] = await Promise.all([
+          predialAPI.listInspecoes({ status: 'planejada' }),
+          predialAPI.listInspecoes({ status: 'em_execucao' }),
+        ]);
+        const list = [...planejadas, ...emExec];
+        const opts = list.map(i => `<option value="${i.id}">#${i.id} - ${i.titulo} (${i.status})</option>`).join("");
+        document.getElementById("inspecao").innerHTML = `<option value="">Selecione uma inspeção...</option>${opts}`;
+      } catch (err) { console.error(err); }
+    }
+
+    async function loadDetail() {
+      const id = Number(document.getElementById("inspecao").value);
+      if (!id) {
+        document.getElementById("itens").innerHTML = "";
+        document.getElementById("meta").innerHTML = "";
+        return;
+      }
+      try {
+        const inspecao = await predialAPI.getInspecao(id);
+        const stBadge = inspecao.status === 'em_execucao' ? 'xc-badge-amb' : 'xc-badge-acc';
+        document.getElementById("meta").innerHTML = `
+          <div class="xc-g2" style="margin-top:10px">
+            <div>Local: <b class="xc-tx">${inspecao.local_nome || '-'}</b></div>
+            <div>Status: <span class="xc-badge ${stBadge}">${inspecao.status}</span></div>
+            <div>Planejada: <b class="xc-tx">${inspecao.data_planejada || '-'}</b></div>
+            <div>Executante: <b class="xc-tx">${inspecao.executante_nome || '-'}</b></div>
+          </div>
+        `;
+        document.getElementById("degradacao_desc").value = inspecao.degradacao_desc || "";
+        document.getElementById("perda_desempenho_estimada").value = inspecao.perda_desempenho_estimada || "";
+
+        document.getElementById("itens").innerHTML = inspecao.itens.map(item => `
+          <tr>
+            <td>
+              <div style="font-weight:600">${item.titulo}</div>
+              <div class="xc-tx3-col" style="cursor:help" title="${item.norma_titulo || ''}">
+                ${item.norma_codigo ? `§ ${item.norma_codigo}` : 'Sem ref. normativa'}
+              </div>
+            </td>
+            <td>
+              <select id="c-${item.codigo}" class="xc-search-inp" style="padding:4px">
+                <option ${item.condicao === "ok" ? "selected" : ""} value="ok">Conforme (OK)</option>
+                <option ${item.condicao === "atencao" ? "selected" : ""} value="atencao">Atenção</option>
+                <option ${item.condicao === "critico" ? "selected" : ""} value="critico">Crítico / Falha</option>
+              </select>
+            </td>
+            <td>
+              <select id="p-${item.codigo}" class="xc-search-inp" style="padding:4px">
+                <option value="">Nenhuma</option>
+                <option ${item.prioridade_reparo === "baixa" ? "selected" : ""} value="baixa">Baixa</option>
+                <option ${item.prioridade_reparo === "media" ? "selected" : ""} value="media">Média</option>
+                <option ${item.prioridade_reparo === "alta" ? "selected" : ""} value="alta">Alta</option>
+              </select>
+            </td>
+            <td><input id="o-${item.codigo}" class="xc-search-inp" value="${item.observacao || ""}" placeholder="Detalhes..." style="padding:4px" /></td>
+            <td><button class="xc-btn xc-btn-g xc-btn-xs" onclick="saveItem('${item.codigo}', '${item.titulo.replace(/'/g, "\\'")}')">Salvar</button></td>
+          </tr>
+        `).join("");
+      } catch (err) { console.error(err); }
+    }
+
+    async function saveItem(codigo, titulo) {
+      const id = Number(document.getElementById("inspecao").value);
+      if (!id) return;
+      try {
+        await predialAPI.upsertItem(id, {
+          codigo,
+          titulo,
+          condicao: document.getElementById(`c-${codigo}`).value,
+          prioridade_reparo: document.getElementById(`p-${codigo}`).value || null,
+          observacao: document.getElementById(`o-${codigo}`).value || null,
+        });
+      } catch (err) { alert(err.message); }
+    }
+
+    document.getElementById("salvarAnalise").addEventListener("click", async () => {
+      const id = Number(document.getElementById("inspecao").value);
+      if (!id) return;
+      try {
+        const insp = await predialAPI.getInspecao(id);
+        await predialAPI.transition(id, {
+          para_status: "em_execucao",
+          degradacao_desc: document.getElementById("degradacao_desc").value,
+          perda_desempenho_estimada: document.getElementById("perda_desempenho_estimada").value,
+        }).catch(() => {});
+        await loadDetail();
+      } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById("iniciar").addEventListener("click", async () => {
+      const id = Number(document.getElementById("inspecao").value);
+      if (!id) return;
+      try {
+        await predialAPI.transition(id, { para_status: "em_execucao" });
+        await loadDetail();
+      } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById("enviar").addEventListener("click", async () => {
+      const id = Number(document.getElementById("inspecao").value);
+      if (!id) return;
+      try {
+        await predialAPI.transition(id, { 
+          para_status: "aguardando_aprovacao", 
+          degradacao_desc: document.getElementById("degradacao_desc").value,
+          perda_desempenho_estimada: document.getElementById("perda_desempenho_estimada").value
+        });
+        await loadDetail();
+      } catch (err) { alert(err.message); }
+    });
+
+    document.getElementById("inspecao").addEventListener("change", loadDetail);
+    document.getElementById("historicoBtn").addEventListener("click", () => {
+      const id = document.getElementById("inspecao").value;
+      location.href = id ? `historico-relatorios.html?inspecao_id=${id}` : `historico-relatorios.html`;
+    });
+    window.saveItem = saveItem;
+    refreshSelect();
+  </script>
+</body>
+</html>
+

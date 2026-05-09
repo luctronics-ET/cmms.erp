@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "anthropic.claude-code",
+        "piotrpalarz.vscode-gitignore-generator",
+        "ms-vscode.cpptools",
+        "devsense.composer-php-vscode",
+        "upstash.context7-mcp",
+        "ms-vscode-remote.remote-containers"
+    ]
+}

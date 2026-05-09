@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculadora de Lentes CFTV — xCFTV</title>
+  <style>
+    :root {
+      --bg:    #07111f;
+      --bg2:   #0d1e33;
+      --bg3:   #0a1828;
+      --panel: #0f2035;
+      --acc:   #00b4d8;
+      --green: #22c55e;
+      --red:   #ef4444;
+      --amber: #f59e0b;
+      --text:  #c9d6e3;
+      --text2: #7a93ad;
+      --border:#1e3450;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+    }
+    a { color: var(--acc); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Header ── */
+    header {
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    header h1 {
+      font-size: 18px;
+      color: var(--acc);
+      letter-spacing: .5px;
+    }
+    header .back-link {
+      font-size: 13px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 12px;
+      color: var(--text);
+    }
+    header .back-link:hover { border-color: var(--acc); color: var(--acc); text-decoration: none; }
+
+    /* ── Layout ── */
+    .main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .page-sub {
+      font-size: 13px;
+      color: var(--text2);
+      margin-bottom: 28px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 22px 24px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--acc);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title .badge {
+      font-size: 11px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 7px;
+      color: var(--text2);
+      margin-left: 10px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* ── Form grid ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label {
+      font-size: 12px;
+      color: var(--text2);
+      font-weight: 500;
+    }
+    .form-group select,
+    .form-group input[type="number"],
+    .form-group input[type="text"] {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .form-group select:focus,
+    .form-group input:focus {
+      border-color: var(--acc);
+    }
+    .form-group .unit {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 2px;
+    }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+    .btn-calc {
+      background: var(--acc);
+      color: #001b2e;
+      font-weight: 700;
+      font-size: 13px;
+      border: none;
+      border-radius: 5px;
+      padding: 9px 22px;
+      cursor: pointer;
+      letter-spacing: .3px;
+    }
+    .btn-calc:hover { background: #00d0f0; }
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text2);
+      font-size: 13px;
+      border-radius: 5px;
+      padding: 8px 18px;
+      cursor: pointer;
+    }
+    .btn-reset:hover { border-color: var(--text); color: var(--text); }
+
+    /* ── Result panels ── */
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .result-item {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .result-item .r-label {
+      font-size: 11px;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      margin-bottom: 4px;
+    }
+    .result-item .r-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+    }
+    .result-item .r-unit {
+      font-size: 11px;
+      color: var(--text2);
+      margin-left: 2px;
+    }
+    .result-item.highlight { border-color: var(--acc); }
+    .result-item.highlight .r-value { color: var(--acc); }
+
+    /* ── DORI table ── */
+    .dori-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    .dori-table th {
+      background: var(--bg2);
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 11px;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dori-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .dori-table tr:last-child td { border-bottom: none; }
+    .dori-table .dori-d { color: var(--text2); }
+    .dori-table .dori-o { color: var(--amber); }
+    .dori-table .dori-r { color: #60a5fa; }
+    .dori-table .dori-i { color: var(--green); }
+    .dori-table .dist-val { font-family: 'Courier New', monospace; font-weight: 700; font-size: 15px; }
+    .dori-table .within-range { color: var(--green); }
+    .dori-table .out-of-range { color: var(--red); }
+
+    /* ── FOV SVG diagram ── */
+    .fov-diagram-wrap {
+      margin-top: 20px;
+      text-align: center;
+    }
+    #fovSvg {
+      width: 100%;
+      max-width: 580px;
+      height: 200px;
+    }
+
+    /* ── DORI color legend ── */
+    .dori-legend {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: var(--bg2);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .dori-legend .leg { display: flex; align-items: center; gap: 6px; }
+    .dori-legend .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* ── Reverse finder ── */
+    .sep { color: var(--border); font-size: 18px; align-self: center; }
+
+    /* ── Formula note ── */
+    .formula-note {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: var(--bg2);
+      border-left: 3px solid var(--border);
+      border-radius: 0 5px 5px 0;
+      font-size: 12px;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+    .formula-note code {
+      background: var(--bg3);
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: var(--acc);
+      font-size: 11px;
+    }
+
+    /* ── PPM at distance ── */
+    .ppm-bar-wrap { margin-top: 18px; }
+    .ppm-bar-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+    .ppm-bar-track {
+      height: 14px;
+      background: var(--bg2);
+      border-radius: 7px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .ppm-bar-fill {
+      height: 100%;
+      border-radius: 7px;
+      transition: width .4s ease;
+      background: linear-gradient(90deg, #ef4444, #f59e0b 33%, #60a5fa 55%, #22c55e);
+      max-width: 100%;
+    }
+    .ppm-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text2);
+      margin-top: 3px;
+    }
+    .ppm-value-display {
+      font-size: 13px;
+      color: #fff;
+      margin-top: 6px;
+    }
+    .ppm-value-display span { font-weight: 700; color: var(--acc); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.xhtml">⟵ Painel CFTV</a>
+  <h1>🔭 Calculadora de Lentes CFTV</h1>
+</header>
+
+<div class="main">
+  <div class="page-title">Calculadora de Campo Visual e Lentes</div>
+  <div class="page-sub">
+    Calcule FOV, ângulos de visão e distâncias DORI (EN 62676-4) para câmeras Intelbras e compatíveis.
+    Offline — sem dependências externas.
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       CARD 1 — FORWARD CALCULATOR (focal → FOV)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">
+      Calculadora de Campo Visual
+      <span class="badge">Focal Length → FOV</span>
+    </div>
+
+    <div class="form-grid">
+      <!-- Sensor -->
+      <div class="form-group">
+        <label>Sensor (Formato Ótico)</label>
+        <select id="sensor" onchange="onSensorChange()">
+          <option value="3.2,2.4">1/4″ — 3.20 × 2.40 mm</option>
+          <option value="4.0,3.0">1/3.6″ — 4.00 × 3.00 mm</option>
+          <option value="4.54,3.42">1/3.2″ — 4.54 × 3.42 mm</option>
+          <option value="4.8,3.6" selected="selected">1/3″ — 4.80 × 3.60 mm ★</option>
+          <option value="5.37,4.04">1/2.7″ — 5.37 × 4.04 mm</option>
+          <option value="5.4,4.0">1/2.8″ — 5.40 × 4.00 mm</option>
+          <option value="5.76,4.29">1/2.5″ — 5.76 × 4.29 mm</option>
+          <option value="6.4,4.8">1/2″ — 6.40 × 4.80 mm</option>
+          <option value="7.18,5.32">1/1.8″ — 7.18 × 5.32 mm</option>
+          <option value="8.8,6.6">2/3″ — 8.80 × 6.60 mm</option>
+          <option value="12.8,9.6">1″ — 12.80 × 9.60 mm</option>
+          <option value="custom,custom">Personalizado…</option>
+        </select>
+      </div>
+
+      <!-- Sensor custom -->
+      <div class="form-group" id="sensorCustomWrap" style="display:none">
+        <label>Sensor W × H (mm)</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="sensorW" placeholder="W" step="0.01" min="0.1" style="width:80px"/>
+          <input type="number" id="sensorH" placeholder="H" step="0.01" min="0.1" style="width:80px"/>
+        </div>
+      </div>
+
+      <!-- Focal length -->
+      <div class="form-group">
+        <label>Distância Focal</label>
+        <input type="number" id="focalLen" value="4" step="0.1" min="0.5" max="300"/>
+        <span class="unit">mm</span>
+      </div>
+
+      <!-- Distance -->
+      <div class="form-group">
+        <label>Distância ao Alvo</label>
+        <input type="number" id="distance" value="20" step="0.5" min="0.1" max="5000"/>
+        <span class="unit">metros</span>
+      </div>
+
+      <!-- Resolution -->
+      <div class="form-group">
+        <label>Resolução da Câmera</label>
+        <select id="resolution" onchange="onResolutionChange()">
+          <option value="1280,720">HD 720p — 1280×720</option>
+          <option value="1920,1080" selected="selected">Full HD 1080p — 1920×1080 ★</option>
+          <option value="2048,1536">3 MP — 2048×1536</option>
+          <option value="2560,1440">4 MP QHD — 2560×1440</option>
+          <option value="2560,1920">5 MP — 2560×1920</option>
+          <option value="3840,2160">8 MP 4K — 3840×2160</option>
+          <option value="custom,custom">Personalizado…</option>
+        </select>
+      </div>
+
+      <!-- Resolution custom -->
+      <div class="form-group" id="resCustomWrap" style="display:none">
+        <label>Resolução W × H (px)</label>
+        <div style="display:flex;gap:6px">
+          <input type="number" id="resW" placeholder="W" step="1" min="1" style="width:80px"/>
+          <input type="number" id="resH" placeholder="H" step="1" min="1" style="width:80px"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-calc" onclick="calcularFOV()">Calcular Campo Visual</button>
+      <button class="btn-reset" onclick="resetarFOV()">Limpar</button>
+    </div>
+
+    <!-- Results -->
+    <div id="resultsFOV" class="hidden">
+      <div class="result-grid" id="gridFOV"></div>
+
+      <!-- PPM bar -->
+      <div class="ppm-bar-wrap">
+        <div class="ppm-bar-label">Densidade de pixels na distância informada</div>
+        <div class="ppm-bar-track">
+          <div class="ppm-bar-fill" id="ppmBar" style="width:0%"></div>
+        </div>
+        <div class="ppm-ticks">
+          <span>0</span>
+          <span>25 D</span>
+          <span>62.5 O</span>
+          <span>125 R</span>
+          <span>250 I</span>
+          <span>≥500</span>
+        </div>
+        <div class="ppm-value-display">PPM atual: <span id="ppmVal">—</span> px/m
+          — Qualidade: <span id="ppmQuality">—</span>
+        </div>
+      </div>
+
+      <!-- FOV SVG diagram -->
+      <div class="fov-diagram-wrap">
+        <svg id="fovSvg" viewBox="0 0 580 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrowH" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L6,3 Z" fill="#00b4d8"/>
+            </marker>
+            <marker id="arrowHl" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse">
+              <path d="M0,0 L0,6 L6,3 Z" fill="#00b4d8"/>
+            </marker>
+          </defs>
+          <!-- filled FOV cone -->
+          <polygon id="fovCone" points="50,100 530,30 530,170"
+            fill="#00b4d8" fill-opacity="0.08" stroke="#00b4d8" stroke-width="1.5"/>
+          <!-- center axis -->
+          <line id="fovAxis" x1="50" y1="100" x2="530" y2="100"
+            stroke="#1e3450" stroke-width="1" stroke-dasharray="6,4"/>
+          <!-- camera icon -->
+          <rect x="30" y="88" width="28" height="24" rx="4"
+            fill="#0f2035" stroke="#00b4d8" stroke-width="1.5"/>
+          <polygon points="58,93 72,86 72,114 58,107"
+            fill="#0f2035" stroke="#00b4d8" stroke-width="1.5"/>
+          <!-- H-FOV measurement line -->
+          <line id="hLine" x1="530" y1="30" x2="530" y2="170"
+            stroke="#00b4d8" stroke-width="1.5"
+            marker-start="url(#arrowHl)" marker-end="url(#arrowH)"/>
+          <!-- H-FOV label -->
+          <text id="hLabel" x="545" y="105" fill="#00b4d8" font-size="11" dominant-baseline="middle">H</text>
+          <!-- angle arc -->
+          <path id="fovArcPath" d="" fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,3"/>
+          <!-- angle label -->
+          <text id="fovAngleLabel" x="120" y="95" fill="#f59e0b" font-size="11">θ</text>
+          <!-- DORI zones -->
+          <line id="doriI" x1="200" y1="0" x2="200" y2="200" stroke="#22c55e" stroke-width="1"
+            stroke-dasharray="3,3" opacity="0"/>
+          <line id="doriR" x1="300" y1="0" x2="300" y2="200" stroke="#60a5fa" stroke-width="1"
+            stroke-dasharray="3,3" opacity="0"/>
+          <line id="doriO" x1="400" y1="0" x2="400" y2="200" stroke="#f59e0b" stroke-width="1"
+            stroke-dasharray="3,3" opacity="0"/>
+          <line id="doriD" x1="480" y1="0" x2="480" y2="200" stroke="#7a93ad" stroke-width="1"
+            stroke-dasharray="3,3" opacity="0"/>
+          <text id="lbI" x="0" y="18" fill="#22c55e" font-size="9" opacity="0">I</text>
+          <text id="lbR" x="0" y="18" fill="#60a5fa" font-size="9" opacity="0">R</text>
+          <text id="lbO" x="0" y="18" fill="#f59e0b" font-size="9" opacity="0">O</text>
+          <text id="lbD" x="0" y="18" fill="#7a93ad" font-size="9" opacity="0">D</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       CARD 2 — REVERSE FINDER (FOV → focal)
+       ═══════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">
+      Calculadora Reversa
+      <span class="badge">FOV desejado → Focal Length</span>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Sensor (mesmo acima)</label>
+        <select id="sensor2">
+          <option value="3.2,2.4">1/4″ — 3.20 × 2.40 mm</option>
+          <option value="4.0,3.0">1/3.6″ — 4.00 × 3.00 mm</option>
+          <option value="4.54,3.42">1/3.2″ — 4.54 × 3.42 mm</option>
+          <option value="4.8,3.6" selected="selected">1/3″ — 4.80 × 3.60 mm ★</option>
+          <option value="5.37,4.04">1/2.7″ — 5.37 × 4.04 mm</option>
+          <option value="5.4,4.0">1/2.8″ — 5.40 × 4.00 mm</option>
+          <option value="5.76,4.29">1/2.5″ — 5.76 × 4.29 mm</option>
+          <option value="6.4,4.8">1/2″ — 6.40 × 4.80 mm</option>
+          <option value="7.18,5.32">1/1.8″ — 7.18 × 5.32 mm</option>
+          <option value="8.8,6.6">2/3″ — 8.80 × 6.60 mm</option>
+          <option value="12.8,9.6">1″ — 12.80 × 9.60 mm</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Largura do Campo desejada (m)</label>
+        <input type="number" id="desiredFovW" value="10" step="0.5" min="0.1"/>
+        <span class="unit">metros na distância informada</span>
+      </div>
+      <div class="form-group">
+        <label>Distância ao Alvo</label>
+        <input type="number" id="distance2" value="20" step="0.5" min="0.1"/>
+        <span class="unit">metros</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-calc" onclick="calcularReverso()">Calcular Focal Necessária</button>
+    </div>
+
+    <div id="resultsRev" class="hidden">
+      <div class="result-grid" id="gridRev"></div>
+      <div class="formula-note" style="margin-top:14px">
+        <code>f = (sensor_w × distância) / FOV_largura</code>
+        &nbsp;— Lentes comerciais mais próximas são listadas para referência.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       CARD 3 — DORI TABLE
+       ═══════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">
+      Análise DORI
+      <span class="badge">EN 62676-4</span>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+      Calcula automaticamente após a <strong>Calculadora de Campo Visual</strong> acima.
+      Baseado na norma EN 62676-4 — detecção / observação / reconhecimento / identificação.
+    </p>
+    <div id="doriEmpty" style="font-size:13px;color:var(--text2);">
+      Aguardando cálculo…
+    </div>
+    <div id="doriTableWrap" class="hidden">
+      <table class="dori-table">
+        <thead>
+          <tr>
+            <th>Critério</th>
+            <th>Limiar (px/m)</th>
+            <th>Distância Máxima</th>
+            <th>FOV na dist. máxima</th>
+            <th>Status (dist. atual)</th>
+          </tr>
+        </thead>
+        <tbody id="doriBody"></tbody>
+      </table>
+      <div class="dori-legend">
+        <div class="leg"><span class="dot" style="background:#22c55e"></span>Identificação ≥ 250 px/m</div>
+        <div class="leg"><span class="dot" style="background:#60a5fa"></span>Reconhecimento ≥ 125 px/m</div>
+        <div class="leg"><span class="dot" style="background:#f59e0b"></span>Observação ≥ 62.5 px/m</div>
+        <div class="leg"><span class="dot" style="background:#7a93ad"></span>Detecção ≥ 25 px/m</div>
+      </div>
+    </div>
+    <div class="formula-note" style="margin-top:16px">
+      <code>d_DORI = (px_horizontal × focal_mm) / (sensor_w_mm × threshold_PPM)</code>
+      &nbsp;•&nbsp;
+      <code>PPM(d) = px_horizontal × focal_mm / (sensor_w_mm × d)</code>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       CARD 4 — REFERENCE TABLE
+       ═══════════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="card-title">Tabela de Referência — Lentes Comerciais Comuns</div>
+    <table class="dori-table" id="refTable"></table>
+  </div>
+
+</div><!-- /.main -->
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  CFTV Lens Calculator — Offline
+//  Formulas:
+//    fov_h (m)   = (sensor_w × distance) / focal_length
+//    fov_v (m)   = (sensor_h × distance) / focal_length
+//    angle_h (°) = 2 × atan(sensor_w / (2 × focal_length)) × 180/π
+//    PPM(d)      = px_h / fov_h(d)
+//    d_DORI      = (px_h × focal) / (sensor_w × threshold)
+// ══════════════════════════════════════════════════════════════════
+
+var DORI_THRESHOLDS = [
+  { label:'Identificação',  short:'I', ppm:250,  cls:'dori-i', col:'#22c55e' },
+  { label:'Reconhecimento', short:'R', ppm:125,  cls:'dori-r', col:'#60a5fa' },
+  { label:'Observação',     short:'O', ppm:62.5, cls:'dori-o', col:'#f59e0b' },
+  { label:'Detecção',       short:'D', ppm:25,   cls:'dori-d', col:'#7a93ad' },
+];
+
+var COMMERCIAL_LENSES = [2.8, 3.6, 4, 6, 8, 12, 16, 25, 35, 50];
+
+function r2(v){ return Math.round(v*100)/100; }
+function r1(v){ return Math.round(v*10)/10; }
+function deg(rad){ return rad * 180 / Math.PI; }
+function rad(d){ return d * Math.PI / 180; }
+
+function getSensor(selId, wId, hId){
+  var sel = document.getElementById(selId).value;
+  if(sel === 'custom,custom'){
+    var w = parseFloat(document.getElementById(wId).value);
+    var h = parseFloat(document.getElementById(hId).value);
+    return isNaN(w)||isNaN(h) ? null : {w:w, h:h};
+  }
+  var p = sel.split(',');
+  return {w:parseFloat(p[0]), h:parseFloat(p[1])};
+}
+
+function getResolution(){
+  var sel = document.getElementById('resolution').value;
+  if(sel === 'custom,custom'){
+    var w = parseInt(document.getElementById('resW').value);
+    var h = parseInt(document.getElementById('resH').value);
+    return isNaN(w)||isNaN(h) ? null : {w:w, h:h};
+  }
+  var p = sel.split(',');
+  return {w:parseInt(p[0]), h:parseInt(p[1])};
+}
+
+function calcularFOV(){
+  var sensor = getSensor('sensor','sensorW','sensorH');
+  var focal  = parseFloat(document.getElementById('focalLen').value);
+  var dist   = parseFloat(document.getElementById('distance').value);
+  var res    = getResolution();
+
+  if(!sensor){ alert('Informe as dimensões do sensor personalizado.'); return; }
+  if(!res){ alert('Informe a resolução personalizada.'); return; }
+  if(isNaN(focal)||focal<=0){ alert('Distância focal inválida.'); return; }
+  if(isNaN(dist)||dist<=0){ alert('Distância inválida.'); return; }
+
+  var fovH   = (sensor.w * dist) / focal;          // m
+  var fovV   = (sensor.h * dist) / focal;
+  var fovD   = Math.sqrt(fovH*fovH + fovV*fovV);
+  var angH   = deg(2 * Math.atan(sensor.w / (2*focal)));
+  var angV   = deg(2 * Math.atan(sensor.h / (2*focal)));
+  var angD   = deg(2 * Math.atan(Math.sqrt(sensor.w*sensor.w+sensor.h*sensor.h) / (2*focal)));
+  var ppm    = res.w / fovH;
+
+  // Results grid
+  var grid = document.getElementById('gridFOV');
+  grid.innerHTML =
+    resItem('Ângulo H', r1(angH), '°', true) +
+    resItem('Ângulo V', r1(angV), '°', false) +
+    resItem('Ângulo Diagonal', r1(angD), '°', false) +
+    resItem('Largura H', r2(fovH), 'm', true) +
+    resItem('Altura V', r2(fovV), 'm', false) +
+    resItem('Diagonal', r2(fovD), 'm', false) +
+    resItem('PPM na distância', r1(ppm), 'px/m', true);
+
+  document.getElementById('resultsFOV').classList.remove('hidden');
+
+  // PPM bar
+  var ppmPct = Math.min(ppm / 500 * 100, 100);
+  document.getElementById('ppmBar').style.width = ppmPct + '%';
+  document.getElementById('ppmVal').textContent = r1(ppm);
+  document.getElementById('ppmQuality').textContent = ppmQualityLabel(ppm);
+
+  // SVG diagram
+  drawFovDiagram(angH, fovH, focal, res, sensor, dist);
+
+  // DORI
+  buildDoriTable(focal, sensor, res, dist, ppm, fovH);
+}
+
+function ppmQualityLabel(ppm){
+  if(ppm >= 250) return '✅ Identificação';
+  if(ppm >= 125) return '🔵 Reconhecimento';
+  if(ppm >= 62.5) return '🟡 Observação';
+  if(ppm >= 25)  return '⚪ Detecção';
+  return '❌ Abaixo da Detecção';
+}
+
+function resItem(label, val, unit, hl){
+  return '<div class="result-item'+(hl?' highlight':'')+'">'+
+    '<div class="r-label">'+label+'</div>'+
+    '<div class="r-value">'+val+'<span class="r-unit">'+unit+'</span></div>'+
+    '</div>';
+}
+
+// ── FOV SVG diagram ────────────────────────────────────────────
+function drawFovDiagram(angH, fovH, focal, res, sensor, dist){
+  var svg   = document.getElementById('fovSvg');
+  var W     = 580, H = 200;
+  var camX  = 50, camY = 100;
+  var endX  = 530;
+  var halfAngRad = rad(angH/2);
+
+  // scale: how many pixels per meter? fit endX within diagram
+  var svgLen  = endX - camX; // 480px
+  // fov half-height at endX
+  var halfFovPx = svgLen * Math.tan(halfAngRad);
+  // clamp so it fits
+  var scale = 1;
+  if(halfFovPx > 85){ scale = 85 / halfFovPx; halfFovPx = 85; }
+
+  var topY    = camY - halfFovPx;
+  var botY    = camY + halfFovPx;
+
+  document.getElementById('fovCone').setAttribute('points',
+    camX+','+camY+' '+endX+','+topY+' '+endX+','+botY);
+  document.getElementById('hLine').setAttribute('x1', endX);
+  document.getElementById('hLine').setAttribute('y1', topY);
+  document.getElementById('hLine').setAttribute('x2', endX);
+  document.getElementById('hLine').setAttribute('y2', botY);
+  document.getElementById('hLabel').setAttribute('x', endX+8);
+  document.getElementById('hLabel').textContent = r2(fovH)+'m';
+
+  // angle arc
+  var arcR  = 50;
+  var ax    = camX + arcR * Math.cos(halfAngRad);
+  var ay    = camY - arcR * Math.sin(halfAngRad);
+  var ax2   = camX + arcR * Math.cos(-halfAngRad);
+  var ay2   = camY - arcR * Math.sin(-halfAngRad);
+  document.getElementById('fovArcPath').setAttribute('d',
+    'M '+ax+','+ay+' A '+arcR+','+arcR+' 0 0,1 '+ax2+','+ay2);
+  var lblX = camX + arcR * 1.3;
+  document.getElementById('fovAngleLabel').setAttribute('x', lblX);
+  document.getElementById('fovAngleLabel').textContent = r1(angH)+'°';
+
+  // DORI lines (scaled to diagram distance)
+  var doriDist = {I:0, R:0, O:0, D:0};
+  DORI_THRESHOLDS.forEach(function(t){
+    doriDist[t.short] = (res.w * focal) / (sensor.w * t.ppm);
+  });
+  // draw lines proportional to dist
+  var metersPerPx = dist / svgLen;
+  function dX(dm){ return Math.min(camX + dm/metersPerPx, endX+20); }
+
+  var pairs = [
+    {id:'doriI', lbId:'lbI', d:doriDist.I},
+    {id:'doriR', lbId:'lbR', d:doriDist.R},
+    {id:'doriO', lbId:'lbO', d:doriDist.O},
+    {id:'doriD', lbId:'lbD', d:doriDist.D},
+  ];
+  pairs.forEach(function(p){
+    var x = dX(p.d);
+    var ln = document.getElementById(p.id);
+    ln.setAttribute('x1', x); ln.setAttribute('x2', x);
+    ln.setAttribute('opacity', x < endX+15 ? '1' : '0');
+    var lb = document.getElementById(p.lbId);
+    lb.setAttribute('x', x+2);
+    lb.setAttribute('opacity', x < endX+15 ? '1' : '0');
+  });
+}
+
+// ── DORI table ─────────────────────────────────────────────────
+function buildDoriTable(focal, sensor, res, dist, ppm, fovH){
+  var tbody = document.getElementById('doriBody');
+  tbody.innerHTML = '';
+  DORI_THRESHOLDS.forEach(function(t){
+    var dMax    = (res.w * focal) / (sensor.w * t.ppm);
+    var fovAtD  = (sensor.w * dMax) / focal;
+    var within  = (ppm >= t.ppm);
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="'+t.cls+'"><strong>'+t.label+'</strong></td>'+
+      '<td class="'+t.cls+'">'+t.ppm+' px/m</td>'+
+      '<td><span class="dist-val">'+r2(dMax)+'</span> m</td>'+
+      '<td>'+r2(fovAtD)+' m</td>'+
+      '<td class="'+(within?'within-range':'out-of-range')+'">'+
+        (within ? '✔ Atende nesta distância' : '✗ Fora do alcance')+
+      '</td>';
+    tbody.appendChild(tr);
+  });
+  document.getElementById('doriEmpty').classList.add('hidden');
+  document.getElementById('doriTableWrap').classList.remove('hidden');
+}
+
+// ── Reverse calculator ─────────────────────────────────────────
+function calcularReverso(){
+  var sensor = getSensor('sensor2', null, null);
+  var fovW   = parseFloat(document.getElementById('desiredFovW').value);
+  var dist   = parseFloat(document.getElementById('distance2').value);
+
+  if(!sensor){ alert('Selecione um sensor.'); return; }
+  if(isNaN(fovW)||fovW<=0){ alert('Largura do campo inválida.'); return; }
+  if(isNaN(dist)||dist<=0){ alert('Distância inválida.'); return; }
+
+  // f = (sensor_w × dist) / fov_w
+  var focalCalc = (sensor.w * dist) / fovW;
+  var fovV = (sensor.h * dist) / focalCalc;
+  var angH  = deg(2 * Math.atan(sensor.w / (2*focalCalc)));
+
+  // Find nearest commercial lenses
+  var nearest = COMMERCIAL_LENSES.slice().sort(function(a,b){
+    return Math.abs(a-focalCalc) - Math.abs(b-focalCalc);
+  }).slice(0,3);
+
+  var grid = document.getElementById('gridRev');
+  grid.innerHTML =
+    resItem('Focal calculada', r2(focalCalc), 'mm', true) +
+    resItem('Ângulo H', r1(angH), '°', false) +
+    resItem('FOV Vertical', r2(fovV), 'm', false);
+
+  nearest.forEach(function(fl){
+    var fovReal = (sensor.w * dist) / fl;
+    grid.innerHTML += resItem('Lente '+fl+'mm', r2(fovReal), 'm H', false);
+  });
+
+  document.getElementById('resultsRev').classList.remove('hidden');
+}
+
+// ── Sensor/resolution change handlers ─────────────────────────
+function onSensorChange(){
+  var v = document.getElementById('sensor').value;
+  document.getElementById('sensorCustomWrap').style.display =
+    (v==='custom,custom') ? '' : 'none';
+}
+function onResolutionChange(){
+  var v = document.getElementById('resolution').value;
+  document.getElementById('resCustomWrap').style.display =
+    (v==='custom,custom') ? '' : 'none';
+}
+function resetarFOV(){
+  document.getElementById('resultsFOV').classList.add('hidden');
+  document.getElementById('doriEmpty').classList.remove('hidden');
+  document.getElementById('doriTableWrap').classList.add('hidden');
+}
+
+// ── Reference table (pre-computed for 1/3" sensor, 20m, 1080p) ─
+(function buildRefTable(){
+  var sensor = {w:4.8, h:3.6};
+  var dist   = 20;
+  var px     = {w:1920, h:1080};
+  var rows = COMMERCIAL_LENSES.map(function(fl){
+    var fH = r2((sensor.w*dist)/fl);
+    var fV = r2((sensor.h*dist)/fl);
+    var aH = r1(deg(2*Math.atan(sensor.w/(2*fl))));
+    var ppm = r1(px.w/((sensor.w*dist)/fl));
+    var q   = ppm>=250?'I':ppm>=125?'R':ppm>=62.5?'O':ppm>=25?'D':'—';
+    return '<tr>'+
+      '<td style="font-weight:700">'+fl+' mm</td>'+
+      '<td>'+aH+'°</td>'+
+      '<td>'+fH+' × '+fV+' m</td>'+
+      '<td>'+ppm+' px/m</td>'+
+      '<td style="font-weight:600;color:'+(q==='I'?'#22c55e':q==='R'?'#60a5fa':q==='O'?'#f59e0b':q==='D'?'#7a93ad':'#ef4444')+'">'+q+'</td>'+
+      '</tr>';
+  });
+  var tbl = document.getElementById('refTable');
+  tbl.innerHTML =
+    '<thead><tr>'+
+    '<th>Focal</th><th>Ângulo H</th><th>FOV @ 20 m (1/3″)</th>'+
+    '<th>PPM @ 20 m (1080p)</th><th>DORI</th>'+
+    '</tr></thead><tbody>'+rows.join('')+'</tbody>';
+})();
+</script>
+</body>
+</html>

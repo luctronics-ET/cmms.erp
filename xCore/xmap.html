@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMASM · xMap</title>
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/erp-module-shell.css">
+<style>
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#07111f;color:#e2eaf4;display:grid;place-items:center;min-height:100vh;margin:0}
+.box{max-width:640px;padding:24px;border:1px solid rgba(0,180,216,.18);border-radius:14px;background:#0f2035}
+a{color:#00b4d8}
+</style>
+</head>
+<body class="erp-bridge-body">
+  <aside class="bridge-sidebar">
+    <div class="bridge-brand">
+      <div class="bridge-mark">xM</div>
+      <div>
+        <strong>CMASM · xMap</strong>
+        <span>EAM interno · ponte do ERP</span>
+      </div>
+    </div>
+    <a class="bridge-home" href="cmasm-erp.html">⇚ Voltar ao ERP</a>
+    <div class="bridge-meta">Launcher interno para o mapa operacional servido em <strong>frontend/mapa/admin.html</strong>.</div>
+  </aside>
+  <main class="bridge-main">
+    <div class="bridge-topbar">
+      <div>
+        <div class="bridge-title">xMap</div>
+        <div class="bridge-sub">Abertura pelo shell EAM padronizado do portal</div>
+      </div>
+    </div>
+    <div class="bridge-content">
+      <div class="bridge-card">
+        <h1>Abrindo xMap</h1>
+        <p>O módulo de mapa permanece com seu frontend especializado, mas a entrada local agora usa a mesma linguagem visual do ERP para os itens internos de EAM.</p>
+        <div class="bridge-actions">
+          <a class="bridge-btn primary" href="frontend/mapa/admin.html">Abrir mapa</a>
+          <a class="bridge-btn" href="cmasm-erp.html">Voltar ao portal</a>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+    window.setTimeout(() => window.location.replace('frontend/mapa/admin.html'), 180);
+  </script>
+</body>
+</html>

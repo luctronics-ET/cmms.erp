@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>xMap Admin · xCMASM [DEV]</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+  <link rel="stylesheet" href="xmap.css"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:    #07111f;
+      --bg2:   #0d1e33;
+      --bg3:   #0a1828;
+      --panel: #0f2035;
+      --acc:   #00b4d8;
+      --acc2:  #0096c7;
+      --green: #22c55e;
+      --red:   #ef4444;
+      --amber: #f59e0b;
+      --line:  rgba(100,180,255,.1);
+      --line2: rgba(100,180,255,.06);
+      --text:  #e2eaf4;
+      --text2: #8fa8c8;
+      --text3: #4a6785;
+      --mono:  'JetBrains Mono', monospace;
+      --sans:  'DM Sans', sans-serif;
+      --r:     6px;
+      --shadow: 0 18px 56px rgba(0,0,0,.28);
+    }
+
+    [data-theme="light"] {
+      --bg:    #edf3fb;
+      --bg2:   rgba(255,255,255,.94);
+      --bg3:   #dfe9f5;
+      --panel: #ffffff;
+      --acc:   #0f766e;
+      --acc2:  #0369a1;
+      --green: #16a34a;
+      --red:   #dc2626;
+      --amber: #d97706;
+      --line:  rgba(15,23,42,.10);
+      --line2: rgba(15,23,42,.05);
+      --text:  #102033;
+      --text2: #47617f;
+      --text3: #6b7f96;
+      --shadow: 0 18px 42px rgba(15,23,42,.10);
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 10% 12%, rgba(14,165,233,.16), transparent 24%),
+        radial-gradient(circle at 88% 10%, rgba(45,212,191,.14), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(245,158,11,.10), transparent 30%);
+      opacity: .9;
+    }
+    [data-theme="light"] body::before {
+      background:
+        radial-gradient(circle at 10% 12%, rgba(3,105,161,.10), transparent 24%),
+        radial-gradient(circle at 88% 10%, rgba(15,118,110,.12), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(217,119,6,.08), transparent 30%);
+    }
+
+    /* ── Shell ── */
+    .shell {
+      display: grid;
+      grid-template-rows: 46px 1fr;
+      grid-template-columns: 260px 1fr;
+      height: 100vh;
+    }
+
+    /* ── Header ── */
+    .hdr {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+
+    .hdr-brand { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--acc); letter-spacing: .04em; }
+    .hdr-sep   { color: var(--text3); }
+    .hdr-title { font-size: 12px; font-weight: 600; color: var(--text); }
+
+    .dev-badge {
+      margin-left: 6px;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 8px;
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.25);
+      color: #ef4444;
+      letter-spacing: .06em;
+    }
+
+    .hdr-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .hdr-link,
+    .hdr-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--line2);
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .hdr-link:hover,
+    .hdr-toggle:hover { color: var(--text); border-color: rgba(0,180,216,.25); background: rgba(0,180,216,.08); }
+
+    .hdr-status {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text3);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text3);
+      transition: background .3s;
+    }
+    .status-dot.ok     { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,.5); }
+    .status-dot.error  { background: var(--red); }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--bg2);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+    }
+
+    .sb-section {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sb-title {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 8px;
+    }
+
+    /* ── Ferramentas ── */
+    .tools-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .tool-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 4px;
+      border-radius: var(--r);
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 10px;
+      transition: all .12s;
+    }
+
+    .tool-btn:hover { background: rgba(0,180,216,.08); color: var(--text); border-color: rgba(0,180,216,.2); }
+
+    .tool-btn.active {
+      background: rgba(0,180,216,.15);
+      border-color: rgba(0,180,216,.35);
+      color: var(--acc);
+    }
+
+    .tool-btn.danger.active {
+      background: rgba(239,68,68,.12);
+      border-color: rgba(239,68,68,.3);
+      color: var(--red);
+    }
+
+    .tool-icon { font-size: 16px; line-height: 1; }
+    .tool-label { font-size: 9px; font-family: var(--mono); font-weight: 600; letter-spacing: .04em; }
+
+    /* ── Módulos ── */
+    .mod-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .mod-pill {
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text2);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .12s;
+    }
+
+    .mod-pill[data-mod="grama"].active    { background: rgba(74,222,128,.12); border-color: rgba(74,222,128,.3); color: #4ade80; }
+    .mod-pill[data-mod="aguada"].active   { background: rgba(56,189,248,.12); border-color: rgba(56,189,248,.3); color: #38bdf8; }
+    .mod-pill[data-mod="eletrica"].active { background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.3); color: #fbbf24; }
+
+    /* ── Painel de edição ── */
+    .edit-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .edit-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 32px 12px;
+      text-align: center;
+      color: var(--text3);
+    }
+
+    .edit-empty-icon { font-size: 24px; opacity: .4; }
+    .edit-empty-text { font-size: 11px; font-family: var(--mono); line-height: 1.5; }
+
+    .edit-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .edit-header-icon { font-size: 18px; }
+
+    .edit-header-info .edit-id {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--text3);
+      margin-bottom: 2px;
+    }
+
+    .edit-header-info .edit-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ── Form fields ── */
+    .fg {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .fg label {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text3);
+    }
+
+    .fg input, .fg select, .fg textarea {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 12px;
+      padding: 6px 8px;
+      width: 100%;
+      transition: border-color .12s;
+      outline: none;
+    }
+
+    .fg input:focus, .fg select:focus, .fg textarea:focus {
+      border-color: var(--acc);
+      box-shadow: 0 0 0 2px rgba(0,180,216,.1);
+    }
+
+    .fg select option { background: var(--bg2); }
+
+    .fg textarea { resize: vertical; min-height: 60px; font-size: 11px; }
+
+    /* ── Atributos GUT-like ── */
+    .attr-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .attr-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .attr-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text3);
+    }
+
+    .attr-chips {
+      display: flex;
+      gap: 3px;
+    }
+
+    .attr-chip {
+      flex: 1;
+      padding: 5px 4px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text3);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all .12s;
+      line-height: 1.2;
+    }
+
+    .attr-chip:hover { border-color: rgba(100,180,255,.2); color: var(--text2); }
+
+    .attr-chip.sel-flora-gramado        { background: rgba(34,197,94,.15);  border-color: rgba(34,197,94,.35);  color: #4ade80; }
+    .attr-chip.sel-flora-capim_colonial { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.35); color: #fbbf24; }
+    .attr-chip.sel-flora-mata_fechada   { background: rgba(167,139,250,.15);border-color: rgba(167,139,250,.35);color: #a78bfa; }
+
+    .attr-chip.sel-inclinacao-plano      { background: rgba(34,197,94,.15);  border-color: rgba(34,197,94,.35);  color: #4ade80; }
+    .attr-chip.sel-inclinacao-moderado   { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.35); color: #fbbf24; }
+    .attr-chip.sel-inclinacao-acentuado  { background: rgba(239,68,68,.15);  border-color: rgba(239,68,68,.35);  color: #ef4444; }
+
+    .attr-chip.sel-limpeza-limpa  { background: rgba(34,197,94,.15);  border-color: rgba(34,197,94,.35);  color: #4ade80; }
+    .attr-chip.sel-limpeza-media  { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.35); color: #fbbf24; }
+    .attr-chip.sel-limpeza-densa  { background: rgba(239,68,68,.15);  border-color: rgba(239,68,68,.35);  color: #ef4444; }
+
+    /* ── Compatibilidade ── */
+    .compat-box {
+      background: var(--bg3);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 8px 10px;
+    }
+
+    .compat-title {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 6px;
+    }
+
+    .compat-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    .compat-tag {
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 8px;
+    }
+
+    .compat-tag.ok       { background: rgba(34,197,94,.12);  border: 1px solid rgba(34,197,94,.25);  color: #4ade80; }
+    .compat-tag.emergencia { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.25); color: #fbbf24; }
+    .compat-tag.none     { color: var(--text3); font-style: italic; }
+
+    /* ── Área calculada ── */
+    .area-calc {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--acc);
+      background: rgba(0,180,216,.06);
+      border: 1px solid rgba(0,180,216,.15);
+      border-radius: 4px;
+      padding: 4px 8px;
+      margin-top: 4px;
+    }
+
+    /* ── Botões de ação ── */
+    .edit-actions {
+      display: flex;
+      gap: 6px;
+      padding-top: 4px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: var(--r);
+      border: none;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      transition: all .12s;
+    }
+
+    .btn-save   { background: var(--acc); color: #000; }
+    .btn-save:hover   { background: var(--acc2); }
+    .btn-cancel { background: rgba(100,120,150,.15); color: var(--text2); border: 1px solid var(--line); }
+    .btn-cancel:hover { background: rgba(100,120,150,.25); color: var(--text); }
+    .btn-delete { background: rgba(239,68,68,.1); color: var(--red); border: 1px solid rgba(239,68,68,.2); }
+    .btn-delete:hover { background: rgba(239,68,68,.2); }
+
+    /* ── Toast ── */
+    .toast-stack {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--acc);
+      border-radius: var(--r);
+      padding: 8px 12px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text);
+      animation: toastIn .2s ease;
+      pointer-events: auto;
+      max-width: 260px;
+    }
+
+    .toast.ok    { border-left-color: var(--green); }
+    .toast.error { border-left-color: var(--red); }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── Main map ── */
+    .main { position: relative; display: flex; flex-direction: column; }
+
+    #admin-map { flex: 1; }
+
+    /* Leaflet.Draw toolbar dark override */
+    .leaflet-draw-toolbar a { background-color: rgba(13,30,51,.95) !important; border-color: rgba(100,180,255,.15) !important; }
+    .leaflet-draw-toolbar a:hover { background-color: rgba(0,180,216,.15) !important; }
+    .leaflet-draw-section { background: rgba(13,30,51,.95) !important; border-color: rgba(100,180,255,.15) !important; }
+
+    /* Modal de nova área */
+    .overlay {
+      position: fixed; inset: 0; z-index: 5000;
+      background: rgba(4,10,20,.7);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: auto; }
+
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      width: 380px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.6);
+      animation: modalIn .18s ease;
+    }
+
+    @keyframes modalIn {
+      from { transform: scale(.96); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .modal-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal-hdr h3 { font-size: 13px; font-weight: 600; }
+
+    .modal-close {
+      background: none; border: none; color: var(--text3);
+      font-size: 18px; cursor: pointer; line-height: 1;
+      padding: 2px 4px; border-radius: 4px; transition: color .12s;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+    .modal-footer { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; gap: 6px; justify-content: flex-end; }
+
+    /* Área info no mapa */
+    .map-hint {
+      position: absolute;
+      bottom: 36px; left: 50%; transform: translateX(-50%);
+      z-index: 1000;
+      font-family: var(--mono); font-size: 10px;
+      background: rgba(7,17,31,.88);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 4px 12px;
+      color: var(--text2);
+      pointer-events: none;
+      transition: opacity .2s;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(100,180,255,.15); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Header -->
+  <header class="hdr">
+    <span class="hdr-brand">xCMASM</span>
+    <span class="hdr-sep">›</span>
+    <span class="hdr-title">xMap Admin</span>
+    <span class="dev-badge">DEV ONLY</span>
+    <div class="hdr-right">
+      <a class="hdr-link" href="/cmasm-erp.html">↩ Portal ERP</a>
+      <button class="hdr-toggle" id="theme-toggle" type="button" onclick="toggleTheme()">☀ Tema claro</button>
+      <div class="hdr-status">
+        <span class="status-dot" id="api-dot"></span>
+        <span id="api-label">xGrama API</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <!-- Módulos -->
+    <div class="sb-section">
+      <div class="sb-title">Módulo</div>
+      <div class="mod-pills">
+        <button class="mod-pill active" data-mod="grama"    onclick="setMod('grama',this)">xGrama</button>
+        <button class="mod-pill"        data-mod="aguada"   onclick="setMod('aguada',this)">xAguada</button>
+        <button class="mod-pill"        data-mod="eletrica" onclick="setMod('eletrica',this)">xElétrica</button>
+      </div>
+    </div>
+
+    <!-- Ferramentas -->
+    <div class="sb-section">
+      <div class="sb-title">Ferramentas</div>
+      <div class="tools-grid">
+        <button class="tool-btn active" id="tool-select" onclick="setTool('select',this)">
+          <span class="tool-icon">↖</span>
+          <span class="tool-label">Selecionar</span>
+        </button>
+        <button class="tool-btn" id="tool-draw" onclick="setTool('draw',this)">
+          <span class="tool-icon">⬡</span>
+          <span class="tool-label">Nova Área</span>
+        </button>
+        <button class="tool-btn" id="tool-edit" onclick="setTool('edit',this)">
+          <span class="tool-icon">✎</span>
+          <span class="tool-label">Editar Pol.</span>
+        </button>
+        <button class="tool-btn danger" id="tool-delete" onclick="setTool('delete',this)">
+          <span class="tool-icon">✕</span>
+          <span class="tool-label">Remover</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Painel de edição -->
+    <div class="edit-panel" id="edit-panel">
+      <div class="edit-empty">
+        <div class="edit-empty-icon">⬡</div>
+        <div class="edit-empty-text">Clique em uma área<br>para editar</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Mapa -->
+  <main class="main">
+    <div id="admin-map"></div>
+    <div class="map-hint" id="map-hint">Clique em uma área para selecionar · Ferramenta: <span id="hint-tool">Selecionar</span></div>
+  </main>
+
+</div>
+
+<!-- Toast stack -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<!-- Modal nova área -->
+<div class="overlay" id="overlay-nova">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>Nova Área</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>Nome *</label>
+        <input type="text" id="nova-nome" placeholder="Ex: Gramado Central"/>
+      </div>
+      <div class="fg">
+        <label>Tipo *</label>
+        <select id="nova-tipo">
+          <option value="jardim">Jardim</option>
+          <option value="bosque">Bosque</option>
+          <option value="canteiro">Canteiro</option>
+          <option value="area_recreativa">Área Recreativa</option>
+          <option value="horta">Horta</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Descrição</label>
+        <textarea id="nova-desc" placeholder="Opcional..."></textarea>
+      </div>
+      <div class="area-calc" id="nova-area-calc">Área calculada: — m²</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-save" onclick="criarArea()">Criar Área</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   xMap Admin — Editor Visual de Áreas e Posições
+   Aponta para xCore em :8010 (rotas /api/grama/* após consolidação)
+════════════════════════════════════════════════════════ */
+
+const API = 'http://localhost:8010/api/grama';
+const CENTER = [-22.8400, -43.1055];
+
+/* ── Estado ── */
+let map, drawnItems, drawControl;
+let activeMod = 'grama';
+let activeTool = 'select';
+let selectedLayer = null;   // polígono atualmente selecionado
+let pendingCoords = null;   // coords do polígono recém desenhado (antes de salvar)
+let areas = [];             // cache da API
+let polyLayers = {};        // { areaId: L.polygon }
+
+/* ── Tile layers ── */
+const tiles = {
+  map: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' }),
+  sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: '© Esri' }),
+};
+let activeBase = 'map';
+
+/* ═══════════════════ INIT ════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  applyTheme(localStorage.getItem('xmap-theme') || 'dark');
+  initMap();
+  checkAPI();
+  loadGrama();
+});
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.getElementById('theme-toggle').textContent = '☾ Tema escuro';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    document.getElementById('theme-toggle').textContent = '☀ Tema claro';
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem('xmap-theme', next);
+  applyTheme(next);
+}
+
+function initMap() {
+  map = L.map('admin-map', {
+    center: CENTER, zoom: 15, minZoom: 13, maxZoom: 19,
+    zoomControl: false,
+  });
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  tiles.map.addTo(map);
+
+  /* Basemap toggle via toolbar existente (simples) */
+  const tb = L.control({ position: 'topleft' });
+  tb.onAdd = () => {
+    const d = L.DomUtil.create('div', '');
+    d.innerHTML = `
+      <div style="display:flex;gap:4px;background:rgba(7,17,31,.9);border:1px solid rgba(100,180,255,.1);border-radius:16px;padding:3px 6px;margin:10px 0 0 10px;">
+        <button id="tb-map" onclick="setBase('map')"  style="background:rgba(0,180,216,.9);color:#000;border:none;border-radius:12px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;">Mapa</button>
+        <button id="tb-sat" onclick="setBase('sat')"  style="background:transparent;color:#8fa8c8;border:none;border-radius:12px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;">Satélite</button>
+      </div>`;
+    L.DomEvent.disableClickPropagation(d);
+    return d;
+  };
+  tb.addTo(map);
+
+  /* Leaflet.Draw */
+  drawnItems = new L.FeatureGroup().addTo(map);
+
+  drawControl = new L.Control.Draw({
+    draw: {
+      polygon: {
+        allowIntersection: false,
+        shapeOptions: { color: '#00b4d8', fillColor: '#00b4d8', fillOpacity: 0.15, weight: 2 },
+      },
+      polyline: false, rectangle: false, circle: false, marker: false, circlemarker: false,
+    },
+    edit: {
+      featureGroup: drawnItems,
+      edit: false,
+      remove: false,
+    },
+  });
+
+  map.on(L.Draw.Event.CREATED, onPolygonCreated);
+}
+
+function setBase(mode) {
+  if (mode === activeBase) return;
+  map.removeLayer(tiles[activeBase]);
+  activeBase = mode;
+  tiles[activeBase].addTo(map);
+  document.getElementById('tb-map').style.background = mode === 'map' ? 'rgba(0,180,216,.9)' : 'transparent';
+  document.getElementById('tb-map').style.color      = mode === 'map' ? '#000' : '#8fa8c8';
+  document.getElementById('tb-sat').style.background = mode === 'sat' ? 'rgba(0,180,216,.9)' : 'transparent';
+  document.getElementById('tb-sat').style.color      = mode === 'sat' ? '#000' : '#8fa8c8';
+}
+
+/* ═══════════════════ API ════════════════════ */
+async function checkAPI() {
+  try {
+    const r = await fetch(`${API}/areas?ativa=1`, { signal: AbortSignal.timeout(3000) });
+    const dot = document.getElementById('api-dot');
+    const lbl = document.getElementById('api-label');
+    if (r.ok) {
+      dot.className = 'status-dot ok';
+      lbl.textContent = 'xGrama API · online';
+    } else {
+      dot.className = 'status-dot error';
+      lbl.textContent = 'xGrama API · erro ' + r.status;
+    }
+  } catch {
+    document.getElementById('api-dot').className = 'status-dot error';
+    document.getElementById('api-label').textContent = 'xGrama API · offline';
+    toast('Backend offline. Inicie: cd xGrama/controle-vegetal/backend && npm start', 'error');
+  }
+}
+
+async function loadGrama() {
+  try {
+    const r = await fetch(`${API}/areas?ativa=1`);
+    if (!r.ok) return;
+    areas = await r.json();
+    renderGramaLayers();
+  } catch (e) {
+    console.warn('Não foi possível carregar áreas:', e.message);
+  }
+}
+
+/* ═══════════════════ RENDER LAYERS ════════════════════ */
+function tipoStyle(tipo) {
+  const styles = {
+    jardim:          { color: '#4ade80', fill: '#4ade80' },
+    bosque:          { color: '#16a34a', fill: '#16a34a' },
+    canteiro:        { color: '#86efac', fill: '#86efac' },
+    area_recreativa: { color: '#22d3ee', fill: '#22d3ee' },
+    horta:           { color: '#a3e635', fill: '#a3e635' },
+  };
+  return styles[tipo] || { color: '#4ade80', fill: '#4ade80' };
+}
+
+function renderGramaLayers() {
+  /* Remove polígonos antigos */
+  Object.values(polyLayers).forEach(l => map.removeLayer(l));
+  polyLayers = {};
+
+  areas.forEach(area => {
+    if (!area.coords_json) return;
+    let coords;
+    try { coords = JSON.parse(area.coords_json); } catch { return; }
+    if (!coords || !coords.length) return;
+
+    const s = tipoStyle(area.tipo);
+    const poly = L.polygon(coords, {
+      color: s.color, fillColor: s.fill,
+      fillOpacity: 0.15, weight: 2,
+      areaId: area.id,
+    });
+
+    poly.areaId = area.id;
+
+    poly.bindTooltip(area.nome, {
+      permanent: false, direction: 'center',
+      className: 'xmap-area-tooltip',
+    });
+
+    poly.on('click', () => {
+      if (activeTool === 'select') selectArea(area.id, poly);
+      if (activeTool === 'delete') confirmarDelete(area);
+    });
+
+    poly.addTo(map);
+    polyLayers[area.id] = poly;
+  });
+}
+
+function highlightSelected(poly) {
+  /* Reset todos */
+  Object.values(polyLayers).forEach(l => l.setStyle({ weight: 2, dashArray: null }));
+  if (poly) poly.setStyle({ weight: 3, dashArray: '6 3' });
+}
+
+/* ═══════════════════ SELEÇÃO E EDIÇÃO ════════════════════ */
+function selectArea(id, poly) {
+  selectedLayer = poly;
+  highlightSelected(poly);
+  const area = areas.find(a => a.id === id);
+  if (!area) return;
+  renderEditPanel(area);
+}
+
+function renderEditPanel(area) {
+  const maqJson = area.maquinas_compativeis ? JSON.parse(area.maquinas_compativeis) : [];
+  const maqLabels = {
+    cortador_grama: 'Cortador', roçadeira: 'Roçadeira',
+    motosserra: 'Motosserra', soprador: 'Soprador',
+  };
+
+  const compatHTML = maqJson.length
+    ? maqJson.map((m, i) =>
+        `<span class="compat-tag ${i === 0 ? 'ok' : 'emergencia'}">${maqLabels[m] || m}</span>`
+      ).join('')
+    : `<span class="compat-tag none">Defina os atributos</span>`;
+
+  const areaCalc = area.coords_json ? calcAreaM2(JSON.parse(area.coords_json)) : null;
+
+  document.getElementById('edit-panel').innerHTML = `
+    <div class="edit-header">
+      <span class="edit-header-icon">⬡</span>
+      <div class="edit-header-info">
+        <div class="edit-id">${area.id}</div>
+        <div class="edit-name">${area.nome}</div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label>Nome</label>
+      <input type="text" id="e-nome" value="${area.nome}"/>
+    </div>
+
+    <div class="fg">
+      <label>Tipo</label>
+      <select id="e-tipo">
+        ${['jardim','bosque','canteiro','area_recreativa','horta'].map(t =>
+          `<option value="${t}" ${area.tipo === t ? 'selected' : ''}>${tipoLabel(t)}</option>`
+        ).join('')}
+      </select>
+    </div>
+
+    <div class="fg">
+      <label>Descrição</label>
+      <textarea id="e-desc">${area.descricao || ''}</textarea>
+    </div>
+
+    <div style="border-top:1px solid var(--line);padding-top:8px;">
+      <div class="sb-title" style="margin-bottom:6px;">Atributos de Vegetação</div>
+      <div class="attr-grid">
+
+        <div class="attr-row">
+          <div class="attr-label">Flora</div>
+          <div class="attr-chips">
+            ${[['gramado','Gramado'],['capim_colonial','Cap. Colonial'],['mata_fechada','Mata Fechada']].map(([v,l]) =>
+              `<button class="attr-chip ${area.flora === v ? 'sel-flora-'+v : ''}"
+                onclick="selectAttr('flora','${v}','${area.id}')"
+                data-attr="flora" data-val="${v}">${l}</button>`
+            ).join('')}
+          </div>
+        </div>
+
+        <div class="attr-row">
+          <div class="attr-label">Inclinação</div>
+          <div class="attr-chips">
+            ${[['plano','Plano 0-5%'],['moderado','Moderado 5-20%'],['acentuado','Acentuado >20%']].map(([v,l]) =>
+              `<button class="attr-chip ${area.inclinacao === v ? 'sel-inclinacao-'+v : ''}"
+                onclick="selectAttr('inclinacao','${v}','${area.id}')"
+                data-attr="inclinacao" data-val="${v}">${l}</button>`
+            ).join('')}
+          </div>
+        </div>
+
+        <div class="attr-row">
+          <div class="attr-label">Limpeza</div>
+          <div class="attr-chips">
+            ${[['limpa','Limpa'],['media','Média'],['densa','Densa']].map(([v,l]) =>
+              `<button class="attr-chip ${area.limpeza === v ? 'sel-limpeza-'+v : ''}"
+                onclick="selectAttr('limpeza','${v}','${area.id}')"
+                data-attr="limpeza" data-val="${v}">${l}</button>`
+            ).join('')}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="compat-box">
+      <div class="compat-title">Máquinas compatíveis</div>
+      <div class="compat-tags" id="compat-tags">${compatHTML}</div>
+    </div>
+
+    ${areaCalc ? `<div class="area-calc">Área: ~${areaCalc.toFixed(0)} m² (calculada pelo polígono)</div>` : ''}
+
+    <div style="border-top:1px solid var(--line);padding-top:8px;">
+      <div class="sb-title" style="margin-bottom:6px;">Polígono no mapa</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.5;">
+        ${area.coords_json
+          ? `✓ Posicionado · <a href="#" style="color:var(--acc);text-decoration:none;" onclick="iniciarEdicaoPoly('${area.id}');return false;">Editar vértices</a>`
+          : `⚠ Sem posição · <a href="#" style="color:var(--acc);text-decoration:none;" onclick="iniciarDesenho('${area.id}');return false;">Desenhar no mapa</a>`
+        }
+      </div>
+    </div>
+
+    <div class="edit-actions">
+      <button class="btn btn-save"   onclick="salvarArea('${area.id}')">Salvar</button>
+      <button class="btn btn-cancel" onclick="deselect()">Cancelar</button>
+    </div>
+    <button class="btn btn-delete" style="margin-top:2px;" onclick="confirmarDelete(${JSON.stringify(area).replace(/"/g,'&quot;')})">Desativar área</button>
+  `;
+}
+
+/* ═══════════════════ ATRIBUTOS ════════════════════ */
+/* Estado temporário de atributos editados */
+const editAttrs = {};
+
+function selectAttr(attr, val, areaId) {
+  if (!editAttrs[areaId]) editAttrs[areaId] = {};
+  editAttrs[areaId][attr] = val;
+
+  /* Atualiza visual dos chips */
+  document.querySelectorAll(`[data-attr="${attr}"]`).forEach(btn => {
+    btn.className = `attr-chip ${btn.dataset.val === val ? `sel-${attr}-${val}` : ''}`;
+  });
+
+  /* Recalcula compatibilidade client-side para preview imediato */
+  const area = areas.find(a => a.id === areaId);
+  const flora      = editAttrs[areaId].flora      || area?.flora;
+  const inclinacao = editAttrs[areaId].inclinacao || area?.inclinacao;
+  const limpeza    = editAttrs[areaId].limpeza    || area?.limpeza;
+
+  const compat = calcCompatCliente(flora, inclinacao, limpeza);
+  const maqLabels = {
+    cortador_grama: 'Cortador', roçadeira: 'Roçadeira',
+    motosserra: 'Motosserra', soprador: 'Soprador',
+  };
+
+  const tagsEl = document.getElementById('compat-tags');
+  if (tagsEl) {
+    tagsEl.innerHTML = compat.length
+      ? compat.map((m, i) => `<span class="compat-tag ${i === 0 ? 'ok' : 'emergencia'}">${maqLabels[m] || m}</span>`).join('')
+      : `<span class="compat-tag none">Defina os 3 atributos</span>`;
+  }
+}
+
+/* Espelho da lógica do backend (para preview instantâneo) */
+function calcCompatCliente(flora, inclinacao, limpeza) {
+  if (!flora || !inclinacao || !limpeza) return [];
+  if (flora === 'mata_fechada') return ['motosserra', 'roçadeira'];
+  if (inclinacao === 'acentuado') {
+    return limpeza === 'densa' ? ['roçadeira'] : ['roçadeira'];
+  }
+  if (flora === 'gramado') {
+    if (inclinacao === 'plano' && limpeza === 'limpa') return ['cortador_grama'];
+    if (inclinacao === 'plano') return ['cortador_grama', 'roçadeira'];
+    return ['roçadeira'];
+  }
+  if (flora === 'capim_colonial') {
+    if (inclinacao === 'plano' && limpeza === 'limpa') return ['cortador_grama', 'roçadeira'];
+    if (limpeza === 'media' || limpeza === 'densa') return ['roçadeira'];
+    return ['roçadeira'];
+  }
+  return [];
+}
+
+/* ═══════════════════ SALVAR ════════════════════ */
+async function salvarArea(id) {
+  const area = areas.find(a => a.id === id);
+  if (!area) return;
+
+  const nome      = document.getElementById('e-nome')?.value?.trim();
+  const tipo      = document.getElementById('e-tipo')?.value;
+  const descricao = document.getElementById('e-desc')?.value?.trim();
+
+  const overrides = editAttrs[id] || {};
+  const flora      = overrides.flora      ?? area.flora;
+  const inclinacao = overrides.inclinacao ?? area.inclinacao;
+  const limpeza    = overrides.limpeza    ?? area.limpeza;
+
+  const coordsPoly = polyLayers[id];
+  const coords_json = coordsPoly
+    ? JSON.stringify(coordsPoly.getLatLngs()[0].map(ll => [ll.lat, ll.lng]))
+    : area.coords_json;
+
+  const areaM2 = coords_json ? calcAreaM2(JSON.parse(coords_json)) : area.area_m2;
+
+  try {
+    const r = await fetch(`${API}/areas/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome: nome || area.nome,
+        tipo: tipo || area.tipo,
+        descricao: descricao || null,
+        area_m2: areaM2,
+        coords_json: coords_json || null,
+        flora, inclinacao, limpeza,
+        ativa: 1,
+      }),
+    });
+
+    if (!r.ok) throw new Error(await r.text());
+    const updated = await r.json();
+
+    /* Atualiza cache local */
+    const idx = areas.findIndex(a => a.id === id);
+    if (idx >= 0) areas[idx] = updated;
+
+    /* Reposiciona polígono se necessário */
+    if (coords_json && polyLayers[id]) {
+      const newCoords = JSON.parse(coords_json);
+      polyLayers[id].setLatLngs(newCoords);
+    }
+
+    delete editAttrs[id];
+    renderEditPanel(updated);
+    renderGramaLayers();
+    toast('Área salva com sucesso!', 'ok');
+  } catch (e) {
+    toast('Erro ao salvar: ' + e.message, 'error');
+  }
+}
+
+/* ═══════════════════ POLÍGONO ════════════════════ */
+function onPolygonCreated(e) {
+  const layer = e.layer;
+  const coords = layer.getLatLngs()[0].map(ll => [ll.lat, ll.lng]);
+  pendingCoords = coords;
+
+  /* Atualiza área calculada no modal */
+  const m2 = calcAreaM2(coords);
+  const el = document.getElementById('nova-area-calc');
+  if (el) el.textContent = `Área calculada: ~${m2.toFixed(0)} m²`;
+
+  /* Remove da drawnItems, vai para polyLayers após criar */
+  drawnItems.clearLayers();
+
+  /* Para módulo grama: abre modal de criação */
+  if (activeMod === 'grama') openModal();
+
+  /* Para outros módulos: não tem API ainda, salva em localStorage */
+}
+
+/* Inicia desenho de polígono para área existente sem coords */
+function iniciarDesenho(areaId) {
+  toast('Desenhe o polígono da área no mapa. Dê duplo-clique para fechar.', 'info');
+  setTool('draw', document.getElementById('tool-draw'));
+
+  /* Sobrescreve o handler temporariamente */
+  map.once(L.Draw.Event.CREATED, (e) => {
+    const coords = e.layer.getLatLngs()[0].map(ll => [ll.lat, ll.lng]);
+    drawnItems.clearLayers();
+    savePosicao(areaId, coords);
+  });
+}
+
+/* Inicia edição de vértices do polígono existente */
+function iniciarEdicaoPoly(areaId) {
+  const poly = polyLayers[areaId];
+  if (!poly) return;
+
+  /* Ativa edição inline do Leaflet */
+  poly.editing.enable();
+  toast('Arraste os vértices. Clique em "Salvar" quando terminar.', 'info');
+}
+
+async function savePosicao(areaId, coords) {
+  const m2 = calcAreaM2(coords);
+  try {
+    const r = await fetch(`${API}/areas/${areaId}/posicao`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coords_json: JSON.stringify(coords), area_m2: m2 }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const updated = await r.json();
+    const idx = areas.findIndex(a => a.id === areaId);
+    if (idx >= 0) areas[idx] = updated;
+    renderGramaLayers();
+    renderEditPanel(updated);
+    toast('Posição salva!', 'ok');
+  } catch (e) {
+    toast('Erro ao salvar posição: ' + e.message, 'error');
+  }
+}
+
+/* ═══════════════════ CRIAR ÁREA ════════════════════ */
+function openModal() {
+  document.getElementById('overlay-nova').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('overlay-nova').classList.remove('open');
+  pendingCoords = null;
+}
+
+async function criarArea() {
+  const nome = document.getElementById('nova-nome').value.trim();
+  const tipo = document.getElementById('nova-tipo').value;
+  const desc = document.getElementById('nova-desc').value.trim();
+
+  if (!nome) { toast('Nome é obrigatório', 'error'); return; }
+  if (!pendingCoords) { toast('Desenhe o polígono primeiro', 'error'); return; }
+
+  const m2 = calcAreaM2(pendingCoords);
+
+  try {
+    const r = await fetch(`${API}/areas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome, tipo, descricao: desc || null,
+        area_m2: m2,
+        coords_json: JSON.stringify(pendingCoords),
+      }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const nova = await r.json();
+    areas.push(nova);
+    renderGramaLayers();
+    closeModal();
+    toast(`Área "${nova.nome}" criada!`, 'ok');
+    selectArea(nova.id, polyLayers[nova.id]);
+    document.getElementById('nova-nome').value = '';
+    document.getElementById('nova-desc').value = '';
+  } catch (e) {
+    toast('Erro ao criar área: ' + e.message, 'error');
+  }
+}
+
+/* ═══════════════════ DELETE ════════════════════ */
+async function confirmarDelete(area) {
+  if (!confirm(`Desativar área "${area.nome}"?\nEla não será apagada do banco.`)) return;
+  try {
+    const r = await fetch(`${API}/areas/${area.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...area, ativa: 0 }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    areas = areas.filter(a => a.id !== area.id);
+    if (polyLayers[area.id]) { map.removeLayer(polyLayers[area.id]); delete polyLayers[area.id]; }
+    deselect();
+    toast(`Área "${area.nome}" desativada.`, 'ok');
+  } catch (e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+/* ═══════════════════ MÓDULOS E FERRAMENTAS ════════════════════ */
+function setMod(mod, btn) {
+  activeMod = mod;
+  document.querySelectorAll('.mod-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  /* Recarrega layers do módulo */
+  if (mod === 'grama') loadGrama();
+  else {
+    Object.values(polyLayers).forEach(l => map.removeLayer(l));
+    polyLayers = {};
+  }
+
+  deselect();
+}
+
+const TOOL_HINTS = {
+  select: 'Selecionar',
+  draw:   'Desenhar Polígono',
+  edit:   'Editar Vértices',
+  delete: 'Remover Área',
+};
+
+function setTool(tool, btn) {
+  /* Desativa ferramenta anterior */
+  if (activeTool === 'draw' && drawControl) {
+    try { map.removeControl(drawControl); } catch {}
+  }
+
+  activeTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.getElementById('hint-tool').textContent = TOOL_HINTS[tool] || tool;
+
+  if (tool === 'draw' && activeMod === 'grama') {
+    drawControl.addTo(map);
+    /* Inicia o modo de desenho automaticamente */
+    setTimeout(() => {
+      const drawBtn = document.querySelector('.leaflet-draw-draw-polygon');
+      if (drawBtn) drawBtn.click();
+    }, 100);
+  }
+}
+
+function deselect() {
+  selectedLayer = null;
+  highlightSelected(null);
+  document.getElementById('edit-panel').innerHTML = `
+    <div class="edit-empty">
+      <div class="edit-empty-icon">⬡</div>
+      <div class="edit-empty-text">Clique em uma área<br>para editar</div>
+    </div>`;
+}
+
+/* ═══════════════════ CÁLCULO DE ÁREA ════════════════════ */
+/* Fórmula de Shoelace + correção por latitude (aproximação plana) */
+function calcAreaM2(coords) {
+  if (!coords || coords.length < 3) return 0;
+  const R = 6371000; // raio da Terra em metros
+  const toRad = d => d * Math.PI / 180;
+
+  let area = 0;
+  const n = coords.length;
+  for (let i = 0; i < n; i++) {
+    const [lat1, lon1] = coords[i];
+    const [lat2, lon2] = coords[(i + 1) % n];
+    area += toRad(lon2 - lon1) * (2 + Math.sin(toRad(lat1)) + Math.sin(toRad(lat2)));
+  }
+  return Math.abs(area * R * R / 2);
+}
+
+/* ═══════════════════ UTILS ════════════════════ */
+function tipoLabel(t) {
+  return { jardim:'Jardim', bosque:'Bosque', canteiro:'Canteiro', area_recreativa:'Área Recreativa', horta:'Horta' }[t] || t;
+}
+
+function toast(msg, type = '') {
+  const stack = document.getElementById('toast-stack');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+</script>
+</body>
+</html>

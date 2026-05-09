@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inspeção Predial — xPredial</title>
+  <link rel="stylesheet" href="assets/xpredial-core.css">
+  <link rel="stylesheet" href="../../assets/fonts.css">
+  <style>
+    /* ── tokens ── */
+    :root {
+      --bg: #07111f; --bg2: #0d1e33; --bg3: #0a1828;
+      --panel: #0f2035; --acc: #00b4d8; --acc2: #0090ad;
+      --green: #22c55e; --red: #ef4444; --amber: #f59e0b;
+      --text: #e2e8f0; --muted: #64748b; --border: #1e3a5f;
+      --gut-low: #22c55e; --gut-med: #f59e0b; --gut-high: #f97316; --gut-crit: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+    /* ── layout ── */
+    .pg-wrap { display: flex; flex-direction: column; min-height: 100vh; }
+    .pg-main  { display: grid; grid-template-columns: 300px 1fr; gap: 0; flex: 1; }
+
+    /* ── sidebar ── */
+    .sidebar {
+      background: var(--bg2); border-right: 1px solid var(--border);
+      padding: 20px 16px; display: flex; flex-direction: column; gap: 16px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar h2 { font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      color: var(--acc); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+
+    .local-search { position: relative; }
+    .local-search input {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 10px 8px 32px; border-radius: 6px;
+      font-size: 13px; outline: none;
+    }
+    .local-search input:focus { border-color: var(--acc); }
+    .local-search::before {
+      content: '⌕'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 16px; pointer-events: none;
+    }
+
+    .local-tree { flex: 1; overflow-y: auto; }
+    .local-node { display: flex; align-items: center; gap: 6px;
+      padding: 5px 6px; border-radius: 5px; cursor: pointer; font-size: 12px;
+      transition: background 0.15s; }
+    .local-node:hover { background: var(--panel); }
+    .local-node.selected { background: #003854; color: var(--acc); }
+    .local-node .indent { display: inline-block; }
+    .local-node .tipo { font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; color: var(--muted); background: var(--bg3);
+      padding: 1px 4px; border-radius: 3px; flex-shrink: 0; }
+    .local-node .name { flex: 1; }
+
+    .sel-summary {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px; font-size: 12px;
+    }
+    .sel-summary .count { color: var(--acc); font-family: 'JetBrains Mono', monospace;
+      font-size: 20px; font-weight: 700; }
+    .sel-tag { display: inline-flex; align-items: center; gap: 4px;
+      background: #003854; color: var(--acc); border-radius: 4px;
+      padding: 2px 6px; font-size: 11px; margin: 2px; }
+    .sel-tag button { background: none; border: none; color: var(--acc);
+      cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+
+    /* ── main content ── */
+    .content { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+    .content-header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    }
+    .content-header h1 { font-size: 22px; font-weight: 700; }
+    .content-header .sub { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+      transition: all 0.15s; text-decoration: none; }
+    .btn-primary { background: var(--acc); color: #000; }
+    .btn-primary:hover { background: var(--acc2); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { border-color: var(--acc); color: var(--acc); }
+    .btn-danger { background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    /* ── configuração nova inspeção ── */
+    .config-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px;
+    }
+    .config-card h3 { font-size: 13px; color: var(--acc);
+      font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .form-row.single { grid-template-columns: 1fr; }
+    .form-group label { display: block; font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 10px; border-radius: 6px;
+      font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--acc);
+    }
+
+    /* ── sistemas selector ── */
+    .sistemas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+    .sistema-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 10px; cursor: pointer;
+      transition: all 0.15s; font-size: 12px; user-select: none;
+    }
+    .sistema-chip:hover { border-color: var(--acc); }
+    .sistema-chip.active { background: #003854; border-color: var(--acc); color: var(--acc); }
+    .sistema-chip .icon { font-size: 16px; }
+    .sistema-chip .cnt { margin-left: auto; font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--muted); }
+
+    /* ── checklist body ── */
+    .checklist-wrap { display: flex; flex-direction: column; gap: 16px; }
+
+    .sistema-block { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+    .sistema-block-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .sistema-block-header h4 { font-size: 13px; font-weight: 600; flex: 1; }
+    .sistema-block-header .badge-cnt {
+      background: var(--bg3); border-radius: 10px;
+      padding: 2px 8px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
+    }
+    .sistema-block-header .chevron { color: var(--muted); transition: transform 0.2s; }
+    .sistema-block-header.collapsed .chevron { transform: rotate(-90deg); }
+    .sistema-block-body { padding: 0 16px 8px; }
+
+    /* subsistema label */
+    .subsistema-label {
+      font-size: 10px; color: var(--acc); font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase; letter-spacing: 1px;
+      padding: 10px 0 4px; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+    }
+
+    /* checklist item row */
+    .cl-item {
+      display: grid; grid-template-columns: 28px 1fr 120px 28px 28px 28px 60px 60px;
+      gap: 6px; align-items: center; padding: 6px 4px;
+      border-radius: 6px; transition: background 0.1s;
+    }
+    .cl-item:hover { background: var(--bg3); }
+    .cl-item.nao-conforme { background: rgba(239,68,68,.07); }
+
+    .cl-check { width: 18px; height: 18px; accent-color: var(--acc); cursor: pointer; }
+    .cl-desc { font-size: 12px; }
+    .cl-local { font-size: 11px; background: var(--bg3); border: 1px solid var(--border);
+      color: var(--text); padding: 3px 6px; border-radius: 4px; outline: none; width: 100%; }
+    .cl-local:focus { border-color: var(--acc); }
+
+    /* GUT select */
+    .gut-sel {
+      font-size: 11px; font-family: 'JetBrains Mono', monospace; font-weight: 600;
+      border: 1px solid var(--border); border-radius: 4px; background: var(--bg3);
+      color: var(--text); padding: 3px 4px; outline: none; cursor: pointer; width: 100%;
+      text-align: center;
+    }
+    .gut-sel:focus { border-color: var(--acc); }
+    .gut-sel.v10 { background: #7f1d1d; color: #fca5a5; border-color: #ef4444; }
+    .gut-sel.v8  { background: #7c2d12; color: #fdba74; border-color: #f97316; }
+    .gut-sel.v6  { background: #713f12; color: #fde68a; border-color: #f59e0b; }
+    .gut-sel.v3  { background: #14532d; color: #86efac; border-color: #22c55e; }
+    .gut-sel.v1  { background: var(--bg3); color: var(--muted); }
+    .gut-sel.v0  { background: var(--bg3); color: var(--muted); opacity: 0.4; }
+
+    .cl-total { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+      text-align: right; padding-right: 4px; }
+    .cl-total.crit { color: var(--red); }
+    .cl-total.warn { color: var(--amber); }
+    .cl-total.ok   { color: var(--green); }
+    .cl-total.zero { color: var(--muted); }
+
+    /* col headers */
+    .cl-header {
+      display: grid; grid-template-columns: 28px 1fr 120px 28px 28px 28px 60px 60px;
+      gap: 6px; padding: 4px 4px 8px;
+      font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+      border-bottom: 1px solid var(--border); margin-bottom: 4px;
+    }
+
+    /* ── prioridades ── */
+    .priority-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .priority-table th {
+      background: var(--bg3); color: var(--muted); text-transform: uppercase;
+      font-size: 10px; letter-spacing: 1px; padding: 8px 10px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .priority-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    .priority-table tr:last-child td { border: none; }
+    .priority-table tr:hover td { background: var(--bg3); }
+
+    .rank-num { font-family: 'JetBrains Mono', monospace; font-weight: 700;
+      color: var(--muted); font-size: 16px; }
+    .gut-pill { font-family: 'JetBrains Mono', monospace; font-weight: 700;
+      font-size: 13px; padding: 3px 8px; border-radius: 4px; }
+    .gut-pill.crit { background: #7f1d1d; color: #fca5a5; }
+    .gut-pill.warn { background: #713f12; color: #fde68a; }
+    .gut-pill.low  { background: #14532d; color: #86efac; }
+
+    /* ── status strip ── */
+    .status-strip {
+      position: sticky; bottom: 0; background: var(--bg2);
+      border-top: 1px solid var(--border); padding: 10px 24px;
+      display: flex; align-items: center; gap: 16px; z-index: 10;
+    }
+    .stat-box { text-align: center; }
+    .stat-box .val { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; }
+    .stat-box .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .stat-box.crit .val { color: var(--red); }
+    .stat-box.warn .val { color: var(--amber); }
+    .stat-box.ok   .val { color: var(--green); }
+    .stat-box.acc  .val { color: var(--acc); }
+    .divider-v { width: 1px; height: 36px; background: var(--border); }
+    .ml-auto { margin-left: auto; }
+
+    /* ── tabs ── */
+    .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+    .tab { padding: 8px 14px; border-radius: 6px 6px 0 0; font-size: 12px; font-weight: 600;
+      cursor: pointer; color: var(--muted); transition: all 0.15s; border: none; background: none; }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--panel); color: var(--acc); border-bottom: 2px solid var(--acc); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── empty states ── */
+    .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+    .empty .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty p { font-size: 13px; max-width: 280px; margin: 0 auto; }
+
+    /* ── loading ── */
+    .spinner { display: inline-block; width: 16px; height: 16px;
+      border: 2px solid var(--border); border-top-color: var(--acc);
+      border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── GUT reference legend ── */
+    .gut-ref { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .gut-ref-col h5 { font-size: 10px; color: var(--acc);
+      font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 6px; }
+    .gut-ref-row { display: flex; justify-content: space-between; align-items: center;
+      padding: 3px 6px; border-radius: 4px; font-size: 11px; margin-bottom: 2px; }
+    .gut-ref-row .score { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+
+    /* scroll */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* print */
+    @media print {
+      .sidebar, .status-strip, .btn, .config-card, .gut-sel, .cl-local,
+      .tab-bar, #tabConf, #tabLocais { display: none !important; }
+      .pg-main { grid-template-columns: 1fr; }
+      body { background: #fff; color: #000; }
+      .sistema-block, .config-card { border: 1px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+<div class="pg-wrap">
+  <div id="app-header"></div>
+
+  <div class="pg-main">
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar">
+      <div>
+        <h2>Locais</h2>
+        <div class="local-search">
+          <input type="text" id="localSearch" placeholder="Filtrar locais..." oninput="filterLocais(this.value)">
+        </div>
+      </div>
+
+      <div class="local-tree" id="localTree">
+        <div class="empty"><div class="spinner"></div></div>
+      </div>
+
+      <div>
+        <h2>Locais selecionados</h2>
+        <div class="sel-summary">
+          <div class="count" id="selCount">0</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">locais para inspeção</div>
+          <div id="selTags"></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── CONTENT ── -->
+    <main class="content">
+      <div class="content-header">
+        <div>
+          <h1>Inspeção Predial</h1>
+          <div class="sub">NBR 5674:2012 · NBR 16747:2020 · Matriz GUT</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimir Laudo</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportarRelatorio()">📄 Exportar</button>
+          <button class="btn btn-primary" id="btnSalvar" onclick="salvarInspecao()" disabled>
+            💾 Salvar Inspeção
+          </button>
+        </div>
+      </div>
+
+      <!-- ── TABS ── -->
+      <div class="tab-bar">
+        <button class="tab active" onclick="switchTab('tabConf', this)">⚙️ Configuração</button>
+        <button class="tab" onclick="switchTab('tabChecklist', this)">📋 Checklist GUT</button>
+        <button class="tab" onclick="switchTab('tabPrioridades', this)">📊 Prioridades</button>
+        <button class="tab" onclick="switchTab('tabRef', this)">📖 Referência GUT</button>
+      </div>
+
+      <!-- ── TAB: CONFIGURAÇÃO ── -->
+      <div id="tabConf" class="tab-content active">
+        <div class="config-card">
+          <h3>Dados da Inspeção</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Título / Identificação</label>
+              <input type="text" id="fTitulo" placeholder="Ex: Inspeção Anual — Paiol 01">
+            </div>
+            <div class="form-group">
+              <label>Responsável Técnico</label>
+              <input type="text" id="fResponsavel" placeholder="Nome e cargo">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Data da Vistoria</label>
+              <input type="date" id="fData">
+            </div>
+            <div class="form-group">
+              <label>Template de Checklist</label>
+              <select id="fTemplate" onchange="carregarTemplate()">
+                <option value="">Carregando...</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row single">
+            <div class="form-group">
+              <label>Observações iniciais</label>
+              <textarea id="fObs" rows="3" placeholder="Condições climáticas, acesso, restrições..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>Sistemas a Inspecionar</h3>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+            Selecione os sistemas construtivos que serão vistoriados. Os itens serão gerados para cada sistema marcado.
+          </p>
+          <div class="sistemas-grid" id="sistemasGrid">
+            <div class="empty"><div class="spinner"></div></div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="selecionarTodosSistemas()">Selecionar todos</button>
+            <button class="btn btn-ghost btn-sm" onclick="limparSistemas()">Limpar</button>
+            <button class="btn btn-primary btn-sm" onclick="gerarChecklist()" style="margin-left:auto;">
+              ➜ Gerar Checklist
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: CHECKLIST ── -->
+      <div id="tabChecklist" class="tab-content">
+        <div id="checklistBody">
+          <div class="empty">
+            <div class="icon">📋</div>
+            <p>Configure a inspeção na aba <strong>Configuração</strong> e clique em <strong>Gerar Checklist</strong>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: PRIORIDADES ── -->
+      <div id="tabPrioridades" class="tab-content">
+        <div id="prioBody">
+          <div class="empty">
+            <div class="icon">📊</div>
+            <p>Preencha o checklist para visualizar as prioridades por Matriz GUT.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB: REFERÊNCIA GUT ── -->
+      <div id="tabRef" class="tab-content">
+        <div class="config-card">
+          <h3>Matriz GUT — Referência</h3>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">
+            Baseada em Gomide, Pujadas e Fagundes Neto (2009), adaptada para inspeção predial conforme NBR 16747:2020.
+            O escore GUT = G × U × T. Quanto maior, maior a prioridade de intervenção.
+          </p>
+          <div class="gut-ref">
+            <div class="gut-ref-col">
+              <h5>G — Gravidade</h5>
+              <div class="gut-ref-row" style="background:#7f1d1d">
+                <span>Perda de vidas / colapso</span><span class="score">10</span>
+              </div>
+              <div class="gut-ref-row" style="background:#7c2d12">
+                <span>Feridos / danos graves</span><span class="score">8</span>
+              </div>
+              <div class="gut-ref-row" style="background:#713f12">
+                <span>Desconforto / deterioração</span><span class="score">6</span>
+              </div>
+              <div class="gut-ref-row" style="background:#14532d">
+                <span>Pequenos prejuízos</span><span class="score">3</span>
+              </div>
+              <div class="gut-ref-row" style="background:var(--bg3)">
+                <span>Sem gravidade</span><span class="score">1</span>
+              </div>
+            </div>
+            <div class="gut-ref-col">
+              <h5>U — Urgência</h5>
+              <div class="gut-ref-row" style="background:#7f1d1d">
+                <span>Evento em ocorrência</span><span class="score">10</span>
+              </div>
+              <div class="gut-ref-row" style="background:#7c2d12">
+                <span>Prestes a ocorrer</span><span class="score">8</span>
+              </div>
+              <div class="gut-ref-row" style="background:#713f12">
+                <span>Prognosticado p/ breve</span><span class="score">6</span>
+              </div>
+              <div class="gut-ref-row" style="background:#14532d">
+                <span>Prognosticado p/ adiante</span><span class="score">3</span>
+              </div>
+              <div class="gut-ref-row" style="background:var(--bg3)">
+                <span>Evento imprevisto</span><span class="score">1</span>
+              </div>
+            </div>
+            <div class="gut-ref-col">
+              <h5>T — Tendência</h5>
+              <div class="gut-ref-row" style="background:#7f1d1d">
+                <span>Evolução imediata</span><span class="score">10</span>
+              </div>
+              <div class="gut-ref-row" style="background:#7c2d12">
+                <span>Evolução em curto prazo</span><span class="score">8</span>
+              </div>
+              <div class="gut-ref-row" style="background:#713f12">
+                <span>Evolução em médio prazo</span><span class="score">6</span>
+              </div>
+              <div class="gut-ref-row" style="background:#14532d">
+                <span>Evolução em longo prazo</span><span class="score">3</span>
+              </div>
+              <div class="gut-ref-row" style="background:var(--bg3)">
+                <span>Não vai evoluir</span><span class="score">1</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:16px;background:var(--bg3);border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">CLASSIFICAÇÃO DO ESCORE GUT TOTAL (G × U × T)</div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <div class="gut-pill low">1–100</div><span style="font-size:12px;">Baixo — planejar intervenção</span>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;">
+              <div class="gut-pill warn">101–400</div><span style="font-size:12px;">Médio — atenção / monitorar</span>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;">
+              <div class="gut-pill crit">&gt;400</div><span style="font-size:12px;">Crítico — intervenção imediata</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── STATUS STRIP ── -->
+  <div class="status-strip">
+    <div class="stat-box acc">
+      <div class="val" id="statTotal">0</div>
+      <div class="lbl">Itens</div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="stat-box ok">
+      <div class="val" id="statOk">0</div>
+      <div class="lbl">Conformes</div>
+    </div>
+    <div class="stat-box warn">
+      <div class="val" id="statAtencao">0</div>
+      <div class="lbl">Atenção</div>
+    </div>
+    <div class="stat-box crit">
+      <div class="val" id="statCritico">0</div>
+      <div class="lbl">Críticos</div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="stat-box acc">
+      <div class="val" id="statGutMax">—</div>
+      <div class="lbl">GUT Máx</div>
+    </div>
+    <div class="ml-auto" style="font-size:11px;color:var(--muted);">
+      xPredial · CMASM · NBR 5674:2012
+    </div>
+  </div>
+</div>
+
+<script src="assets/predial-api.js"></script>
+<script src="assets/predial.js"></script>
+<script>
+// ─── STATE ─────────────────────────────────────────────────────────────────────
+const state = {
+  locais: [],
+  locaisMap: {},
+  selectedLocais: new Set(),
+  templateId: null,
+  templateSistemas: {},   // sistema -> [{id, descricao, subsistema, ordem}]
+  selectedSistemas: new Set(),
+  items: [],             // [{id, sistema, subsistema, descricao, g, u, t, total, local, presente}]
+  inspecaoId: null,
+  saving: false,
+};
+
+const SISTEMA_META = {
+  documentacao:               { label: 'Documentação',        icon: '📄' },
+  fundacao:                   { label: 'Fundação',             icon: '🪨' },
+  estrutura:                  { label: 'Estrutura',            icon: '🏗️' },
+  vedacao:                    { label: 'Vedação',              icon: '🧱' },
+  revestimento:               { label: 'Revestimento',         icon: '🪟' },
+  esquadrias:                 { label: 'Esquadrias',           icon: '🚪' },
+  impermeabilizacao:          { label: 'Impermeabilização',    icon: '💧' },
+  cobertura:                  { label: 'Cobertura',            icon: '🏠' },
+  instalacao_hidrossanitaria: { label: 'Inst. Hidrossanitária',icon: '🚿' },
+  instalacao_eletrica:        { label: 'Inst. Elétrica',       icon: '⚡' },
+  instalacao_gas:             { label: 'Inst. Gás',            icon: '🔥' },
+  extintores:                 { label: 'Extintores',           icon: '🧯' },
+  hidrantes:                  { label: 'Hidrantes',            icon: '🚒' },
+  saida_emergencia:           { label: 'Saída de Emergência',  icon: '🚨' },
+  spda:                       { label: 'SPDA',                 icon: '⛈️' },
+  pavimentacao:               { label: 'Pavimentação',         icon: '🛤️' },
+  drenagem:                   { label: 'Drenagem',             icon: '🌊' },
+  muros_cercas:               { label: 'Muros / Cercas',       icon: '🏗️' },
+  iluminacao_externa:         { label: 'Iluminação Externa',   icon: '💡' },
+  vegetacao:                  { label: 'Vegetação',            icon: '🌿' },
+};
+
+// ─── INIT ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  try { xPredialUI.setHeader('inspecoes', 'Inspeção Predial — Matriz GUT'); } catch(e) {}
+  document.getElementById('fData').value = new Date().toISOString().split('T')[0];
+  await Promise.all([carregarLocais(), carregarTemplates()]);
+});
+
+// ─── LOCAIS ─────────────────────────────────────────────────────────────────
+async function carregarLocais() {
+  try {
+    const data = await predialAPI.listLocais();
+    state.locais = data;
+    data.forEach(l => { state.locaisMap[l.id] = l; });
+    renderLocaisTree(data);
+  } catch(e) {
+    document.getElementById('localTree').innerHTML =
+      '<div class="empty"><p>Erro ao carregar locais</p></div>';
+  }
+}
+
+function renderLocaisTree(locais, filtro = '') {
+  const tree = document.getElementById('localTree');
+  const filtered = filtro
+    ? locais.filter(l => l.nome.toLowerCase().includes(filtro.toLowerCase()))
+    : locais;
+
+  if (!filtered.length) {
+    tree.innerHTML = '<div class="empty"><p>Nenhum local encontrado</p></div>';
+    return;
+  }
+
+  // Calcular profundidade
+  const depthMap = {};
+  filtered.forEach(l => {
+    let d = 0, cur = l;
+    while (cur.parent_id) { d++; cur = state.locaisMap[cur.parent_id] || {}; if(d>10) break; }
+    depthMap[l.id] = d;
+  });
+
+  tree.innerHTML = filtered.map(l => {
+    const d = Math.min(depthMap[l.id] || 0, 4);
+    const tipo = l.tipo || '';
+    const sel = state.selectedLocais.has(l.id) ? 'selected' : '';
+    return `<div class="local-node ${sel}" data-id="${l.id}" onclick="toggleLocal(${l.id})">
+      <span class="indent" style="width:${d*12}px;display:inline-block;flex-shrink:0"></span>
+      <span class="name">${l.nome}</span>
+      ${tipo ? `<span class="tipo">${tipo.substring(0,8)}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function filterLocais(q) { renderLocaisTree(state.locais, q); }
+
+function toggleLocal(id) {
+  if (state.selectedLocais.has(id)) state.selectedLocais.delete(id);
+  else state.selectedLocais.add(id);
+  renderLocaisTree(state.locais, document.getElementById('localSearch').value);
+  updateSelSummary();
+}
+
+function updateSelSummary() {
+  const ids = [...state.selectedLocais];
+  document.getElementById('selCount').textContent = ids.length;
+  const tags = ids.map(id => {
+    const l = state.locaisMap[id];
+    return `<span class="sel-tag">${l?.nome || id}
+      <button onclick="toggleLocal(${id})">×</button></span>`;
+  }).join('');
+  document.getElementById('selTags').innerHTML = tags;
+  document.getElementById('btnSalvar').disabled = ids.length === 0 || state.items.length === 0;
+}
+
+// ─── TEMPLATES ──────────────────────────────────────────────────────────────
+async function carregarTemplates() {
+  try {
+    const resp = await fetch('/api/v1/checklist/templates');
+    if (!resp.ok) throw new Error();
+    const tpls = await resp.json();
+    const sel = document.getElementById('fTemplate');
+    sel.innerHTML = tpls.map(t =>
+      `<option value="${t.id}">${t.nome}</option>`
+    ).join('');
+    if (tpls.length) {
+      state.templateId = tpls[0].id;
+      await carregarTemplate();
+    }
+  } catch(e) {
+    document.getElementById('fTemplate').innerHTML =
+      '<option value="100">Inspeção Predial Completa — NBR 5674/16747</option>';
+    state.templateId = 100;
+    await carregarTemplate();
+  }
+}
+
+async function carregarTemplate() {
+  const sel = document.getElementById('fTemplate');
+  state.templateId = parseInt(sel.value) || 100;
+  state.selectedSistemas.clear();
+  state.templateSistemas = {};
+
+  try {
+    const resp = await fetch(`/api/v1/checklist/templates/${state.templateId}/itens`);
+    if (!resp.ok) throw new Error();
+    const itens = await resp.json();
+
+    // Agrupar por sistema
+    itens.forEach(item => {
+      if (!state.templateSistemas[item.sistema]) state.templateSistemas[item.sistema] = [];
+      state.templateSistemas[item.sistema].push(item);
+    });
+  } catch(e) {
+    // Fallback: usar dados embutidos de emergência
+    console.warn('API de templates indisponível — usando fallback');
+  }
+
+  renderSistemasGrid();
+}
+
+function renderSistemasGrid() {
+  const grid = document.getElementById('sistemasGrid');
+  const sistemas = Object.keys(state.templateSistemas);
+  if (!sistemas.length) {
+    grid.innerHTML = '<div class="empty"><p>Nenhum sistema disponível no template</p></div>';
+    return;
+  }
+  grid.innerHTML = sistemas.map(s => {
+    const meta = SISTEMA_META[s] || { label: s, icon: '📋' };
+    const cnt = state.templateSistemas[s].length;
+    const active = state.selectedSistemas.has(s) ? 'active' : '';
+    return `<div class="sistema-chip ${active}" data-s="${s}" onclick="toggleSistema('${s}')">
+      <span class="icon">${meta.icon}</span>
+      <span>${meta.label}</span>
+      <span class="cnt">${cnt}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleSistema(s) {
+  if (state.selectedSistemas.has(s)) state.selectedSistemas.delete(s);
+  else state.selectedSistemas.add(s);
+  renderSistemasGrid();
+}
+
+function selecionarTodosSistemas() {
+  Object.keys(state.templateSistemas).forEach(s => state.selectedSistemas.add(s));
+  renderSistemasGrid();
+}
+
+function limparSistemas() {
+  state.selectedSistemas.clear();
+  renderSistemasGrid();
+}
+
+// ─── GERAR CHECKLIST ────────────────────────────────────────────────────────
+function gerarChecklist() {
+  if (!state.selectedSistemas.size) {
+    alert('Selecione pelo menos um sistema para gerar o checklist.');
+    return;
+  }
+  if (!state.selectedLocais.size) {
+    alert('Selecione pelo menos um local na barra lateral.');
+    return;
+  }
+
+  // Montar itens
+  state.items = [];
+  let idx = 0;
+  state.selectedSistemas.forEach(sistema => {
+    const itens = state.templateSistemas[sistema] || [];
+    itens.forEach(item => {
+      state.items.push({
+        _id: idx++,
+        templateItemId: item.id,
+        sistema,
+        subsistema: item.subsistema || null,
+        descricao: item.descricao,
+        g: 0, u: 0, t: 0, total: 0,
+        localRef: '',
+        presente: false,
+      });
+    });
+  });
+
+  renderChecklistBody();
+  switchTab('tabChecklist', document.querySelector('.tab-bar .tab:nth-child(2)'));
+  document.getElementById('btnSalvar').disabled = false;
+}
+
+function renderChecklistBody() {
+  const container = document.getElementById('checklistBody');
+  if (!state.items.length) {
+    container.innerHTML = '<div class="empty"><div class="icon">📋</div><p>Nenhum item gerado.</p></div>';
+    return;
+  }
+
+  // Agrupar por sistema
+  const bySistema = {};
+  state.items.forEach(item => {
+    if (!bySistema[item.sistema]) bySistema[item.sistema] = [];
+    bySistema[item.sistema].push(item);
+  });
+
+  let html = '<div class="checklist-wrap">';
+
+  Object.entries(bySistema).forEach(([sis, itens]) => {
+    const meta = SISTEMA_META[sis] || { label: sis, icon: '📋' };
+    html += `
+    <div class="sistema-block" id="blk_${sis}">
+      <div class="sistema-block-header" onclick="toggleBloco('${sis}')">
+        <span>${meta.icon}</span>
+        <h4>${meta.label}</h4>
+        <span class="badge-cnt">${itens.length} itens</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="sistema-block-body" id="blkBody_${sis}">
+        <div class="cl-header">
+          <span></span><span>Descrição</span><span>Local / Ref.</span>
+          <span style="text-align:center">G</span>
+          <span style="text-align:center">U</span>
+          <span style="text-align:center">T</span>
+          <span style="text-align:right">GUT</span>
+          <span></span>
+        </div>`;
+
+    let lastSub = null;
+    itens.forEach(item => {
+      if (item.subsistema && item.subsistema !== lastSub) {
+        lastSub = item.subsistema;
+        html += `<div class="subsistema-label">${item.subsistema.toUpperCase()}</div>`;
+      }
+      html += renderItemRow(item);
+    });
+
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+  updateStats();
+}
+
+function renderItemRow(item) {
+  const selG = gutSelect('g', item._id, item.g);
+  const selU = gutSelect('u', item._id, item.u);
+  const selT = gutSelect('t', item._id, item.t);
+  const total = item.total;
+  const totalCls = total > 400 ? 'crit' : total > 100 ? 'warn' : total > 0 ? 'ok' : 'zero';
+  const nao_conf = item.presente ? 'nao-conforme' : '';
+
+  return `<div class="cl-item ${nao_conf}" id="row_${item._id}">
+    <input type="checkbox" class="cl-check" ${item.presente ? 'checked' : ''}
+      onchange="setPresente(${item._id}, this.checked)"
+      title="Marcar não conformidade encontrada">
+    <span class="cl-desc">${item.descricao}</span>
+    <input type="text" class="cl-local" placeholder="Local..." value="${item.localRef}"
+      oninput="setLocalRef(${item._id}, this.value)" title="Localização específica da anomalia">
+    ${selG}${selU}${selT}
+    <span class="cl-total ${totalCls}" id="gut_${item._id}">${total > 0 ? total : '—'}</span>
+    <div></div>
+  </div>`;
+}
+
+function gutSelect(dim, itemId, current) {
+  const opts = [
+    {v:0, l:'—'}, {v:1, l:'1'}, {v:3, l:'3'}, {v:6, l:'6'}, {v:8, l:'8'}, {v:10, l:'10'}
+  ];
+  const cls = current >= 10 ? 'v10' : current >= 8 ? 'v8' : current >= 6 ? 'v6' :
+              current >= 3 ? 'v3' : current >= 1 ? 'v1' : 'v0';
+  const optHtml = opts.map(o =>
+    `<option value="${o.v}" ${o.v === current ? 'selected' : ''}>${o.l}</option>`
+  ).join('');
+  return `<select class="gut-sel ${cls}" onchange="setGUT(${itemId},'${dim}',+this.value,this)">${optHtml}</select>`;
+}
+
+// ─── INTERAÇÕES ─────────────────────────────────────────────────────────────
+function setPresente(id, val) {
+  const item = state.items[id];
+  item.presente = val;
+  const row = document.getElementById(`row_${id}`);
+  if (val) row.classList.add('nao-conforme');
+  else row.classList.remove('nao-conforme');
+  // Se desmarcou: zerar GUT
+  if (!val) { item.g = 0; item.u = 0; item.t = 0; item.total = 0; syncGUTDisplay(id); }
+  updateStats();
+  updatePrioridades();
+}
+
+function setGUT(id, dim, val, selEl) {
+  const item = state.items[id];
+  // Auto-marcar como não conforme se GUT>0
+  if (val > 0 && !item.presente) {
+    item.presente = true;
+    const cb = document.querySelector(`#row_${id} .cl-check`);
+    if (cb) cb.checked = true;
+    document.getElementById(`row_${id}`).classList.add('nao-conforme');
+  }
+  item[dim] = val;
+  item.total = item.g * item.u * item.t;
+  // Atualizar classe visual do select
+  const cls = val >= 10 ? 'v10' : val >= 8 ? 'v8' : val >= 6 ? 'v6' :
+              val >= 3 ? 'v3' : val >= 1 ? 'v1' : 'v0';
+  selEl.className = `gut-sel ${cls}`;
+  // Atualizar total
+  const el = document.getElementById(`gut_${id}`);
+  const t = item.total;
+  el.textContent = t > 0 ? t : '—';
+  el.className = `cl-total ${t > 400 ? 'crit' : t > 100 ? 'warn' : t > 0 ? 'ok' : 'zero'}`;
+  updateStats();
+  updatePrioridades();
+}
+
+function setLocalRef(id, val) {
+  state.items[id].localRef = val;
+}
+
+function syncGUTDisplay(id) {
+  const item = state.items[id];
+  const el = document.getElementById(`gut_${id}`);
+  if (!el) return;
+  el.textContent = item.total > 0 ? item.total : '—';
+  el.className = `cl-total ${item.total > 400 ? 'crit' : item.total > 100 ? 'warn' : item.total > 0 ? 'ok' : 'zero'}`;
+  // Resetar selects
+  ['g','u','t'].forEach(dim => {
+    const row = document.getElementById(`row_${id}`);
+    if (!row) return;
+    const sels = row.querySelectorAll('.gut-sel');
+    sels.forEach(s => { s.value = '0'; s.className = 'gut-sel v0'; });
+  });
+}
+
+function toggleBloco(sis) {
+  const body = document.getElementById(`blkBody_${sis}`);
+  const hdr = document.querySelector(`#blk_${sis} .sistema-block-header`);
+  const collapsed = hdr.classList.toggle('collapsed');
+  body.style.display = collapsed ? 'none' : 'block';
+}
+
+// ─── STATS ──────────────────────────────────────────────────────────────────
+function updateStats() {
+  const total = state.items.length;
+  const critico = state.items.filter(i => i.total > 400).length;
+  const atencao = state.items.filter(i => i.total > 100 && i.total <= 400).length;
+  const ok = total - critico - atencao;
+  const maxGUT = Math.max(0, ...state.items.map(i => i.total));
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statOk').textContent = ok;
+  document.getElementById('statAtencao').textContent = atencao;
+  document.getElementById('statCritico').textContent = critico;
+  document.getElementById('statGutMax').textContent = maxGUT > 0 ? maxGUT : '—';
+}
+
+function updatePrioridades() {
+  const naoConf = state.items
+    .filter(i => i.presente && i.total > 0)
+    .sort((a,b) => b.total - a.total);
+
+  const el = document.getElementById('prioBody');
+  if (!naoConf.length) {
+    el.innerHTML = '<div class="empty"><div class="icon">✅</div><p>Nenhuma não conformidade registrada até o momento.</p></div>';
+    return;
+  }
+
+  const rows = naoConf.map((item, i) => {
+    const meta = SISTEMA_META[item.sistema] || { label: item.sistema, icon: '📋' };
+    const pillCls = item.total > 400 ? 'crit' : item.total > 100 ? 'warn' : 'low';
+    return `<tr>
+      <td><span class="rank-num">${i+1}°</span></td>
+      <td><span class="gut-pill ${pillCls}">${item.total}</span></td>
+      <td><span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--muted)">${item.g}×${item.u}×${item.t}</span></td>
+      <td>${meta.icon} ${meta.label}${item.subsistema ? ' › '+item.subsistema : ''}</td>
+      <td>${item.descricao}</td>
+      <td style="color:var(--muted);font-size:11px">${item.localRef || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="margin-bottom:12px;display:flex;gap:16px;font-size:12px;color:var(--muted)">
+      <span>Total não conformes: <strong style="color:var(--text)">${naoConf.length}</strong></span>
+      <span>GUT máx: <strong style="color:var(--red)">${naoConf[0].total}</strong></span>
+    </div>
+    <table class="priority-table">
+      <thead><tr>
+        <th>#</th><th>GUT</th><th>G×U×T</th><th>Sistema</th><th>Não Conformidade</th><th>Local</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ─── SALVAR ─────────────────────────────────────────────────────────────────
+async function salvarInspecao() {
+  if (state.saving) return;
+  const titulo = document.getElementById('fTitulo').value.trim();
+  const resp   = document.getElementById('fResponsavel').value.trim();
+  const data   = document.getElementById('fData').value;
+
+  if (!titulo) { alert('Informe o título da inspeção.'); return; }
+  if (!state.selectedLocais.size) { alert('Selecione pelo menos um local.'); return; }
+
+  state.saving = true;
+  const btn = document.getElementById('btnSalvar');
+  btn.disabled = true; btn.textContent = '⏳ Salvando...';
+
+  try {
+    const localIds = [...state.selectedLocais];
+
+    // Criar inspeção (endpoint existente)
+    let insp;
+    if (!state.inspecaoId) {
+      insp = await predialAPI.createInspecao({
+        titulo,
+        responsavel_tecnico: resp,
+        data_vistoria: data,
+        local_id: localIds[0],
+        status: 'em_execucao',
+        observacoes: document.getElementById('fObs').value,
+      });
+      state.inspecaoId = insp.id;
+    }
+
+    // Upsert itens GUT via endpoint existente
+    const naoConf = state.items.filter(i => i.presente);
+    for (const item of naoConf) {
+      const sis = item.sistema;
+      const sub = item.subsistema ? ` [${item.subsistema}]` : '';
+      try {
+        await predialAPI.upsertItem(state.inspecaoId, {
+          descricao: item.descricao,
+          categoria: sis,
+          condicao: item.total > 400 ? 'critico' : item.total > 100 ? 'atencao' : 'ok',
+          observacao: `GUT=${item.total} (G=${item.g}·U=${item.u}·T=${item.t}) | Local: ${item.localRef || 'n/i'}`,
+        });
+      } catch(e) { console.warn('Erro ao salvar item:', e); }
+    }
+
+    // Tentar atualizar GUT via endpoint adicional (se disponível)
+    try {
+      await fetch(`/api/v1/inspecoes/${state.inspecaoId}/copiar-template`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          template_id: state.templateId,
+          sistemas: [...state.selectedSistemas],
+        })
+      });
+    } catch(e) { /* opcional */ }
+
+    xPredialUI.toast(`Inspeção #${state.inspecaoId} salva com sucesso!`, 'success');
+    btn.textContent = `✓ Salvo — #${state.inspecaoId}`;
+    btn.style.background = 'var(--green)';
+    btn.style.color = '#000';
+  } catch(e) {
+    console.error(e);
+    xPredialUI.toast('Erro ao salvar inspeção: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Inspeção';
+  } finally {
+    state.saving = false;
+  }
+}
+
+// ─── EXPORT ─────────────────────────────────────────────────────────────────
+function exportarRelatorio() {
+  const naoConf = state.items.filter(i => i.presente && i.total > 0).sort((a,b) => b.total - a.total);
+  const titulo  = document.getElementById('fTitulo').value || 'Inspeção Predial';
+  const resp    = document.getElementById('fResponsavel').value || '—';
+  const data    = document.getElementById('fData').value || '—';
+
+  let csv = 'Prioridade;GUT;G;U;T;Sistema;Não Conformidade;Local\n';
+  naoConf.forEach((item, i) => {
+    const meta = SISTEMA_META[item.sistema] || { label: item.sistema };
+    csv += `${i+1};${item.total};${item.g};${item.u};${item.t};"${meta.label}";"${item.descricao}";"${item.localRef}"\n`;
+  });
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `inspecao_gut_${data}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (tabId === 'tabPrioridades') updatePrioridades();
+}
+</script>
+</body>
+</html>

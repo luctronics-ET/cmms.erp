@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:cc="http://xmlns.jcp.org/jsf/composite"
+      xmlns:h="http://xmlns.jcp.org/jsf/html">
+
+<cc:interface>
+    <cc:attribute name="titulo" required="false" default="XMapa" />
+    <cc:attribute name="modulo" required="true" />
+    <cc:attribute name="plantaPrincipal" required="true" />
+    <cc:attribute name="csvPrincipal" required="true" />
+    <cc:attribute name="csvSecundario" required="false" default="" />
+</cc:interface>
+
+<cc:implementation>
+    <div class="secao-box xmapa-box">
+        <h2>#{cc.attrs.titulo}</h2>
+        <table class="xmapaTable" align="center">
+            <tr>
+                <th>Modulo</th>
+                <th>Planta Principal</th>
+                <th>CSV Principal</th>
+                <th>CSV Secundario</th>
+                <th>Acao</th>
+            </tr>
+            <tr>
+                <td>#{cc.attrs.modulo}</td>
+                <td>#{cc.attrs.plantaPrincipal}</td>
+                <td>#{cc.attrs.csvPrincipal}</td>
+                <td>#{cc.attrs.csvSecundario}</td>
+                <td class="xmapaBtn" onclick="abrirMapa('#{cc.attrs.plantaPrincipal}', '#{cc.attrs.modulo}')">Usar no XMapa</td>
+            </tr>
+            <tr>
+                <td colspan="5">Padrao de uso: cada modulo chama este componente e publica seus arquivos de planta e tabela IP.</td>
+            </tr>
+        </table>
+    </div>
+</cc:implementation>
+</html>
