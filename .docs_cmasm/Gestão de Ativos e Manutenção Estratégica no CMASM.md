@@ -6,7 +6,7 @@ Este estudo de aplicação para o **CMASM** visa otimizar a gestão administrati
 
 Para uma organização complexa como o CMASM, a integração dessas três ferramentas é essencial:
 
-* **ERP (Enterprise Resource Planning):** Funcionaria como o "cérebro" administrativo, gerenciando o **orçamento militar, recursos humanos, compras de suprimentos** (combustível para geradores, peças para viaturas) e a logística de transporte para a ilha.  
+* **ERP (Enterprise Resource Planning):** Funcionaria como o "cérebro" administrativo, gerenciando o **orçamento, recursos humanos, compras de suprimentos** (combustível para geradores, peças para viaturas) e a logística de transporte para a ilha.  
 * **CMMS (Computerized Maintenance Management System):** Foca na **execução diária da manutenção**. A ferramenta dos técnicos para gerir Ordens de Serviço (OS):  limpeza de splits, revisão de máquinas de cortar grama, viaturas e embarcações,  lubrificação máquinas e motores, limpeza câmeras, troca de baterias.  
 * **EAM (Enterprise Asset Management):** Essencial para o CMASM por gerir o **ciclo de vida completo de ativos de alto valor**, como subestações elétricas, embarcações e guindastes, viaturas e embarcações, refrigeração. 
 
