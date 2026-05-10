@@ -4,6 +4,28 @@
 
 ---
 
+## 🏗️ ARQUITETURA — Módulos Externos (containers independentes)
+
+> Módulos externos têm repo, banco e Docker próprios. Conectam-se ao ERP via `XCORE_URL`.
+
+### Integração ERP ↔ Módulos Externos
+- [ ] Navbar ERP: botões "Módulos Externos" apontando para URLs configuráveis de cada módulo
+- [ ] Página dashboard-resumo por módulo externo (iframe ou card com métricas chave via API)
+- [ ] `GET /api/modulos` — endpoint xCore para listar módulos externos registrados + status (health check)
+- [ ] Padronizar autenticação: módulos recebem Bearer token do operador para chamar `/api/usuarios`
+
+### xPredial (porta 8002)
+- [ ] Confirmar integração `GET /api/usuarios` com token do ERP
+- [ ] Botão "→ OS" no ERP abre xPredial pré-filtrado por local
+
+### aguada-web (porta 8001)
+- [ ] Endpoint de push: aguada-web → xCore `/api/ativos/{id}` com leituras horárias
+
+### xSeguranca (porta 8000/3000)
+- [ ] Futura: importar lista de usuários do ERP via `GET /api/usuarios`
+
+---
+
 ## 🔴 PRIORIDADE ALTA — Funcionalidades incompletas em módulos existentes
 
 ### Auth & Sessão

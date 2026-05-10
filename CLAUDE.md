@@ -8,10 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Structure
 
-This git repo (`/home/luciano/DEV/cmasm.erp`) is the consolidated **xCMASM workspace**. The former xCore nucleus remains under `xCore/`, and satellite modules are now mirrored locally in this repository even if canonical copies still exist elsewhere under `/home/luciano/DEV/`.
+This git repo (`/home/luciano/DEV/cmasm.erp`) is the **xCMASM core workspace**. Contains the xCore nucleus and shared assets. External modules are independent repos/containers, kept outside this repo under `/home/luciano/DEV/cmasm.erp/.modulos-externos/` for temporary reference (will be removed — each module has its own repo).
 
 ```
-cmasm.erp/                       ← this repo (consolidated workspace)
+cmasm.erp/                       ← this repo (ERP nucleus)
 ├── cmasm_erp.html               # ★ MAIN ERP — single-file app, localStorage, no build step
 ├── index.html                   # Portal de acesso rápido (links para todos os módulos)
 │
@@ -27,6 +27,7 @@ cmasm.erp/                       ← this repo (consolidated workspace)
 │   │   ├── servicos/            # Vue 3 redirect launcher (→ cmasm_erp.html?page=srv-dashboard)
 │   │   └── mapa/                # Leaflet installation map
 │   ├── predial/                 # xPredial frontend (HTML/JS, served at /predial/*)
+│   │   └── docs/                # Referência: árvore de locais CMASM, tabelas
 │   ├── paiol/                   # xPaiol frontend (HTML/JS, served at /paiol/*)
 │   ├── cmasm-erp.html           # Older separate ERP portal (legacy, served by xCore FastAPI)
 │   └── tools/
@@ -55,14 +56,16 @@ cmasm.erp/                       ← this repo (consolidated workspace)
 └── .docs_cmasm/                 # Reference documents (CSV exports, OSM maps, PDFs)
 ```
 
-**Satellite mirrors** (available locally in this repo and possibly also as separate repos outside it):
-```
-xPredial/     # FastAPI facility inspection (port 8002/3001)
-xSeguranca/   # React + FastAPI CCTV (port 8000/3000)
-xPaiol/       # Arduino API ammo monitoring (port 8003)
-xCalibracao/  # FastAPI stub (port 8004)
-aguada-web/   # FastAPI + MQTT water systems (port 8001)
-```
+**Módulos Externos** (sistemas independentes — repos, bancos e containers Docker próprios):
+| Módulo | Stack | Porta | Integração com xCore |
+|--------|-------|-------|----------------------|
+| xPredial | FastAPI + HTML/JS | 8002 | `GET /api/usuarios` via XCORE_URL |
+| xSeguranca | React + FastAPI + PostgreSQL | 8000/3000 | Independente |
+| xPaiol | FastAPI + HTML/JS | 8003 | `GET /api/usuarios` via XCORE_URL |
+| xCalibracao | FastAPI (stub) | 8004 | `GET /api/usuarios` via XCORE_URL |
+| aguada-web | FastAPI + MQTT + HTML/JS | 8001 | Independente (sistema hídrico) |
+| xCFTV | Java (Spring) | — | Independente (vídeo/plantas) |
+| xFonoclama | ESP32 + React | — | Independente (alertas sonoros) |
 
 ---
 
@@ -160,9 +163,9 @@ const sdk = xcmasm({ baseURL: 'http://localhost:8010' });
 
 Starting point for new asset-management HTML modules (no build step, localStorage-based). See `AGENTS.md §10` for the 10-step guide to create a new module from this template. Key config points: `TIPOS`, `UNIDADES_DEFAULT`, `PECAS_DEFAULT`, `SK`/`SE` (unique localStorage keys).
 
-### Satellite integration
+### Módulos Externos integration
 
-All satellites set `XCORE_URL = os.getenv("XCORE_URL", "http://localhost:8010")` and call xCore for shared data (users, org structure). xSeguranca is fully independent (own PostgreSQL + Redis).
+All external modules set `XCORE_URL = os.getenv("XCORE_URL", "http://localhost:8010")` and call xCore for shared data (users, org structure). xSeguranca is fully independent (own PostgreSQL + Redis).
 
 ---
 

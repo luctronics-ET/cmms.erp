@@ -304,14 +304,25 @@ Fontes que incrementam `uso_atual`:
 
 ---
 
-## 9. Satélites (fora do xCore)
+## 9. Módulos Externos (fora do xCore)
 
-| Satélite | Porta | Dados que usa do xCore |
-|----------|-------|------------------------|
-| xPredial | 8002 | `GET /api/usuarios` (lista de executantes) |
+Cada módulo externo é um sistema autônomo com repo, banco e container Docker próprios. Comunicam-se com o xCore via API REST.
+
+| Módulo | Porta | Dados que usa do xCore |
+|--------|-------|------------------------|
+| xPredial | 8002 | `GET /api/usuarios` (lista de executantes); pode criar OS via `POST /api/os` |
 | xPaiol | 8003 | `GET /api/usuarios`, futura integração de ativos |
-| xSegurança | 8000 | Independente (próprio PG + Redis) |
+| xSegurança | 8000 | Independente (próprio PostgreSQL + Redis); futura integração de usuários |
 | aguada-web | 8001 | Independente; futuramente enviará dados de ativos hidráulicos via API |
+| xCalibracao | 8004 | `GET /api/usuarios` via `XCORE_URL` |
+| xCFTV | — | Independente (vídeo/plantas CFTV) |
+| xFonoclama | — | Independente (alertas sonoros) |
+
+### Princípios de integração
+
+- **Usuários**: módulos obtêm a lista via `GET /api/usuarios` com Bearer token do operador logado — não replicam a tabela de usuários
+- **OS**: módulos podem criar Ordens de Serviço no xCore via `POST /api/os` com `modulo_origem` preenchido
+- **Navbar**: cada módulo aparece como botão na seção "Módulos Externos" do ERP (`cmasm_erp.html`)
 
 ---
 
@@ -399,4 +410,5 @@ await fetch('http://localhost:8010/api/os', {
 | OS concluída | Estoque | `POST /api/estoque/{id}/movimentos` com `tipo=saida`, `os_id` |
 | OS concluída | Ativos | `PUT /api/ativos/{id}` atualizando `uso_atual` |
 | xGrama / operação | Ativos | `PUT /api/ativos/{id}` incrementando `uso_atual` com horas da operação |
-| xPredial | Usuários | `GET /api/usuarios` via `XCORE_URL` |
+| Módulo Externo | Usuários xCore | `GET /api/usuarios` via `XCORE_URL` (Bearer token do operador) |
+| Módulo Externo | OS xCore | `POST /api/os` com `modulo_origem=<nome_modulo>` |

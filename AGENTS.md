@@ -2,12 +2,12 @@
 
 Sistema de gestão do CMASM (Centro de Mísseis e Armas Submarinas da Marinha).
 
-## Arquitetura: Núcleo + Satélites
+## Arquitetura: Núcleo + Módulos Externos
 
 O xCMASM é organizado em dois níveis:
 
 - **Núcleo (`xCore/`)** — API central única (porta 8010). Concentra usuários, ativos, locais, OS, estoque e controle vegetal.
-- **Satélites** — módulos especializados com repos e containers próprios, integram via `XCORE_URL`.
+- **Módulos Externos** — sistemas especializados com repositórios, bancos e containers Docker próprios. Integram com o ERP via `XCORE_URL` para consultar ou fornecer dados. Ficam **fora** do repo `cmasm.erp`, em repos independentes.
 
 ## Estrutura do Núcleo (xCore — porta 8010)
 
@@ -30,19 +30,27 @@ O xCMASM é organizado em dois níveis:
 | `xCore/frontend/servicos/` | Entrada legada (compatibilidade) redirecionada para `cmasm-erp.html?page=srv-dashboard` |
 | `xCore/frontend/mapa/` | xMap — mapa de instalações com camadas Leaflet |
 
-## Satélites (espelhos locais no workspace)
+## Módulos Externos (containers independentes)
 
-| Satélite | Pasta | Stack | Porta | Integração |
-|----------|-------|-------|-------|------------|
-| **xPredial** | `xPredial/` | FastAPI + HTML/JS | 8002/3001 | `GET /api/usuarios` via XCORE_URL |
-| **xSeguranca** | `xSeguranca/` | React + stack Docker; backend Python precisa ser restaurado | 8000 | — |
-| **xPaiol** | `xPaiol/` | FastAPI + HTML/JS | 8003 | XCORE_URL configurado |
-| **xCalibracao** | `xCalibracao/` | FastAPI (stub) | 8004 | XCORE_URL configurado |
-| **aguada-web** | `aguada-web/` | FastAPI + MQTT + HTML/JS | 8001 | espelho local do sistema hídrico |
+Cada módulo externo é um sistema autônomo com seu próprio repo, banco de dados e container Docker. Eles se conectam ao ERP consultando a API do xCore (usuários, ativos, OS) e aparecem como botões na navbar do ERP na seção **Módulos Externos**.
 
-Os satélites podem continuar existindo como repositórios independentes fora desta pasta, mas o `cmasm.erp` agora mantém cópias locais para referência, migração e consolidação.
+| Módulo | Stack | Porta | Integração com xCore |
+|--------|-------|-------|----------------------|
+| **xPredial** | FastAPI + HTML/JS | 8002 | `GET /api/usuarios` via XCORE_URL; pode gerar OS |
+| **xSeguranca** | React + FastAPI + PostgreSQL | 8000/3000 | Independente (próprio DB); futura integração de usuários |
+| **xPaiol** | FastAPI + HTML/JS | 8003 | `GET /api/usuarios`, futura integração de ativos |
+| **xCalibracao** | FastAPI (stub) | 8004 | `GET /api/usuarios` via XCORE_URL |
+| **aguada-web** | FastAPI + MQTT + HTML/JS | 8001 | Independente; futuramente enviará dados de ativos hidráulicos |
+| **xCFTV** | Java (Spring) | — | Independente (vídeo/plantas CFTV) |
+| **xFonoclama** | ESP32 + React | — | Independente (alertas sonoros) |
 
-Todos os satélites definem `XCORE_URL = os.getenv("XCORE_URL", "http://localhost:8010")`.
+### Princípios dos Módulos Externos
+
+- **Banco separado**: cada módulo tem seu próprio SQLite/PostgreSQL — nunca compartilham DB com o xCore
+- **Usuários do ERP**: módulos obtêm a lista de usuários via `GET http://xcore:8010/api/usuarios` usando o token Bearer do operador logado; não duplicam a tabela de usuários
+- **Docker independente**: cada módulo tem `docker-compose.yml` próprio; comunicação via rede Docker ou `XCORE_URL` configurável por env
+- **Acesso no ERP**: botões na navbar do ERP (`cmasm_erp.html`) na seção "Módulos Externos"; cada módulo terá página de dashboard-resumo futuramente
+- **Todos definem**: `XCORE_URL = os.getenv("XCORE_URL", "http://localhost:8010")`
 
 ## Design System — xCMASM
 
@@ -61,27 +69,27 @@ Todos os satélites definem `XCORE_URL = os.getenv("XCORE_URL", "http://localhos
 
 Fontes: JetBrains Mono (dados/código) + DM Sans (UI). Carregar do Google Fonts no `<head>`.
 
-Referência de componentes: `xCore/CMASM_Gestao_v2.html` e `xPredial/frontend/assets/xpredial-core.css`.
+Referência de componentes: `xCore/CMASM_Gestao_v2.html` e `xCore/predial/assets/xpredial-core.css`.
 
 ## Padrões de Código
 
 - **Frontend HTML**: HTML5 + vanilla JS puro. Sem framework, sem build step.
 - **Frontend Vue**: legado em processo de descontinuação; a entrada `xCore/frontend/servicos/index.html` redireciona para o ERP consolidado.
 - **Backend**: FastAPI + aiosqlite. Async/await. Pydantic para validação.
-- **API Client**: objeto plano `predialAPI.metodo()` — ver `xPredial/frontend/assets/predial-api.js`.
+- **API Client**: objeto plano `predialAPI.metodo()` — ver `xCore/predial/assets/predial-api.js`.
 - **Banco**: SQLite com schemas aditivos. `db_core.py` carrega `schema_core.sql` + `schema_grama.sql` no startup.
 - **NEO**: código curto derivado do CMASM (ex: `CMASM-34.2` → NEO `34.2`), preservar pontos para hierarquia.
 
 ## Integração entre Módulos
 
-- `xPredial` → `xCore`: proxy `/api/v1/usuarios` → `GET http://xcore:8010/api/usuarios`
+- **Módulos Externos → xCore**: cada módulo usa `XCORE_URL` para `GET /api/usuarios` (Bearer token do operador)
+- **xCore → Módulos Externos**: links na navbar do ERP abrem o módulo externo (URL configurável por env)
 - `xCore/frontend/servicos/` → launcher de compatibilidade para o módulo interno de serviços no ERP (`srv-dashboard`)
 - `xCore/frontend/mapa/` → `xCore API`: fetch `http://localhost:8010/api/grama/*`
-- `xGrama` → no workspace atual, o domínio está embutido no `xCore` via `/api/grama/*`
+- `xGrama` → domínio embutido no `xCore` via `/api/grama/*`
 - Navegação cross-módulo: link `⇚ xCMASM` aponta para o portal principal em `xCore/cmasm-erp.html`
 
 ## Docs de Referência
 
-- Locais CMASM: [`xPredial/docs/arvore_locais_cmasm.md`](xPredial/docs/arvore_locais_cmasm.md)
+- Locais CMASM: [`xCore/predial/docs/arvore_locais_cmasm.md`](xCore/predial/docs/arvore_locais_cmasm.md)
 - Norma principal: NBR 5674:2012 (manutenção de edificações)
-- Plano estratégico: [`xPredial/.referencias/Plano Estratégico de Gestão de Manutenção Edificada_.md`](xPredial/.referencias/Plano%20Estratégico%20de%20Gestão%20de%20Manutenção%20Edificada_%20Diretrizes%20e%20Fluxos%20Operacionais.md)
