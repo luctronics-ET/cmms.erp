@@ -1,6 +1,27 @@
 # xCMASM · TODO / Backlog / Planos Futuros
 
-> Status: 9 de Maio de 2026 · versão 5.4
+> Status: 16 de Maio de 2026 · versão 5.5
+
+---
+
+## 🤖 SKILLS & AGENTES — Customizações de IA para o workspace
+
+- [ ] `/create-skill xCMASM-new-module` — guia de 10 passos para criar novo módulo satélite a partir de `ativo-template.html`: design system, Docker, integração `XCORE_URL`, padrão de API client vanilla JS
+- [ ] `/create-skill xCMASM-os-workflow` — encapsula regras de negócio do ciclo OS (máquina de estados PS→OS, reserva de materiais, manutenção preventiva) para evitar erros de contrato frontend↔backend
+- [ ] `/create-agent xCore-api-explorer` — agente que consulta `:8010/docs` e responde sobre endpoints disponíveis; útil ao desenvolver integrações de satélites
+
+---
+
+## 🏗️ ARQUITETURA — Consolidação do Workspace
+
+- [ ] Arquivar `xCMASM/` (snapshot legado) → mover para `.archive_xCMASM/` após confirmar que pmoc-engine.js e xcmasm-govbr* foram portados
+- [ ] Migrar `cmasm.erp/predial/` → `xPredial/` (frontend do satélite deve viver no repo do satélite)
+- [ ] Migrar `cmasm.erp/paiol/` → `xPaiol/frontend/`
+- [ ] Criar `DEV/docker-compose.yml` orquestrador raiz: sobe xCore + todos os satélites com uma única `docker compose up`
+- [ ] Criar rede Docker compartilhada `xcmasm` para comunicação inter-containers por nome de serviço
+- [ ] Criar `Dockerfile` + `docker-compose.yml` para xPaiol e xCalibracao (baseado em xAguada)
+- [ ] Garantir 100% offline: substituir todas as referências a `fonts.googleapis.com` por `/assets/fonts.css` (fontes self-hosted já existem em `assets/fonts/`)
+- [ ] Centralizar GOV.BR design system offline: copiar `xcmasm-govbr.css` de xCMASM/assets/ para cmasm.erp/assets/ e criar `xcmasm-template.html` base para novos módulos
 
 ---
 

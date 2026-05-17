@@ -1,0 +1,2184 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMASM — Transportes</title>
+<link rel="stylesheet" href="../assets/fonts.css">
+<style>
+/* ─── TOKENS ──────────────────────────────────────────────── */
+:root {
+  --navy-950: #050d18;
+  --navy-900: #0a1628;
+  --navy-800: #0f2040;
+  --navy-700: #162d58;
+  --navy-600: #1e3d72;
+  --navy-500: #2553a0;
+  --navy-400: #3b72cc;
+  --navy-300: #6394e0;
+  --navy-200: #a0bef0;
+  --navy-100: #d6e4f8;
+  --gold:     #c8a951;
+  --gold-dim: #8a7238;
+  --text-1:   #e8eef8;
+  --text-2:   #9aaec8;
+  --text-3:   #5a7090;
+  --surface-0: #050d18;
+  --surface-1: #0a1628;
+  --surface-2: #0f2040;
+  --surface-3: #162d58;
+  --border:    rgba(255,255,255,0.08);
+  --border-hi: rgba(255,255,255,0.16);
+  /* status */
+  --pronto:    #22c55e;
+  --pronto-bg: rgba(34,197,94,.12);
+  --green:     #22c55e;
+  --green-bg:  rgba(34,197,94,.12);
+  --or:        #f59e0b;
+  --or-bg:     rgba(245,158,11,.12);
+  --inop:      #ef4444;
+  --inop-bg:   rgba(239,68,68,.12);
+  --manut:     #a78bfa;
+  --manut-bg:  rgba(167,139,250,.12);
+  /* viatura/embarcação */
+  --vtr-color: #38bdf8;
+  --emb-color: #34d399;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --font: 'IBM Plex Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+[data-theme="light"] {
+  --navy-950: #f0f4fb;
+  --navy-900: #e4ecf7;
+  --navy-800: #d0def0;
+  --text-1:   #0f2040;
+  --text-2:   #2a4a7a;
+  --text-3:   #5a7090;
+  --surface-0: #f0f4fb;
+  --surface-1: #ffffff;
+  --surface-2: #e8f0fa;
+  --surface-3: #d0def0;
+  --border:    rgba(0,0,0,0.08);
+  --border-hi: rgba(0,0,0,0.15);
+}
+
+/* ─── RESET ───────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--surface-0);color:var(--text-1);font-size:14px;line-height:1.5}
+button{font-family:var(--font);cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:var(--font)}
+a{color:inherit;text-decoration:none}
+ul{list-style:none}
+
+/* ─── LAYOUT ──────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:56px 1fr;height:100vh;overflow:hidden}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:0 20px;background:var(--surface-1);border-bottom:1px solid var(--border);z-index:100}
+.sidebar{grid-row:2;background:var(--surface-1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+.main{grid-row:2;overflow-y:auto;padding:0}
+
+/* ─── TOPBAR ──────────────────────────────────────────────── */
+.topbar-logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--gold)}
+.topbar-logo svg{flex-shrink:0}
+.topbar-sep{height:24px;width:1px;background:var(--border)}
+.topbar-module{font-size:13px;color:var(--text-2)}
+.topbar-spacer{flex:1}
+.topbar-badge{background:var(--navy-700);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--text-2);font-family:var(--mono)}
+.btn-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--text-2);transition:background .15s,color .15s}
+.btn-icon:hover{background:var(--surface-3);color:var(--text-1)}
+
+/* ─── SIDEBAR ─────────────────────────────────────────────── */
+.sidebar-section{padding:16px 12px 4px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);font-weight:500}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 14px;margin:1px 6px;border-radius:6px;font-size:13px;color:var(--text-2);cursor:pointer;transition:background .12s,color .12s;white-space:nowrap;overflow:hidden}
+.nav-item:hover{background:var(--surface-3);color:var(--text-1)}
+.nav-item.active{background:rgba(37,83,160,.35);color:var(--navy-200);border-left:2px solid var(--navy-400)}
+.nav-item svg{flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.sidebar-bottom{margin-top:auto;padding:12px}
+
+/* ─── KPI STRIP ───────────────────────────────────────────── */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:20px 24px 0}
+.kpi{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.k-total::before{background:var(--navy-400)}
+.kpi.k-pronto::before{background:var(--pronto)}
+.kpi.k-or::before{background:var(--or)}
+.kpi.k-inop::before{background:var(--inop)}
+.kpi-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.kpi-value{font-size:28px;font-weight:600;line-height:1;font-family:var(--mono)}
+.kpi-sub{font-size:11px;color:var(--text-3)}
+
+/* ─── CONTENT AREA ────────────────────────────────────────── */
+.content-area{padding:16px 24px 24px}
+.content-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.content-title{font-size:16px;font-weight:600;color:var(--text-1)}
+.content-spacer{flex:1}
+
+/* ─── TABS ─────────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:2px;background:var(--surface-2);border-radius:8px;padding:3px;margin-bottom:16px}
+.tab-btn{flex:1;padding:7px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--text-2);transition:all .15s;text-align:center}
+.tab-btn.active{background:var(--surface-1);color:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+
+/* ─── TYPE FILTER TOGGLE ─────────────────────────────────── */
+.type-toggle{display:flex;gap:8px}
+.type-chip{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);color:var(--text-2);transition:all .15s;cursor:pointer}
+.type-chip.active-vtr{background:rgba(56,189,248,.15);border-color:var(--vtr-color);color:var(--vtr-color)}
+.type-chip.active-emb{background:rgba(52,211,153,.15);border-color:var(--emb-color);color:var(--emb-color)}
+.type-chip:hover{border-color:var(--border-hi)}
+.type-dot{width:7px;height:7px;border-radius:50%}
+.dot-vtr{background:var(--vtr-color)}
+.dot-emb{background:var(--emb-color)}
+
+/* ─── SEARCH & FILTERS ───────────────────────────────────── */
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:200px}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3)}
+.search-input{width:100%;padding:8px 10px 8px 34px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-1);font-size:13px;outline:none;transition:border .15s}
+.search-input:focus{border-color:var(--navy-400)}
+.filter-select{padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-2);font-size:13px;outline:none;min-width:130px}
+
+/* ─── FROTA GRID ──────────────────────────────────────────── */
+.frota-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.vehicle-card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:border-color .15s,transform .1s;position:relative;overflow:hidden}
+.vehicle-card:hover{border-color:var(--border-hi);transform:translateY(-1px)}
+.vehicle-card.selected{border-color:var(--navy-400);background:rgba(37,83,160,.08)}
+.vc-stripe{position:absolute;top:0;left:0;right:0;height:3px}
+.vc-stripe.pronto{background:var(--pronto)}
+.vc-stripe.or{background:var(--or)}
+.vc-stripe.inop{background:var(--inop)}
+.vc-stripe.manut{background:var(--manut)}
+.vc-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.vc-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
+.vc-icon.vtr{background:rgba(56,189,248,.12);color:var(--vtr-color)}
+.vc-icon.emb{background:rgba(52,211,153,.12);color:var(--emb-color)}
+.vc-info{flex:1;min-width:0}
+.vc-code{font-family:var(--mono);font-size:12px;color:var(--text-3);margin-bottom:2px}
+.vc-name{font-size:14px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vc-type{font-size:12px;color:var(--text-2)}
+.status-badge{padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;letter-spacing:.04em;font-family:var(--mono)}
+.sb-pronto{background:var(--pronto-bg);color:var(--pronto)}
+.sb-or{background:var(--or-bg);color:var(--or)}
+.sb-ok{background:var(--green-bg);color:var(--green)}
+.sb-inop{background:var(--inop-bg);color:var(--inop)}
+.sb-manut{background:var(--manut-bg);color:var(--manut)}
+.vc-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:12px}
+.vc-meta-item{display:flex;flex-direction:column;gap:1px}
+.vc-meta-label{font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.vc-meta-value{font-size:13px;color:var(--text-2);font-family:var(--mono)}
+.vc-footer{display:flex;align-items:center;gap:6px;border-top:1px solid var(--border);padding-top:10px}
+.vc-btn{flex:1;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:500;border:1px solid var(--border);color:var(--text-2);background:transparent;transition:all .15s;text-align:center}
+.vc-btn:hover{background:var(--surface-3);color:var(--text-1)}
+.vc-btn.primary{border-color:var(--navy-400);color:var(--navy-200);background:rgba(37,83,160,.2)}
+.vc-btn.primary:hover{background:rgba(37,83,160,.4)}
+.vc-btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+.restrict-note{font-size:11px;color:var(--or);background:var(--or-bg);border-radius:6px;padding:5px 8px;margin-top:8px;border:1px solid rgba(245,158,11,.2)}
+
+/* ─── DETAIL PANEL (slide-in) ────────────────────────────── */
+.detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .2s}
+.detail-overlay.open{opacity:1;pointer-events:all}
+.detail-panel{position:fixed;top:0;right:0;bottom:0;width:520px;background:var(--surface-1);border-left:1px solid var(--border);z-index:201;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);overflow-y:auto;display:flex;flex-direction:column}
+.detail-panel.open{transform:translateX(0)}
+.dp-header{display:flex;align-items:center;gap:12px;padding:20px 20px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface-1);z-index:10}
+.dp-title{font-size:16px;font-weight:600;color:var(--text-1)}
+.dp-sub{font-size:12px;color:var(--text-2);margin-top:1px}
+.dp-body{padding:20px;flex:1}
+.dp-tabs{display:flex;gap:2px;background:var(--surface-2);border-radius:8px;padding:3px;margin-bottom:20px}
+.dp-tab{flex:1;padding:6px 8px;border-radius:6px;font-size:12px;font-weight:500;color:var(--text-2);cursor:pointer;text-align:center;transition:all .15s}
+.dp-tab.active{background:var(--surface-1);color:var(--text-1)}
+.dp-section{margin-bottom:20px}
+.dp-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:3px}
+.field-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.field-value{font-size:13px;color:var(--text-1);font-family:var(--mono)}
+.field-value.note{font-family:var(--font);color:var(--text-2);font-size:13px;line-height:1.5}
+
+/* ─── MANUTENÇÃO TABLE ───────────────────────────────────── */
+.manut-table{width:100%;border-collapse:collapse;font-size:13px}
+.manut-table th{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--border);font-weight:600}
+.manut-table td{padding:10px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top}
+.manut-table tr:last-child td{border-bottom:none}
+.manut-table tr:hover td{background:var(--surface-2)}
+.manut-type{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:2px 8px;border-radius:10px;font-family:var(--mono)}
+.mt-prev{background:rgba(56,189,248,.12);color:var(--vtr-color)}
+.mt-corr{background:var(--inop-bg);color:var(--inop)}
+.mt-insp{background:rgba(167,139,250,.12);color:var(--manut)}
+.manut-status-ok{color:var(--pronto);font-size:12px}
+.manut-status-pend{color:var(--or);font-size:12px}
+
+/* ─── AGENDAMENTOS ────────────────────────────────────────── */
+.agenda-list{display:flex;flex-direction:column;gap:8px}
+.agenda-item{background:var(--surface-2);border-radius:8px;padding:12px 14px;border-left:3px solid var(--navy-400);display:flex;align-items:center;gap:12px}
+.agenda-item.inop-block{border-left-color:var(--inop);opacity:.6}
+.agenda-date{font-family:var(--mono);font-size:12px;color:var(--text-2);min-width:90px}
+.agenda-info{flex:1}
+.agenda-title{font-size:13px;font-weight:500;color:var(--text-1)}
+.agenda-meta{font-size:12px;color:var(--text-2)}
+.agenda-requester{font-size:12px;color:var(--text-3)}
+
+/* ─── FORMS ───────────────────────────────────────────────── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.full{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:12px;color:var(--text-2);font-weight:500}
+.form-label span{color:var(--inop);margin-left:2px}
+.form-control{padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-1);font-size:13px;outline:none;transition:border .15s;width:100%}
+.form-control:focus{border-color:var(--navy-400)}
+.form-control::placeholder{color:var(--text-3)}
+select.form-control option{background:var(--surface-2)}
+.form-hint{font-size:11px;color:var(--text-3)}
+
+/* ─── MODALS ──────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius-lg);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;margin:20px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border)}
+.modal-title{font-size:15px;font-weight:600}
+.modal-body{padding:20px}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+/* ─── BUTTONS ─────────────────────────────────────────────── */
+.btn{padding:8px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;border:1px solid transparent;cursor:pointer;transition:all .15s;font-family:var(--font)}
+.btn-primary{background:var(--navy-500);color:white;border-color:var(--navy-400)}
+.btn-primary:hover{background:var(--navy-400)}
+.btn-ghost{background:transparent;color:var(--text-2);border-color:var(--border)}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text-1)}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--inop);border-color:rgba(239,68,68,.3)}
+.btn-danger:hover{background:rgba(239,68,68,.25)}
+.btn-warning{background:var(--or-bg);color:var(--or);border-color:rgba(245,158,11,.3)}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* ─── TIMELINE ────────────────────────────────────────────── */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:12px;position:relative}
+.tl-item:not(:last-child) .tl-line{position:absolute;left:11px;top:24px;bottom:-4px;width:1px;background:var(--border)}
+.tl-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;margin-top:2px;z-index:1}
+.tl-dot.ok{background:var(--pronto-bg);color:var(--pronto)}
+.tl-dot.warn{background:var(--or-bg);color:var(--or)}
+.tl-dot.danger{background:var(--inop-bg);color:var(--inop)}
+.tl-dot.info{background:var(--manut-bg);color:var(--manut)}
+.tl-content{flex:1;padding:2px 0 16px}
+.tl-date{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.tl-title{font-size:13px;font-weight:500;color:var(--text-1)}
+.tl-desc{font-size:12px;color:var(--text-2)}
+
+/* ─── EMPTY STATE ─────────────────────────────────────────── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;color:var(--text-3);gap:12px}
+.empty-state svg{opacity:.3}
+.empty-state p{font-size:13px;text-align:center}
+
+/* ─── MISC ─────────────────────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:16px 0}
+.text-mono{font-family:var(--mono)}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;background:var(--surface-3);color:var(--text-2)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;font-size:13px;color:var(--text-1);min-width:240px;animation:slideUp .2s ease;display:flex;align-items:center;gap:10px}
+.toast.success{border-left:3px solid var(--pronto)}
+.toast.warning{border-left:3px solid var(--or)}
+.toast.error{border-left:3px solid var(--inop)}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface-3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--navy-400)}
+</style>
+<link rel="stylesheet" href="../assets/erp-module-shell.css">
+</head>
+<body class="erp-transportes-body">
+
+<div class="app" id="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <a class="tb-home" href="cmasm-erp.html">⇚ xCMASM</a>
+    <div class="topbar-logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+      CMMS
+    </div>
+    <div class="topbar-sep"></div>
+    <div class="topbar-module">Transportes · Shell interno padronizado do ERP</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-badge" id="shared-indicator">⬤ sem dados do core</div>
+    <button class="btn-icon" title="Alternar tema" onclick="toggleTheme()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">CMMS</div>
+    <div class="nav-item active" onclick="navigate('frota')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Frota
+    </div>
+    <div class="nav-item" onclick="navigate('agenda')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Agendamentos
+    </div>
+    <div class="nav-item" onclick="navigate('manutencao')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      Manutenção
+    </div>
+    <div class="nav-item" onclick="navigate('relatorio')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Relatórios
+    </div>
+    <div class="sidebar-section">Ações rápidas</div>
+    <div class="nav-item" onclick="openModal('novoVeiculo')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Cadastrar veículo
+    </div>
+    <div class="nav-item" onclick="openModal('novaManut')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Registrar manutenção
+    </div>
+    <div class="nav-item" onclick="openModal('novoAgenda')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+      Agendar uso
+    </div>
+    <div class="sidebar-bottom">
+      <div style="font-size:11px;color:var(--text-3);text-align:center;font-family:var(--mono)">
+        Transportes · shell ERP
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main" id="main-content">
+    <!-- conteúdo injetado via JS -->
+  </main>
+
+</div>
+
+<!-- ─── DETAIL PANEL ──────────────────────── -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="dp-header">
+    <div id="dp-icon" class="vc-icon" style="width:44px;height:44px;border-radius:10px"></div>
+    <div style="flex:1;min-width:0">
+      <div class="dp-title" id="dp-title">—</div>
+      <div class="dp-sub" id="dp-sub">—</div>
+    </div>
+    <div id="dp-status-badge" class="status-badge">—</div>
+    <button class="btn-icon" onclick="closeDetail()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="dp-body">
+    <div class="dp-tabs">
+      <div class="dp-tab active" onclick="dpTab(this,'info')">Informações</div>
+      <div class="dp-tab" onclick="dpTab(this,'manut')">Manutenção</div>
+      <div class="dp-tab" onclick="dpTab(this,'hist')">Histórico</div>
+      <div class="dp-tab" onclick="dpTab(this,'agenda-dp')">Agenda</div>
+    </div>
+    <div id="dp-content"><!-- injected --></div>
+  </div>
+</div>
+
+<!-- ─── MODAL NOVO VEÍCULO ────────────────── -->
+<div class="modal-overlay" id="modal-novoVeiculo">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Cadastrar Veículo / Embarcação</div>
+      <button class="btn-icon" onclick="closeModal('novoVeiculo')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Código / Prefixo <span>*</span></label>
+          <input class="form-control" id="nv-codigo" placeholder="VTR-001 / EMB-001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo <span>*</span></label>
+          <select class="form-control" id="nv-tipo">
+            <option value="viatura">Viatura</option>
+            <option value="embarcacao">Embarcação</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Denominação <span>*</span></label>
+          <input class="form-control" id="nv-nome" placeholder="Ex: Caminhão Pipa / Lancha de Patrulha">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Subtipo</label>
+          <input class="form-control" id="nv-subtipo" placeholder="Ex: Caminhão / Lancha / Van">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Placa / Reg. INEA</label>
+          <input class="form-control" id="nv-placa" placeholder="ABC-1234">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Ano de fabricação</label>
+          <input class="form-control" id="nv-ano" type="number" placeholder="2020">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lotação (pessoas)</label>
+          <input class="form-control" id="nv-lotacao" type="number" placeholder="5" value="5">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Km / Horas atual</label>
+          <input class="form-control" id="nv-km" type="number" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status inicial <span>*</span></label>
+          <select class="form-control" id="nv-status">
+            <option value="P">P — Pronto</option>
+            <option value="OR">OR — Op. com Restrição</option>
+            <option value="INOP">INOP — Inoperante</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Responsável</label>
+          <input class="form-control" id="nv-responsavel" placeholder="Nome do responsável">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Próxima manutenção preventiva</label>
+          <input class="form-control" id="nv-prox-manut" type="date">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Observações / Restrições</label>
+          <textarea class="form-control" id="nv-obs" rows="2" placeholder="Descreva restrições operacionais se houver"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('novoVeiculo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarVeiculo()">Cadastrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL MANUTENÇÃO ──────────────────── -->
+<div class="modal-overlay" id="modal-novaManut">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Registrar Manutenção</div>
+      <button class="btn-icon" onclick="closeModal('novaManut')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Veículo / Embarcação <span>*</span></label>
+          <select class="form-control" id="mn-veiculo"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo de manutenção <span>*</span></label>
+          <select class="form-control" id="mn-tipo">
+            <option value="preventiva">Preventiva</option>
+            <option value="corretiva">Corretiva</option>
+            <option value="inspecao">Inspeção</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data <span>*</span></label>
+          <input class="form-control" id="mn-data" type="date">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Descrição do serviço <span>*</span></label>
+          <textarea class="form-control" id="mn-descricao" rows="2" placeholder="Descreva o serviço realizado"></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Km / Horas no ato</label>
+          <input class="form-control" id="mn-km" type="number" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Próxima preventiva</label>
+          <input class="form-control" id="mn-prox" type="date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Executado por</label>
+          <input class="form-control" id="mn-exec" placeholder="Nome do executor">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Novo status após manutenção</label>
+          <select class="form-control" id="mn-novo-status">
+            <option value="">Manter atual</option>
+            <option value="P">P — Pronto</option>
+            <option value="OR">OR — Op. com Restrição</option>
+            <option value="INOP">INOP — Inoperante</option>
+            <option value="MANUT">Em Manutenção</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('novaManut')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarManutencao()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL AGENDAR ─────────────────────── -->
+<div class="modal-overlay" id="modal-novoAgenda">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div class="modal-title">Pedido de Agendamento de Transporte</div>
+      <button class="btn-icon" onclick="closeModal('novoAgenda')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+
+      <!-- STATUS BANNER -->
+      <div id="modal-agenda-warning" style="display:none;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;border:1px solid"></div>
+
+      <!-- BLOCO 1 — VEÍCULO -->
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:5px">1 — Meio de transporte</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo <span>*</span></label>
+          <select class="form-control" id="ag-tipo-filtro" onchange="filtrarVeiculosPorTipo()">
+            <option value="all">Qualquer tipo</option>
+            <option value="viatura">Viatura</option>
+            <option value="embarcacao">Embarcação</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Veículo / Embarcação <span>*</span></label>
+          <select class="form-control" id="ag-veiculo" onchange="onVeiculoSelecionado()">
+            <option value="">— selecione —</option>
+          </select>
+          <div class="form-hint" id="ag-status-hint"></div>
+        </div>
+      </div>
+      <!-- HABILITAÇÕES EXIGIDAS (injetado dinamicamente) -->
+      <div id="ag-hab-info" style="display:none;background:var(--surface-2);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--text-2);border:1px solid var(--border)"></div>
+
+      <!-- BLOCO 2 — PERÍODO -->
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600;margin:14px 0 8px;border-bottom:1px solid var(--border);padding-bottom:5px">2 — Período</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Data / hora de partida <span>*</span></label>
+          <input class="form-control" id="ag-saida" type="datetime-local">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data / hora de retorno previsto</label>
+          <input class="form-control" id="ag-retorno" type="datetime-local">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Período</label>
+          <select class="form-control" id="ag-periodo">
+            <option value="diurno">Diurno</option>
+            <option value="noturno">Noturno</option>
+            <option value="integral">Integral (24h)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prioridade</label>
+          <select class="form-control" id="ag-prioridade">
+            <option value="normal">Normal</option>
+            <option value="urgente">Urgente</option>
+            <option value="emergencia">Emergência</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- BLOCO 3 — DESTINO -->
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600;margin:14px 0 8px;border-bottom:1px solid var(--border);padding-bottom:5px">3 — Missão</div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Destino <span>*</span></label>
+          <input class="form-control" id="ag-destino" placeholder="Ex: COLOG — Rio de Janeiro / Baía de Guanabara">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Finalidade / Missão <span>*</span></label>
+          <input class="form-control" id="ag-finalidade" placeholder="Descreva o objetivo da saída">
+        </div>
+      </div>
+
+      <!-- BLOCO 4 — SOLICITANTE -->
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600;margin:14px 0 8px;border-bottom:1px solid var(--border);padding-bottom:5px">4 — Solicitante</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nome <span>*</span></label>
+          <input class="form-control" id="ag-solicitante-nome" placeholder="Posto / graduação + nome">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Seção / Departamento</label>
+          <input class="form-control" id="ag-solicitante-setor" placeholder="Ex: CMASM-20">
+        </div>
+      </div>
+
+      <!-- BLOCO 5 — TRIPULAÇÃO (dinâmico por tipo de veículo) -->
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600;margin:14px 0 8px;border-bottom:1px solid var(--border);padding-bottom:5px">5 — Tripulação</div>
+      <div id="ag-tripulacao-fields">
+        <!-- injetado por onVeiculoSelecionado() -->
+        <div style="font-size:13px;color:var(--text-3);padding:8px 0">Selecione um veículo para ver os campos de tripulação.</div>
+      </div>
+
+      <!-- BLOCO 6 — CARGA / PAX -->
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);font-weight:600;margin:14px 0 8px;border-bottom:1px solid var(--border);padding-bottom:5px">6 — Passageiros e carga</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Nº de passageiros</label>
+          <input class="form-control" id="ag-pax" type="number" value="0" min="0">
+          <div class="form-hint" id="ag-lotacao-hint"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Peso da carga (kg)</label>
+          <input class="form-control" id="ag-carga-kg" type="number" value="0" min="0" oninput="checkCarga()">
+          <div class="form-hint" id="ag-carga-hint"></div>
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Descrição da carga</label>
+          <input class="form-control" id="ag-carga-desc" placeholder="Ex: peças de reposição, equipamentos, mantimentos">
+        </div>
+      </div>
+
+      <!-- OBS -->
+      <div class="form-row full" style="margin-top:10px">
+        <div class="form-group">
+          <label class="form-label">Observações</label>
+          <textarea class="form-control" id="ag-obs" rows="2" placeholder="Informações adicionais relevantes para a missão"></textarea>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('novoAgenda')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-agenda" onclick="salvarAgendamento()">Confirmar agendamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL ATRIBUIR TRIPULAÇÃO ─────────── -->
+<div class="modal-overlay" id="modal-atribuir">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">Atribuir veículo e tripulação</div>
+      <button class="btn-icon" onclick="document.getElementById('modal-atribuir').classList.remove('open')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="atr-body"><!-- injetado por openAtribuirModal --></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal-atribuir').classList.remove('open')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarAtribuicao()">Confirmar atribuição</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ─── MODAL DETALHE AGENDAMENTO ─────────── -->
+<div class="modal-overlay" id="modal-agendaDetalhe">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title">Detalhe do Agendamento</div>
+      <button class="btn-icon" onclick="closeModal('agendaDetalhe')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="agenda-detalhe-body" style="display:flex;flex-direction:column;gap:12px"></div>
+    <div class="modal-footer" id="agenda-detalhe-footer">
+      <button class="btn btn-ghost" onclick="closeModal('agendaDetalhe')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL CONCLUIR VIAGEM ─────────── -->
+<div class="modal-overlay" id="modal-concluirViagem">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">Concluir Viagem</div>
+      <button class="btn-icon" onclick="closeModal('concluirViagem')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cv-agenda-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Km / Horas na saída</label>
+          <input class="form-control" id="cv-km-saida" type="number" placeholder="ex: 45200">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Km / Horas na chegada</label>
+          <input class="form-control" id="cv-km-chegada" type="number" placeholder="ex: 45380">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observações da viagem</label>
+        <textarea class="form-control" id="cv-obs" rows="3" placeholder="Incidentes, condições, passageiros transportados…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('concluirViagem')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarConclusaoViagem()">✓ Registrar conclusão</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   CMASM TRANSPORTES — SPA core
+   Módulo: CMASM-11.2 · Seção de Transportes
+   Dados: localStorage namespace "trsp_"
+   Integração: cmasm_shared (leitura de usuários/cargos)
+═══════════════════════════════════════════════════════════ */
+
+/* ── SEED DATA ─────────────────────────────────────────────── */
+/* habilitacoes: array de strings exigidas para conduzir/operar
+   livreOperacao: qualquer usuario pode operar (true) ou só operadoresFixos (false)
+   operadoresFixos: array de IDs de operadores autorizados (usado quando livreOperacao=false)
+   Para embarcações: papel 'patrao' (quem pilota) e 'mo' (mestre de obras / ajudante)
+   Para viaturas:    papel 'motorista'
+*/
+/* const SEED_VEICULOS = [
+  { id:'t1', codigo:'VTR-001', nome:'Caminhão Pipa', tipo:'viatura', subtipo:'Caminhão', placa:'MK-1234', ano:2018, lotacao:3, cargaKg:5000, km:48320, status:'P', responsavel:'CB Santos', proxManut:'2025-06-15', obs:'',
+    habilitacoes:['D'], livreOperacao:false, operadoresFixos:['op1','op2'] },
+  { id:'t2', codigo:'VTR-002', nome:'Viatura de Transporte', tipo:'viatura', subtipo:'Micro-ônibus', placa:'MK-5678', ano:2020, lotacao:15, cargaKg:0, km:21400, status:'OR', responsavel:'CB Ferreira', proxManut:'2025-05-20', obs:'Ar-cond. traseiro inoperante. Lotação restrita a 10 pax.',
+    habilitacoes:['D'], livreOperacao:false, operadoresFixos:['op1','op3'] },
+  { id:'t3', codigo:'VTR-003', nome:'Pickup Operacional', tipo:'viatura', subtipo:'Pickup', placa:'MK-9012', ano:2019, lotacao:5, cargaKg:800, km:35180, status:'INOP', responsavel:'Sd Almeida', proxManut:'2025-04-10', obs:'Motor. Aguardando peça.',
+    habilitacoes:['B'], livreOperacao:true, operadoresFixos:[] },
+  { id:'t4', codigo:'VTR-004', nome:'Furgão de Carga', tipo:'viatura', subtipo:'Furgão', placa:'MK-3456', ano:2017, lotacao:3, cargaKg:1500, km:72640, status:'MANUT', responsavel:'CB Santos', proxManut:'2025-04-30', obs:'Em revisão preventiva programada.',
+    habilitacoes:['C'], livreOperacao:false, operadoresFixos:['op2','op4'] },
+  { id:'t5', codigo:'EMB-001', nome:'Lancha de Patrulha', tipo:'embarcacao', subtipo:'Lancha', placa:'RJ-40001', ano:2016, lotacao:8, cargaKg:600, km:1240, status:'P', responsavel:'2SG Costa', proxManut:'2025-07-01', obs:'',
+    habilitacoes:['Arrais-Amador','MotorNaval'], livreOperacao:false, operadoresFixos:['op5','op6','op7'] },
+  { id:'t6', codigo:'EMB-002', nome:'Bote Inflável Tático', tipo:'embarcacao', subtipo:'Bote', placa:'RJ-40002', ano:2021, lotacao:6, cargaKg:400, km:380, status:'OR', responsavel:'2SG Costa', proxManut:'2025-05-15', obs:'Motor de popa com potência reduzida. Carga máx 400 kg.',
+    habilitacoes:['Arrais-Amador'], livreOperacao:false, operadoresFixos:['op5','op6'] },
+  { id:'t7', codigo:'EMB-003', nome:'Escaler de Apoio', tipo:'embarcacao', subtipo:'Escaler', placa:'RJ-40003', ano:2014, lotacao:12, cargaKg:1200, km:3820, status:'P', responsavel:'2SG Lima', proxManut:'2025-08-10', obs:'',
+    habilitacoes:['Arrais-Amador','MotorNaval'], livreOperacao:false, operadoresFixos:['op6','op7','op8'] }
+]; */
+
+/* Operadores habilitados por papel
+   papel: motorista | patrao | mo
+   habilitacoes: array de CNH ou titulações náuticas
+*/
+const SEED_OPERADORES = [
+  { id:'op1', nome:'CB Santos', posto:'Cabo', nip:'123456', papel:'motorista', habilitacoes:['B','C','D'], ativo:true },
+  { id:'op2', nome:'Sd Alves',  posto:'Soldado', nip:'234567', papel:'motorista', habilitacoes:['B','D'], ativo:true },
+  { id:'op3', nome:'CB Ferreira', posto:'Cabo', nip:'345678', papel:'motorista', habilitacoes:['B','C','D'], ativo:true },
+  { id:'op4', nome:'Sd Carvalho', posto:'Soldado', nip:'456789', papel:'motorista', habilitacoes:['B','C'], ativo:true },
+  { id:'op5', nome:'2SG Costa', posto:'2º Sargento', nip:'567890', papel:'patrao', habilitacoes:['Arrais-Amador','MotorNaval'], ativo:true },
+  { id:'op6', nome:'2SG Lima',  posto:'2º Sargento', nip:'678901', papel:'patrao', habilitacoes:['Arrais-Amador','MotorNaval'], ativo:true },
+  { id:'op7', nome:'CB Mota',   posto:'Cabo', nip:'789012', papel:'mo', habilitacoes:['MotorNaval'], ativo:true },
+  { id:'op8', nome:'Sd Pereira', posto:'Soldado', nip:'890123', papel:'mo', habilitacoes:['MotorNaval'], ativo:true },
+];
+
+const SEED_MANUTENCOES = [
+  { id: 'm1', veiculoId: 't1', tipo: 'preventiva', data: '2025-01-15', descricao: 'Troca de óleo, filtros e revisão geral dos 45.000 km', km: 45000, exec: 'Oficina CMASM', proxManut: '2025-07-15', novoStatus: 'P' },
+  { id: 'm2', veiculoId: 't2', tipo: 'corretiva', data: '2025-02-10', descricao: 'Reparo no sistema de A/C dos bancos traseiros. Substituição do compressor traseiro.', km: 20800, exec: 'Refrigeração Sul', proxManut: null, novoStatus: 'OR' },
+  { id: 'm3', veiculoId: 't3', tipo: 'corretiva', data: '2025-03-20', descricao: 'Diagnóstico de falha no motor. Identificado problema no cabeçote. Aguardando peça.', km: 35180, exec: 'Mec. Naval Ltda', proxManut: null, novoStatus: 'INOP' },
+  { id: 'm4', veiculoId: 't4', tipo: 'preventiva', data: '2025-04-01', descricao: 'Revisão dos 70.000 km. Troca de correias, filtros, pastilhas. Em andamento.', km: 72640, exec: 'Oficina CMASM', proxManut: '2025-10-01', novoStatus: 'MANUT' },
+  { id: 'm5', veiculoId: 't5', tipo: 'inspecao', data: '2024-12-20', descricao: 'Inspeção anual obrigatória. Todos os sistemas dentro dos parâmetros.', km: 1100, exec: 'Cap. Insp. Naval', proxManut: '2025-07-01', novoStatus: 'P' },
+  { id: 'm6', veiculoId: 't6', tipo: 'corretiva', data: '2025-03-05', descricao: 'Diagnóstico do motor de popa. Desgaste nos pistões. Potência reduzida mantida por segurança.', km: 340, exec: 'Mecamar RJ', proxManut: null, novoStatus: 'OR' },
+  { id: 'm7', veiculoId: 't1', tipo: 'preventiva', data: '2024-07-10', descricao: 'Troca de óleo e filtros 40.000 km', km: 40100, exec: 'Oficina CMASM', proxManut: '2025-01-15', novoStatus: 'P' },
+  { id: 'm8', veiculoId: 't7', tipo: 'inspecao', data: '2025-01-08', descricao: 'Vistoria semestral do casco e equipamentos de segurança.', km: 3700, exec: 'Trib. Marítimo', proxManut: '2025-08-10', novoStatus: 'P' }
+];
+
+const SEED_AGENDAMENTOS = [
+  { id:'a1', veiculoId:'t1', prioridade:'normal', periodo:'diurno',
+    solicitanteId:'', solicitanteNome:'Cap. Rodrigues', solicitanteSetor:'CMASM-30',
+    destino:'COLOG — Rio de Janeiro (buscar material)', finalidade:'Retirada de material de manutenção',
+    saida:'2025-04-08T08:00', retorno:'2025-04-08T17:00',
+    tripulacao:{ motorista:'op1', patrao:null, mo:null },
+    passageiros:2, cargaDesc:'Peças diversas de reposição', cargaKg:200,
+    status:'confirmado', obs:'' },
+  { id:'a2', veiculoId:'t5', prioridade:'urgente', periodo:'diurno',
+    solicitanteId:'', solicitanteNome:'1SG Barbosa', solicitanteSetor:'CMASM-20',
+    destino:'Patrulha canal norte — Baía de Guanabara', finalidade:'Patrulha de rotina',
+    saida:'2025-04-09T06:00', retorno:'2025-04-09T12:00',
+    tripulacao:{ motorista:null, patrao:'op5', mo:'op7' },
+    passageiros:3, cargaDesc:'', cargaKg:0,
+    status:'confirmado', obs:'' },
+  { id:'a3', veiculoId:'t2', prioridade:'normal', periodo:'diurno',
+    solicitanteId:'', solicitanteNome:'Tur. Leal', solicitanteSetor:'CMASM-31',
+    destino:'CMG / Niterói', finalidade:'Translado de pessoal',
+    saida:'2025-04-10T07:00', retorno:'2025-04-10T09:00',
+    tripulacao:{ motorista:'op3', patrao:null, mo:null },
+    passageiros:10, cargaDesc:'', cargaKg:0,
+    status:'confirmado', obs:'' },
+  { id:'a4', veiculoId:'t7', prioridade:'normal', periodo:'diurno',
+    solicitanteId:'', solicitanteNome:'Cap. Mendes', solicitanteSetor:'CMASM-10',
+    destino:'Cais sul — área operativa', finalidade:'Apoio logístico de carga',
+    saida:'2025-04-12T09:00', retorno:'2025-04-12T15:00',
+    tripulacao:{ motorista:null, patrao:'op6', mo:'op8' },
+    passageiros:4, cargaDesc:'Equipamentos de manutenção', cargaKg:350,
+    status:'confirmado', obs:'' }
+];
+
+/* ── DB ─────────────────────────────────────────────────────── */
+const NS = 'trsp_';
+const DB = {
+  get(key) { try { return JSON.parse(localStorage.getItem(NS+key))||[] } catch(e){return[]} },
+  set(key,val) { localStorage.setItem(NS+key, JSON.stringify(val)); publishShared() },
+  init() {
+    // limpa veículos antigos do localStorage — frota vem da API agora
+    localStorage.removeItem(NS+'veiculos')
+    if (!localStorage.getItem(NS+'init')) {
+      this.set('manutencoes', SEED_MANUTENCOES)
+      this.set('agendamentos', SEED_AGENDAMENTOS)
+      this.set('operadores', SEED_OPERADORES)
+      localStorage.setItem(NS+'init','1')
+    }
+  }
+}
+
+/* ── FROTA DA API ───────────────────────────────────────────── */
+window._FROTA = []
+
+function getVeiculos() { return window._FROTA || [] }
+
+async function loadFrota() {
+  try {
+    const [resVtr, resEmb] = await Promise.all([
+      fetch('http://localhost:8010/api/ativos?categoria=viaturas'),
+      fetch('http://localhost:8010/api/ativos?categoria=embarcacoes')
+    ])
+    const vtrs = resVtr.ok ? await resVtr.json() : []
+    const embs = resEmb.ok ? await resEmb.json() : []
+
+    const mapAtivo = (a, tipo) => ({
+      id: String(a.id),
+      codigo: a.placa || String(a.id),
+      nome: a.nome,
+      tipo: tipo,
+      subtipo: a.subtipo || '',
+      placa: a.placa || '',
+      ano: null,
+      lotacao: null,
+      cargaKg: null,
+      km: a.uso_atual || 0,
+      status: a.ativo ? 'P' : 'INOP',
+      responsavel: '',
+      proxManut: null,
+      obs: a.obs || '',
+      habilitacoes: [],
+      livreOperacao: true,
+      operadoresFixos: []
+    })
+
+    window._FROTA = [
+      ...vtrs.map(a => mapAtivo(a, 'viatura')),
+      ...embs.map(a => mapAtivo(a, 'embarcacao'))
+    ]
+  } catch(e) {
+    console.warn('loadFrota: falha ao carregar da API xCore', e)
+    window._FROTA = []
+  }
+  renderView()
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6) }
+
+function publishShared() {
+  // publica lista de veículos para outros módulos (ex: servicos como SR de transporte)
+  try {
+    const existing = JSON.parse(localStorage.getItem('cmasm_shared')||'{}')
+    existing.transportes = { veiculos: getVeiculos(), ts: Date.now() }
+    localStorage.setItem('cmasm_shared', JSON.stringify(existing))
+  } catch(e) {}
+}
+
+/* ── USUÁRIO LOGADO (do cmasm_shared) ──────────────────────── */
+let currentUser = null   // { nome, setor, cargo, nip }
+
+function loadShared() {
+  try {
+    const d = JSON.parse(localStorage.getItem('cmasm_shared')||'{}')
+    const el = document.getElementById('shared-indicator')
+
+    if (d.users && d.users.length) {
+      el.style.color = 'var(--pronto)'
+
+      // tenta pegar o usuário logado: primeiro do campo session, senão o primeiro admin/ativo
+      const session = d.session || null
+      let user = session ? d.users.find(u => u.id === session.id || u.nip === session.nip) : null
+      if (!user) user = d.users.find(u => u.ativo !== false) || d.users[0]
+
+      if (user) {
+        // resolve setor a partir de cargo se disponível
+        let setor = user.setor || ''
+        if (!setor && d.cargos && user.cargoId) {
+          const cargo = d.cargos.find(c => c.id === user.cargoId)
+          setor = cargo?.setor || cargo?.divisao || ''
+        }
+        currentUser = {
+          nome:  user.posto ? `${user.posto} ${user.nome}` : user.nome,
+          setor: setor,
+          nip:   user.nip || user.matricula || '',
+          cargo: user.cargo || ''
+        }
+        el.textContent = `⬤ ${currentUser.nome}`
+      } else {
+        el.textContent = `⬤ core · ${d.users.length} usuários`
+        currentUser = null
+      }
+    } else {
+      el.textContent = '⬤ sem dados do core'
+      el.style.color = 'var(--text-3)'
+      currentUser = null
+    }
+  } catch(e) { currentUser = null }
+}
+
+/* ── STATE ───────────────────────────────────────────────────── */
+let currentView = 'frota'
+let selectedVehicle = null
+let currentDpTab = 'info'
+let filterStatus = 'all'
+let filterTipo = 'all'
+let searchQ = ''
+
+/* ── STATUS HELPERS ──────────────────────────────────────────── */
+const STATUS_LABELS = { P:'Pronto', OR:'Op. c/ Restrição', INOP:'Inoperante', MANUT:'Em Manutenção' }
+const STATUS_CLASS  = { P:'sb-pronto', OR:'sb-or', INOP:'sb-inop', MANUT:'sb-manut' }
+const STRIPE_CLASS  = { P:'pronto', OR:'or', INOP:'inop', MANUT:'manut' }
+const MANUT_LABELS  = { preventiva:'Preventiva', corretiva:'Corretiva', inspecao:'Inspeção' }
+
+function canSchedule(v) { return v.status === 'P' || v.status === 'OR' }
+
+function statusBadge(s) {
+  return `<span class="status-badge ${STATUS_CLASS[s]||''}">${STATUS_LABELS[s]||s}</span>`
+}
+
+function typeIcon(tipo) {
+  if (tipo === 'embarcacao') return `<div class="vc-icon emb">⚓</div>`
+  return `<div class="vc-icon vtr">🚗</div>`
+}
+
+/* ── NAVIGATION ──────────────────────────────────────────────── */
+function navigate(view) {
+  currentView = view
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'))
+  const map = { frota:0, agenda:1, manutencao:2, relatorio:3 }
+  document.querySelectorAll('.nav-item')[map[view]]?.classList.add('active')
+  renderView()
+}
+
+function renderView() {
+  const main = document.getElementById('main-content')
+  if (currentView === 'frota')     main.innerHTML = buildFrota()
+  else if (currentView === 'agenda') main.innerHTML = buildAgenda()
+  else if (currentView === 'manutencao') main.innerHTML = buildManutencao()
+  else if (currentView === 'relatorio') main.innerHTML = buildRelatorio()
+  bindFrotaEvents()
+}
+
+/* ── KPI CALC ─────────────────────────────────────────────────── */
+function calcKpis(veiculos) {
+  return {
+    total:  veiculos.length,
+    pronto: veiculos.filter(v=>v.status==='P').length,
+    or:     veiculos.filter(v=>v.status==='OR').length,
+    inop:   veiculos.filter(v=>v.status==='INOP'||v.status==='MANUT').length,
+  }
+}
+
+/* ═══════════════ VIEW: FROTA ══════════════════════════════════ */
+function buildFrota() {
+  const all = getVeiculos()
+  const k = calcKpis(all)
+  let filtered = all
+  if (filterStatus !== 'all') filtered = filtered.filter(v=>v.status===filterStatus)
+  if (filterTipo !== 'all')   filtered = filtered.filter(v=>v.tipo===filterTipo)
+  if (searchQ)                filtered = filtered.filter(v=>
+    v.nome.toLowerCase().includes(searchQ)||
+    v.codigo.toLowerCase().includes(searchQ)||
+    (v.placa||'').toLowerCase().includes(searchQ))
+
+  const cards = filtered.length ? filtered.map(v => buildVehicleCard(v)).join('') :
+    `<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><p>Nenhum veículo encontrado com os filtros selecionados.</p></div>`
+
+  const vtrCount = all.filter(v=>v.tipo==='viatura').length
+  const embCount = all.filter(v=>v.tipo==='embarcacao').length
+
+  return `
+  <div class="kpi-strip">
+    <div class="kpi k-total">
+      <div class="kpi-label">Total da frota</div>
+      <div class="kpi-value" style="color:var(--navy-300)">${k.total}</div>
+      <div class="kpi-sub">${vtrCount} viaturas · ${embCount} embarcações</div>
+    </div>
+    <div class="kpi k-pronto">
+      <div class="kpi-label">Prontos</div>
+      <div class="kpi-value" style="color:var(--pronto)">${k.pronto}</div>
+      <div class="kpi-sub">disponíveis para uso</div>
+    </div>
+    <div class="kpi k-or">
+      <div class="kpi-label">Op. c/ Restrição</div>
+      <div class="kpi-value" style="color:var(--or)">${k.or}</div>
+      <div class="kpi-sub">uso condicionado</div>
+    </div>
+    <div class="kpi k-inop">
+      <div class="kpi-label">INOP / Manutenção</div>
+      <div class="kpi-value" style="color:var(--inop)">${k.inop}</div>
+      <div class="kpi-sub">indisponíveis</div>
+    </div>
+  </div>
+  <div class="content-area">
+    <div class="content-header">
+      <div class="content-title">Frota</div>
+      <div class="topbar-spacer"></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('novoVeiculo')">+ Cadastrar</button>
+    </div>
+    <div class="filter-row">
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="search-frota" placeholder="Buscar por código, nome ou placa…" value="${searchQ}" oninput="searchQ=this.value;renderView()">
+      </div>
+      <select class="filter-select" id="filter-status" onchange="filterStatus=this.value;renderView()">
+        <option value="all" ${filterStatus==='all'?'selected':''}>Todos os status</option>
+        <option value="P"    ${filterStatus==='P'?'selected':''}>Pronto</option>
+        <option value="OR"   ${filterStatus==='OR'?'selected':''}>Op. c/ Restrição</option>
+        <option value="INOP" ${filterStatus==='INOP'?'selected':''}>INOP</option>
+        <option value="MANUT" ${filterStatus==='MANUT'?'selected':''}>Em Manutenção</option>
+      </select>
+      <select class="filter-select" id="filter-tipo" onchange="filterTipo=this.value;renderView()">
+        <option value="all" ${filterTipo==='all'?'selected':''}>Todos os tipos</option>
+        <option value="viatura"    ${filterTipo==='viatura'?'selected':''}>Viaturas</option>
+        <option value="embarcacao" ${filterTipo==='embarcacao'?'selected':''}>Embarcações</option>
+      </select>
+    </div>
+    <div class="frota-grid" id="frota-grid">${cards}</div>
+  </div>`
+}
+
+function buildVehicleCard(v) {
+  const proxManutWarning = v.proxManut && new Date(v.proxManut) < new Date(Date.now()+15*24*3600*1000)
+  const scheduleDisabled = !canSchedule(v) ? 'disabled' : ''
+  const restrict = v.obs && (v.status==='OR') ? `<div class="restrict-note">⚠ ${v.obs}</div>` : ''
+
+  return `
+  <div class="vehicle-card" id="vc-${v.id}" onclick="openDetail('${v.id}')">
+    <div class="vc-stripe ${STRIPE_CLASS[v.status]||''}"></div>
+    <div class="vc-header">
+      ${typeIcon(v.tipo)}
+      <div class="vc-info">
+        <div class="vc-code">${v.codigo}</div>
+        <div class="vc-name">${v.nome}</div>
+        <div class="vc-type">${v.subtipo||''} · ${v.tipo==='viatura'?'Viatura':'Embarcação'}</div>
+      </div>
+      ${statusBadge(v.status)}
+    </div>
+    <div class="vc-meta">
+      <div class="vc-meta-item">
+        <div class="vc-meta-label">Placa / Reg.</div>
+        <div class="vc-meta-value">${v.placa||'—'}</div>
+      </div>
+      <div class="vc-meta-item">
+        <div class="vc-meta-label">Ano</div>
+        <div class="vc-meta-value">${v.ano||'—'}</div>
+      </div>
+      <div class="vc-meta-item">
+        <div class="vc-meta-label">${v.tipo==='embarcacao'?'Horas motor':'Km atual'}</div>
+        <div class="vc-meta-value">${(v.km||0).toLocaleString('pt-BR')}</div>
+      </div>
+      <div class="vc-meta-item">
+        <div class="vc-meta-label">Prox. preventiva</div>
+        <div class="vc-meta-value" style="${proxManutWarning?'color:var(--or)':''}">${v.proxManut?fmtDate(v.proxManut):'—'}</div>
+      </div>
+    </div>
+    ${restrict}
+    <div class="vc-footer" onclick="event.stopPropagation()">
+      <button class="vc-btn" onclick="openManutModal('${v.id}')">+ Manutenção</button>
+      <button class="vc-btn primary" ${scheduleDisabled} onclick="openAgendaModal('${v.id}')" title="${!canSchedule(v)?'Veículo INOP — agendamento bloqueado':'Agendar uso'}">Agendar uso</button>
+      <button class="vc-btn" onclick="openEditModal('${v.id}')" style="flex:0;padding:6px 10px">✎</button>
+    </div>
+  </div>`
+}
+
+/* ═══════════════ VIEW: AGENDAMENTOS ═══════════════════════════ */
+function buildAgenda() {
+  const agendas = DB.get('agendamentos').sort((a,b)=>a.saida.localeCompare(b.saida))
+  const veiculos = getVeiculos()
+  const vMap = Object.fromEntries(veiculos.map(v=>[v.id,v]))
+  const operadores = DB.get('operadores')
+  const opMap = Object.fromEntries(operadores.map(o=>[o.id,o]))
+  const now = new Date()
+
+  const pendentes   = agendas.filter(a => a.status === 'pendente')
+  const confirmados = agendas.filter(a => a.status === 'confirmado' && new Date(a.saida) >= now)
+  const historico   = agendas.filter(a => a.status === 'concluida' || (a.status === 'confirmado' && new Date(a.saida) < now))
+
+  function agendaRow(a, isPendente) {
+    const v = vMap[a.veiculoId] || {}
+    const isEmb = v.tipo==='embarcacao'
+    const semVeiculo = !a.veiculoId
+    let tripStr = ''
+    if (a.tripulacao) {
+      if (isEmb) {
+        const p = a.tripulacao.patrao ? opMap[a.tripulacao.patrao] : null
+        const m = a.tripulacao.mo     ? opMap[a.tripulacao.mo]     : null
+        tripStr = [p?'Patrão: '+p.nome:'', m?'MO: '+m.nome:''].filter(Boolean).join(' · ')
+      } else if (a.tripulacao.motorista) {
+        const mot = opMap[a.tripulacao.motorista]
+        tripStr = mot ? 'Motorista: '+mot.nome : ''
+      }
+    }
+    let sugStr = ''
+    if (isPendente && a.tripulacao) {
+      const s = [a.tripulacao.sugMotorista, a.tripulacao.sugPatrao, a.tripulacao.sugMo].filter(Boolean)
+      if (s.length) sugStr = `<span style="color:var(--text-3);font-size:11px">💬 sugestão: ${s.join(' / ')}</span>`
+    }
+    const prioColor = a.prioridade==='emergencia'?'var(--inop)':a.prioridade==='urgente'?'var(--or)':'var(--text-3)'
+    const prioLabel = {normal:'Normal',urgente:'Urgente',emergencia:'Emergência'}[a.prioridade||'normal']
+    const borderColor = isPendente ? 'var(--or)' : (a.status==='concluida'?'var(--green)':'var(--navy-400)')
+    const isConcluida = a.status === 'concluida'
+    return `
+    <div class="agenda-item" style="border-left-color:${borderColor};cursor:pointer" onclick="openAgendaDetalhe('${a.id}')">
+      <div style="width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:8px;background:var(--surface-3)">
+        ${semVeiculo ? '❓' : (v.tipo==='embarcacao'?'⚓':'🚗')}
+      </div>
+      <div class="agenda-info" style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="agenda-title">${semVeiculo ? '<em style="color:var(--text-3)">sem veículo atribuído</em>' : (v.nome||'Veículo')}</span>
+          ${!semVeiculo?`<span class="tag">${v.codigo||''}</span>`:''}
+          <span style="font-size:11px;font-weight:600;color:${prioColor}">${prioLabel}</span>
+          ${isPendente?`<span class="status-badge sb-or" style="font-size:10px">PENDENTE</span>`:''}
+          ${isConcluida?`<span class="status-badge sb-ok" style="font-size:10px">CONCLUÍDA</span>`:''}
+        </div>
+        <div class="agenda-meta">📍 ${a.destino}${a.finalidade?' — '+a.finalidade:''}</div>
+        <div class="agenda-requester">
+          👤 ${a.solicitanteNome||'—'} · ${a.solicitanteSetor||''}
+          ${tripStr?' · '+tripStr:''}
+          ${a.passageiros?' · '+a.passageiros+' pax':''}
+          ${a.cargaKg?' · '+a.cargaKg+' kg':''}
+        </div>
+        ${a.kmChegada!=null&&a.kmSaida!=null?`<div style="font-size:11px;color:var(--green);margin-top:2px">📊 Percurso: ${(a.kmChegada-a.kmSaida).toLocaleString('pt-BR')} km</div>`:''}
+        ${sugStr?`<div style="margin-top:3px">${sugStr}</div>`:''}
+      </div>
+      <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <div>
+          <div class="agenda-date">${fmtDateTime(a.saida)}</div>
+          ${a.retorno?`<div style="font-size:11px;color:var(--text-3)">retorno: ${fmtDateTime(a.retorno)}</div>`:''}
+          ${a.periodo?`<div style="font-size:10px;color:var(--text-3);text-transform:capitalize">${a.periodo}</div>`:''}
+        </div>
+        ${isPendente?`<button class="btn btn-warning btn-sm" onclick="event.stopPropagation();openAtribuirModal('${a.id}')">Atribuir →</button>`:''}
+        ${!isPendente&&!isConcluida?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openConcluirViagem('${a.id}')">✓ Concluir</button>`:''}
+      </div>
+    </div>`
+  }
+
+  return `
+  <div class="content-area">
+    <div class="content-header">
+      <div class="content-title">Agendamentos</div>
+      <div class="topbar-spacer"></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('novoAgenda')">+ Solicitar transporte</button>
+    </div>
+
+    ${pendentes.length ? `
+    <div style="background:var(--or-bg);border:1px solid rgba(245,158,11,.25);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:22px">⚠</span>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--or)">${pendentes.length} pedido${pendentes.length>1?'s':''} aguardando atribuição</div>
+        <div style="font-size:12px;color:var(--text-2)">Clique em "Atribuir →" para designar veículo e tripulação.</div>
+      </div>
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--or);font-weight:600;margin-bottom:10px">⏳ Pendentes — aguardando atribuição</div>
+      <div class="agenda-list">${pendentes.map(a=>agendaRow(a,true)).join('')}</div>
+    </div>` : ''}
+
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);font-weight:600;margin-bottom:10px">✓ Confirmados — próximos</div>
+      <div class="agenda-list">
+        ${confirmados.length ? confirmados.map(a=>agendaRow(a,false)).join('') : '<div class="empty-state" style="padding:24px"><p>Nenhum agendamento confirmado futuro.</p></div>'}
+      </div>
+    </div>
+
+    ${historico.length ? `
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);font-weight:600;margin-bottom:10px">Histórico recente</div>
+      <div class="agenda-list">${historico.slice(-5).reverse().map(a=>agendaRow(a,false)).join('')}</div>
+    </div>` : ''}
+  </div>`
+}
+
+
+
+/* ═══════════════ VIEW: MANUTENÇÃO ═════════════════════════════ */
+function buildManutencao() {
+  const manuts = DB.get('manutencoes').sort((a,b)=>b.data.localeCompare(a.data))
+  const veiculos = getVeiculos()
+  const vMap = Object.fromEntries(veiculos.map(v=>[v.id,v]))
+
+  // prox preventivas em atraso ou próximas
+  const alertas = veiculos.filter(v => {
+    if (!v.proxManut) return false
+    return new Date(v.proxManut) <= new Date(Date.now()+30*24*3600*1000)
+  }).sort((a,b)=>a.proxManut.localeCompare(b.proxManut))
+
+  function alertRow(v) {
+    const dias = Math.ceil((new Date(v.proxManut)-Date.now())/(24*3600*1000))
+    const vencido = dias < 0
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface-2);border-radius:8px;border-left:3px solid ${vencido?'var(--inop)':'var(--or)'}">
+      <span style="font-size:18px">${v.tipo==='embarcacao'?'⚓':'🚗'}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500">${v.nome} <span class="tag">${v.codigo}</span></div>
+        <div style="font-size:12px;color:var(--text-2)">Preventiva: ${fmtDate(v.proxManut)}</div>
+      </div>
+      <span style="font-size:12px;font-weight:600;color:${vencido?'var(--inop)':'var(--or)'}">${vencido?'VENCIDA há '+Math.abs(dias)+' dias':dias+'d'}</span>
+      <button class="btn btn-warning btn-sm" onclick="openManutModal('${v.id}')">Registrar</button>
+    </div>`
+  }
+
+  const rows = manuts.map(m => {
+    const v = vMap[m.veiculoId]||{}
+    return `<tr>
+      <td>
+        <div style="font-size:12px;font-family:var(--mono);color:var(--text-3)">${v.codigo||'—'}</div>
+        <div style="font-size:13px;font-weight:500">${v.nome||'—'}</div>
+      </td>
+      <td><span class="manut-type ${m.tipo==='preventiva'?'mt-prev':m.tipo==='corretiva'?'mt-corr':'mt-insp'}">${MANUT_LABELS[m.tipo]||m.tipo}</span></td>
+      <td><div style="font-family:var(--mono);font-size:12px">${fmtDate(m.data)}</div></td>
+      <td style="max-width:220px;color:var(--text-2);font-size:12px">${m.descricao}</td>
+      <td><div style="font-family:var(--mono);font-size:12px">${m.km?m.km.toLocaleString('pt-BR'):''}</div></td>
+      <td style="color:var(--text-2);font-size:12px">${m.exec||'—'}</td>
+    </tr>`
+  }).join('')
+
+  return `
+  <div class="content-area">
+    <div class="content-header">
+      <div class="content-title">Controle de Manutenção</div>
+      <div class="topbar-spacer"></div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('novaManut')">+ Registrar</button>
+    </div>
+
+    ${alertas.length ? `
+    <div class="dp-section">
+      <div class="dp-section-title">⚠ Alertas de manutenção preventiva</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+        ${alertas.map(alertRow).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="dp-section">
+      <div class="dp-section-title">Histórico completo</div>
+      <div style="overflow-x:auto">
+        <table class="manut-table">
+          <thead><tr>
+            <th>Veículo</th><th>Tipo</th><th>Data</th><th>Descrição</th><th>Km/Horas</th><th>Executado por</th>
+          </tr></thead>
+          <tbody>${rows||`<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-3)">Nenhum registro de manutenção.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>`
+}
+
+/* ═══════════════ VIEW: RELATÓRIO ══════════════════════════════ */
+function buildRelatorio() {
+  const veiculos = getVeiculos()
+  const manuts = DB.get('manutencoes')
+  const agendas = DB.get('agendamentos')
+
+  const prontoDsp = veiculos.filter(v=>v.status==='P').length / veiculos.length * 100
+
+  return `
+  <div class="content-area">
+    <div class="content-header">
+      <div class="content-title">Relatório da Frota</div>
+      <div class="topbar-spacer"></div>
+      <span style="font-size:12px;color:var(--text-3)">gerado em ${new Date().toLocaleDateString('pt-BR')}</span>
+    </div>
+
+    <div class="kpi-strip" style="padding:0;margin-bottom:20px">
+      <div class="kpi k-total">
+        <div class="kpi-label">Disponibilidade</div>
+        <div class="kpi-value" style="color:${prontoDsp>=70?'var(--pronto)':prontoDsp>=50?'var(--or)':'var(--inop)'}">${Math.round(prontoDsp)}%</div>
+        <div class="kpi-sub">veículos prontos / total</div>
+      </div>
+      <div class="kpi k-pronto">
+        <div class="kpi-label">Manutenções (total)</div>
+        <div class="kpi-value" style="color:var(--navy-300)">${manuts.length}</div>
+        <div class="kpi-sub">${manuts.filter(m=>m.tipo==='preventiva').length} prev · ${manuts.filter(m=>m.tipo==='corretiva').length} corr</div>
+      </div>
+      <div class="kpi k-or">
+        <div class="kpi-label">Agendamentos</div>
+        <div class="kpi-value" style="color:var(--navy-300)">${agendas.length}</div>
+        <div class="kpi-sub">no histórico</div>
+      </div>
+      <div class="kpi k-inop">
+        <div class="kpi-label">Km/Horas totais</div>
+        <div class="kpi-value" style="color:var(--navy-300);font-size:20px">${veiculos.reduce((s,v)=>s+(v.km||0),0).toLocaleString('pt-BR')}</div>
+        <div class="kpi-sub">somado de toda a frota</div>
+      </div>
+    </div>
+
+    <div class="dp-section">
+      <div class="dp-section-title">Situação individual da frota</div>
+      <table class="manut-table" style="margin-bottom:24px">
+        <thead><tr>
+          <th>Código</th><th>Denominação</th><th>Tipo</th><th>Status</th><th>Placa/Reg.</th><th>Km/Horas</th><th>Responsável</th><th>Prox. Prev.</th>
+        </tr></thead>
+        <tbody>
+          ${veiculos.map(v=>`<tr>
+            <td class="text-mono" style="font-size:12px">${v.codigo}</td>
+            <td style="font-weight:500">${v.nome}</td>
+            <td style="font-size:12px;color:var(--text-2)">${v.tipo==='embarcacao'?'Embarcação':'Viatura'}</td>
+            <td>${statusBadge(v.status)}</td>
+            <td class="text-mono" style="font-size:12px">${v.placa||'—'}</td>
+            <td class="text-mono" style="font-size:12px">${(v.km||0).toLocaleString('pt-BR')}</td>
+            <td style="font-size:12px;color:var(--text-2)">${v.responsavel||'—'}</td>
+            <td style="font-size:12px;font-family:var(--mono)">${v.proxManut?fmtDate(v.proxManut):'—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`
+}
+
+/* ═══════════════ DETAIL PANEL ════════════════════════════════ */
+function openDetail(id) {
+  selectedVehicle = getVeiculos().find(v=>v.id===id)
+  if (!selectedVehicle) return
+  const v = selectedVehicle
+  document.getElementById('dp-title').textContent = v.nome
+  document.getElementById('dp-sub').textContent = `${v.codigo} · ${v.subtipo||''} · ${v.tipo==='embarcacao'?'Embarcação':'Viatura'}`
+  document.getElementById('dp-status-badge').className = `status-badge ${STATUS_CLASS[v.status]}`
+  document.getElementById('dp-status-badge').textContent = STATUS_LABELS[v.status]||v.status
+  document.getElementById('dp-icon').innerHTML = v.tipo==='embarcacao'?'⚓':'🚗'
+  document.getElementById('dp-icon').className = `vc-icon ${v.tipo==='embarcacao'?'emb':'vtr'}`
+  currentDpTab = 'info'
+  document.querySelectorAll('.dp-tab').forEach((t,i)=>t.classList.toggle('active',i===0))
+  renderDpContent()
+  document.getElementById('detail-overlay').classList.add('open')
+  document.getElementById('detail-panel').classList.add('open')
+}
+
+function closeDetail() {
+  document.getElementById('detail-overlay').classList.remove('open')
+  document.getElementById('detail-panel').classList.remove('open')
+  selectedVehicle = null
+}
+
+function dpTab(el, tab) {
+  currentDpTab = tab
+  document.querySelectorAll('.dp-tab').forEach(t=>t.classList.remove('active'))
+  el.classList.add('active')
+  renderDpContent()
+}
+
+function renderDpContent() {
+  const v = selectedVehicle
+  if (!v) return
+  const c = document.getElementById('dp-content')
+
+  if (currentDpTab === 'info') {
+    c.innerHTML = `
+    <div class="dp-section">
+      <div class="dp-section-title">Identificação</div>
+      <div class="field-grid">
+        <div class="field"><div class="field-label">Código</div><div class="field-value">${v.codigo}</div></div>
+        <div class="field"><div class="field-label">Tipo</div><div class="field-value">${v.subtipo||'—'}</div></div>
+        <div class="field"><div class="field-label">Placa / Reg.</div><div class="field-value">${v.placa||'—'}</div></div>
+        <div class="field"><div class="field-label">Ano</div><div class="field-value">${v.ano||'—'}</div></div>
+        <div class="field"><div class="field-label">Lotação</div><div class="field-value">${v.lotacao||'—'} pax</div></div>
+        <div class="field"><div class="field-label">${v.tipo==='embarcacao'?'Horas motor':'Km atual'}</div><div class="field-value">${(v.km||0).toLocaleString('pt-BR')}</div></div>
+      </div>
+    </div>
+    <div class="dp-section">
+      <div class="dp-section-title">Responsabilidade</div>
+      <div class="field-grid">
+        <div class="field"><div class="field-label">Responsável</div><div class="field-value">${v.responsavel||'—'}</div></div>
+        <div class="field"><div class="field-label">Prox. preventiva</div><div class="field-value">${v.proxManut?fmtDate(v.proxManut):'—'}</div></div>
+      </div>
+    </div>
+    ${v.obs?`<div class="dp-section">
+      <div class="dp-section-title">Restrições / Observações</div>
+      <div class="field"><div class="field-value note">${v.obs}</div></div>
+    </div>`:''}
+    <div class="divider"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="openEditModal('${v.id}')">✎ Editar dados</button>
+      <button class="btn btn-warning btn-sm" onclick="closeDetail();openManutModal('${v.id}')">🔧 Manutenção</button>
+      ${canSchedule(v)?`<button class="btn btn-primary btn-sm" onclick="closeDetail();openAgendaModal('${v.id}')">📅 Agendar uso</button>`:`<span style="font-size:12px;color:var(--inop);align-self:center">Agendamento bloqueado (${STATUS_LABELS[v.status]})</span>`}
+    </div>
+    ${v.status==='INOP'||v.status==='MANUT'?`
+    <div style="background:var(--inop-bg);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:12px;margin-top:14px;font-size:13px;color:var(--inop)">
+      ⛔ Este veículo não pode ser agendado enquanto estiver com status <strong>${STATUS_LABELS[v.status]}</strong>. Registre uma manutenção corretiva e altere o status para habilitá-lo.
+    </div>`:''}`
+  }
+
+  else if (currentDpTab === 'manut') {
+    const manuts = DB.get('manutencoes').filter(m=>m.veiculoId===v.id).sort((a,b)=>b.data.localeCompare(a.data))
+    const rows = manuts.map(m=>`
+    <tr>
+      <td><span class="manut-type ${m.tipo==='preventiva'?'mt-prev':m.tipo==='corretiva'?'mt-corr':'mt-insp'}">${MANUT_LABELS[m.tipo]||m.tipo}</span></td>
+      <td style="font-family:var(--mono);font-size:12px">${fmtDate(m.data)}</td>
+      <td style="font-size:12px;max-width:180px">${m.descricao}</td>
+      <td style="font-family:var(--mono);font-size:12px">${m.km?m.km.toLocaleString('pt-BR'):'—'}</td>
+      <td style="font-size:12px">${m.exec||'—'}</td>
+    </tr>`).join('')
+    c.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <button class="btn btn-primary btn-sm" onclick="closeDetail();openManutModal('${v.id}')">+ Registrar manutenção</button>
+    </div>
+    ${manuts.length?`<table class="manut-table"><thead><tr><th>Tipo</th><th>Data</th><th>Descrição</th><th>Km/Horas</th><th>Executado</th></tr></thead><tbody>${rows}</tbody></table>`:`<div class="empty-state"><p>Nenhuma manutenção registrada para este veículo.</p></div>`}`
+  }
+
+  else if (currentDpTab === 'hist') {
+    const manuts = DB.get('manutencoes').filter(m=>m.veiculoId===v.id).sort((a,b)=>b.data.localeCompare(a.data))
+    const events = manuts.map(m=>({
+      date: m.data,
+      title: MANUT_LABELS[m.tipo]||m.tipo,
+      desc: m.descricao,
+      cls: m.tipo==='preventiva'?'info':m.tipo==='corretiva'?'danger':'info',
+      icon: m.tipo==='preventiva'?'🔄':m.tipo==='corretiva'?'🔧':'🔍',
+      novoStatus: m.novoStatus
+    })).concat([{date:v.ano?v.ano+'-01-01':'', title:'Cadastro na frota', desc:`${v.subtipo||''} · Placa ${v.placa||'—'}`, cls:'ok', icon:'⚓'}])
+    .sort((a,b)=>b.date.localeCompare(a.date))
+
+    const items = events.map(e=>`
+    <div class="tl-item">
+      <div class="tl-line"></div>
+      <div class="tl-dot ${e.cls}">${e.icon}</div>
+      <div class="tl-content">
+        <div class="tl-date">${e.date?fmtDate(e.date):''}</div>
+        <div class="tl-title">${e.title}${e.novoStatus?` → ${statusBadge(e.novoStatus)}`:''}</div>
+        <div class="tl-desc">${e.desc||''}</div>
+      </div>
+    </div>`).join('')
+
+    c.innerHTML = `<div class="timeline">${items||'<div class="empty-state"><p>Sem histórico</p></div>'}</div>`
+  }
+
+  else if (currentDpTab === 'agenda-dp') {
+    const agendas = DB.get('agendamentos').filter(a=>a.veiculoId===v.id).sort((a,b)=>b.saida.localeCompare(a.saida))
+    const operadores = DB.get('operadores')
+    const opMap = Object.fromEntries(operadores.map(o=>[o.id,o]))
+    const isEmb = v.tipo==='embarcacao'
+
+    const items = agendas.map(a=>{
+      let tripStr = ''
+      if (a.tripulacao) {
+        if (isEmb) {
+          const p = a.tripulacao.patrao ? opMap[a.tripulacao.patrao] : null
+          const m = a.tripulacao.mo     ? opMap[a.tripulacao.mo]     : null
+          tripStr = [p?'Patrão: '+p.nome:'', m?'MO: '+m.nome:''].filter(Boolean).join(' · ')
+        } else {
+          const mot = a.tripulacao.motorista ? opMap[a.tripulacao.motorista] : null
+          tripStr = mot ? 'Motorista: '+mot.nome : ''
+        }
+      }
+      const prioColor = a.prioridade==='emergencia'?'var(--inop)':a.prioridade==='urgente'?'var(--or)':'var(--text-3)'
+      return `
+      <div class="agenda-item">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="agenda-title">📍 ${a.destino}</span>
+            ${a.prioridade&&a.prioridade!=='normal'?`<span style="font-size:11px;font-weight:600;color:${prioColor}">${a.prioridade}</span>`:''}
+          </div>
+          <div class="agenda-meta">${a.finalidade||''}</div>
+          <div class="agenda-requester">
+            ${a.solicitanteNome||a.solicitante||'—'} · ${a.solicitanteSetor||a.setor||''}
+            ${tripStr?' · '+tripStr:''}
+            ${a.passageiros?' · '+a.passageiros+' pax':''}
+            ${a.cargaKg?' · '+a.cargaKg+' kg':''}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="agenda-date">${fmtDateTime(a.saida)}</div>
+          ${a.retorno?`<div style="font-size:11px;color:var(--text-3)">↩ ${fmtDateTime(a.retorno)}</div>`:''}
+        </div>
+      </div>`
+    }).join('')
+
+    c.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      ${canSchedule(v)?`<button class="btn btn-primary btn-sm" onclick="closeDetail();openAgendaModal('${v.id}')">+ Agendar uso</button>`:``}
+    </div>
+    ${agendas.length?`<div class="agenda-list">${items}</div>`:`<div class="empty-state"><p>Nenhum agendamento registrado.</p></div>`}`
+  }
+}
+
+/* ═══════════════ MODALS ══════════════════════════════════════ */
+function openModal(id) {
+  if (id === 'novaManut') {
+    populateVehicleSelect('mn-veiculo', false)
+    const today = new Date(); const pad = n=>String(n).padStart(2,'0')
+    document.getElementById('mn-data').value = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`
+  }
+  if (id === 'novoAgenda') {
+    initAgendaModal(null)
+  }
+  document.getElementById('modal-'+id).classList.add('open')
+}
+
+function closeModal(id) { document.getElementById('modal-'+id).classList.remove('open') }
+
+/* ── DETALHE DO AGENDAMENTO ─────────────────────────────── */
+function openAgendaDetalhe(agendaId) {
+  const agendas = DB.get('agendamentos')
+  const a = agendas.find(x=>x.id===agendaId)
+  if (!a) return
+  const veiculos = getVeiculos()
+  const v = veiculos.find(x=>x.id===a.veiculoId) || {}
+  const operadores = DB.get('operadores')
+  const opMap = Object.fromEntries(operadores.map(o=>[o.id,o]))
+  const isEmb = v.tipo === 'embarcacao'
+
+  let tripStr = '—'
+  if (a.tripulacao) {
+    if (isEmb) {
+      const p = a.tripulacao.patrao ? opMap[a.tripulacao.patrao] : null
+      const m = a.tripulacao.mo     ? opMap[a.tripulacao.mo]     : null
+      tripStr = [p?'Patrão: '+p.nome:'', m?'MO: '+m.nome:''].filter(Boolean).join(' · ') || '—'
+    } else if (a.tripulacao.motorista) {
+      const mot = opMap[a.tripulacao.motorista]
+      tripStr = mot ? 'Motorista: '+mot.nome : '—'
+    }
+  }
+
+  const statusLabel = {pendente:'⏳ Pendente',confirmado:'✓ Confirmado',em_curso:'🚗 Em curso',concluida:'✅ Concluída',cancelada:'✗ Cancelada'}[a.status||'pendente']
+  const prioLabel = {normal:'Normal',urgente:'🔶 Urgente',emergencia:'🔴 Emergência'}[a.prioridade||'normal']
+
+  const field = (label,val) => `<div class="field"><div class="field-label">${label}</div><div class="field-value">${val||'—'}</div></div>`
+
+  document.getElementById('agenda-detalhe-body').innerHTML = `
+  <div class="field-grid" style="grid-template-columns:1fr 1fr">
+    ${field('Status', statusLabel)}
+    ${field('Prioridade', prioLabel)}
+    ${field('Veículo', v.nome ? v.nome+' ('+v.codigo+')' : '—')}
+    ${field('Tripulação', tripStr)}
+    ${field('Solicitante', a.solicitanteNome||a.solicitante||'—')}
+    ${field('Setor', a.solicitanteSetor||a.setor||'—')}
+    ${field('Saída', a.saida?fmtDateTime(a.saida):'—')}
+    ${field('Retorno previsto', a.retorno?fmtDateTime(a.retorno):'—')}
+    ${field('Destino', a.destino)}
+    ${field('Passageiros', a.passageiros||'—')}
+    ${field('Carga (kg)', a.cargaKg||'—')}
+  </div>
+  <div class="field"><div class="field-label">Finalidade</div><div class="field-value">${a.finalidade||'—'}</div></div>
+  ${a.kmSaida!=null||a.kmChegada!=null?`
+  <div class="field-grid" style="grid-template-columns:1fr 1fr">
+    ${field('Km/Horas saída', a.kmSaida!=null?a.kmSaida.toLocaleString('pt-BR'):'—')}
+    ${field('Km/Horas chegada', a.kmChegada!=null?a.kmChegada.toLocaleString('pt-BR'):'—')}
+    ${field('Percurso', (a.kmSaida!=null&&a.kmChegada!=null)?(a.kmChegada-a.kmSaida).toLocaleString('pt-BR')+' km':'—')}
+  </div>`:''}
+  ${a.obsViagem?`<div class="field"><div class="field-label">Obs. da viagem</div><div class="field-value note">${a.obsViagem}</div></div>`:''}
+  ${a.obs?`<div class="field"><div class="field-label">Observações</div><div class="field-value note">${a.obs}</div></div>`:''}
+  `
+
+  const footer = document.getElementById('agenda-detalhe-footer')
+  const podeConc = (a.status==='confirmado'||a.status==='em_curso')
+  footer.innerHTML = `
+    ${podeConc?`<button class="btn btn-primary btn-sm" onclick="closeModal('agendaDetalhe');openConcluirViagem('${a.id}')">✓ Concluir viagem</button>`:''}
+    <button class="btn btn-ghost" onclick="closeModal('agendaDetalhe')">Fechar</button>
+  `
+
+  openModal('agendaDetalhe')
+}
+
+/* ── CONCLUIR VIAGEM + KM ────────────────────────────────── */
+function openConcluirViagem(agendaId) {
+  document.getElementById('cv-agenda-id').value = agendaId
+  document.getElementById('cv-km-saida').value = ''
+  document.getElementById('cv-km-chegada').value = ''
+  document.getElementById('cv-obs').value = ''
+  // Prefill km from vehicle
+  const agendas = DB.get('agendamentos')
+  const a = agendas.find(x=>x.id===agendaId)
+  if (a) {
+    const v = getVeiculos().find(x=>x.id===a.veiculoId)
+    if (v) document.getElementById('cv-km-saida').value = v.km || ''
+    if (a.kmSaida != null) document.getElementById('cv-km-saida').value = a.kmSaida
+    if (a.kmChegada != null) document.getElementById('cv-km-chegada').value = a.kmChegada
+  }
+  openModal('concluirViagem')
+}
+
+function confirmarConclusaoViagem() {
+  const agendaId = document.getElementById('cv-agenda-id').value
+  const kmSaida = parseFloat(document.getElementById('cv-km-saida').value)
+  const kmChegada = parseFloat(document.getElementById('cv-km-chegada').value)
+  const obs = document.getElementById('cv-obs').value.trim()
+
+  if (!kmChegada) { toast('Informe o Km/Horas na chegada','warning'); return }
+  if (kmSaida && kmChegada < kmSaida) { toast('Km chegada não pode ser menor que a saída','warning'); return }
+
+  const agendas = DB.get('agendamentos')
+  const idx = agendas.findIndex(a=>a.id===agendaId)
+  if (idx < 0) { toast('Agendamento não encontrado','error'); return }
+
+  agendas[idx].status = 'concluida'
+  agendas[idx].kmSaida = isNaN(kmSaida) ? null : kmSaida
+  agendas[idx].kmChegada = kmChegada
+  agendas[idx].obsViagem = obs || null
+  agendas[idx].dataConclusao = new Date().toISOString()
+  DB.set('agendamentos', agendas)
+
+  // Update vehicle km_atual
+  const veiculos = getVeiculos()
+  const vIdx = veiculos.findIndex(v=>v.id===agendas[idx].veiculoId)
+  if (vIdx >= 0 && kmChegada > (veiculos[vIdx].km||0)) {
+    veiculos[vIdx].km = kmChegada
+    window._FROTA = veiculos
+    DB.set('frota', veiculos)
+    publishShared()
+  }
+
+  closeModal('concluirViagem')
+  toast('Viagem concluída! Km atualizado.','success')
+  renderView()
+}
+
+function openManutModal(veiculoId) {
+  openModal('novaManut')
+  setTimeout(()=>{ document.getElementById('mn-veiculo').value = veiculoId }, 50)
+}
+
+function openAgendaModal(veiculoId) {
+  initAgendaModal(veiculoId)
+  document.getElementById('modal-novoAgenda').classList.add('open')
+}
+
+/* ── AGENDA MODAL INIT ─────────────────────────────────────── */
+function initAgendaModal(preselectedId) {
+  // reset
+  document.getElementById('modal-agenda-warning').style.display = 'none'
+  document.getElementById('ag-hab-info').style.display = 'none'
+  document.getElementById('btn-confirmar-agenda').disabled = false
+  document.getElementById('ag-tripulacao-fields').innerHTML =
+    '<div style="font-size:13px;color:var(--text-3);padding:8px 0">Selecione um veículo para ver os campos de tripulação.</div>'
+
+  // preencher selects de veículos
+  filtrarVeiculosPorTipo()
+
+  // data/hora padrão: próxima hora cheia
+  const now = new Date()
+  now.setMinutes(0); now.setSeconds(0)
+  now.setHours(now.getHours()+1)
+  document.getElementById('ag-saida').value = toLocalDateTimeInput(now)
+  document.getElementById('ag-retorno').value = ''
+  document.getElementById('ag-pax').value = 0
+  document.getElementById('ag-carga-kg').value = 0
+  document.getElementById('ag-carga-desc').value = ''
+  document.getElementById('ag-obs').value = ''
+  document.getElementById('ag-status-hint').textContent = ''
+  document.getElementById('ag-lotacao-hint').textContent = ''
+  document.getElementById('ag-carga-hint').textContent = ''
+
+  // pré-preencher solicitante com usuário logado
+  const nomeEl  = document.getElementById('ag-solicitante-nome')
+  const setorEl = document.getElementById('ag-solicitante-setor')
+  if (currentUser) {
+    nomeEl.value  = currentUser.nome  || ''
+    setorEl.value = currentUser.setor || ''
+    // adiciona hint "agendando em nome de outro?" só se ainda não existir
+    if (!document.getElementById('ag-sol-hint')) {
+      const hint = document.createElement('div')
+      hint.id = 'ag-sol-hint'
+      hint.className = 'form-hint'
+      hint.innerHTML = `Preenchido com seu perfil. <button type="button" onclick="limparSolicitante()" style="background:none;border:none;color:var(--navy-300);cursor:pointer;font-size:11px;padding:0;text-decoration:underline">Agendar em nome de outro</button>`
+      nomeEl.parentElement.appendChild(hint)
+    }
+  } else {
+    nomeEl.value  = ''
+    setorEl.value = ''
+  }
+
+  if (preselectedId) {
+    setTimeout(()=>{
+      const sel = document.getElementById('ag-veiculo')
+      // ajustar filtro de tipo para o veículo
+      const v = getVeiculos().find(x=>x.id===preselectedId)
+      if (v) {
+        document.getElementById('ag-tipo-filtro').value = v.tipo
+        filtrarVeiculosPorTipo()
+      }
+      sel.value = preselectedId
+      onVeiculoSelecionado()
+    }, 30)
+  }
+}
+
+function filtrarVeiculosPorTipo() {
+  const tipo = document.getElementById('ag-tipo-filtro').value
+  const veiculos = getVeiculos().filter(v => canSchedule(v) && (tipo==='all'||v.tipo===tipo))
+  const sel = document.getElementById('ag-veiculo')
+  const curr = sel.value
+  // "sem preferência" é válido — Transportes atribui
+  sel.innerHTML = '<option value="">— sem preferência (Transportes atribui) —</option>' +
+    veiculos.map(v=>`<option value="${v.id}">[${v.status}] ${v.codigo} — ${v.nome}</option>`).join('')
+  if (curr && veiculos.find(v=>v.id===curr)) sel.value = curr
+  onVeiculoSelecionado()
+}
+
+function onVeiculoSelecionado() {
+  const sel = document.getElementById('ag-veiculo')
+  const warn = document.getElementById('modal-agenda-warning')
+  const hint = document.getElementById('ag-status-hint')
+  const habInfo = document.getElementById('ag-hab-info')
+  const btn = document.getElementById('btn-confirmar-agenda')
+  const lotHint = document.getElementById('ag-lotacao-hint')
+  const cargaHint = document.getElementById('ag-carga-hint')
+
+  if (!sel.value) {
+    warn.style.display = 'none'
+    habInfo.style.display = 'none'
+    document.getElementById('ag-tripulacao-fields').innerHTML =
+      '<div style="font-size:13px;color:var(--text-3);padding:8px 0">Selecione um veículo para ver os campos de tripulação.</div>'
+    return
+  }
+
+  const v = getVeiculos().find(x=>x.id===sel.value)
+  if (!v) return
+
+  // status banner
+  if (v.status==='OR') {
+    warn.style.cssText = 'display:block;background:var(--or-bg);border-color:rgba(245,158,11,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--or)'
+    warn.textContent = '⚠ Operação com restrição: '+v.obs
+    btn.disabled = false
+  } else if (!canSchedule(v)) {
+    warn.style.cssText = 'display:block;background:var(--inop-bg);border-color:rgba(239,68,68,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--inop)'
+    warn.textContent = '⛔ Veículo INOP / Em manutenção — não pode ser agendado.'
+    btn.disabled = true
+  } else {
+    warn.style.display = 'none'
+    btn.disabled = false
+  }
+
+  // status hint abaixo do select
+  hint.textContent = v.status==='P' ? '✓ Disponível' : '⚠ '+STATUS_LABELS[v.status]
+  hint.style.color = v.status==='P' ? 'var(--pronto)' : 'var(--or)'
+
+  // habilitações exigidas
+  if (v.habilitacoes && v.habilitacoes.length) {
+    const livre = v.livreOperacao ? ' <span style="color:var(--pronto)">· livre para qualquer operador habilitado</span>' : ' <span style="color:var(--or)">· operadores fixos</span>'
+    habInfo.style.display = 'block'
+    habInfo.innerHTML = `🎖 Habilitações exigidas: <strong>${v.habilitacoes.join(', ')}</strong>${livre}`
+  } else {
+    habInfo.style.display = 'none'
+  }
+
+  // lotação e carga hints
+  lotHint.textContent = `Lotação máxima: ${v.lotacao||'—'} pessoas`
+  cargaHint.textContent = v.cargaKg ? `Capacidade de carga: ${v.cargaKg.toLocaleString('pt-BR')} kg` : ''
+
+  // campos de tripulação dinâmicos
+  renderTripulacaoFields(v)
+}
+
+function renderTripulacaoFields(v) {
+  const container = document.getElementById('ag-tripulacao-fields')
+  const isEmb = v.tipo === 'embarcacao'
+
+  // No pedido, tripulação é OPCIONAL — Transportes atribui depois.
+  // Mostramos apenas uma nota informativa com opção de sugerir.
+  if (isEmb) {
+    container.innerHTML = `
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text-2);margin-bottom:8px">
+      ℹ A tripulação (Patrão e MO) será designada pela Seção de Transportes após a confirmação do pedido.
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Sugestão de Patrão <span style="color:var(--text-3)">(opcional)</span></label>
+        <input class="form-control" id="ag-sug-patrao" placeholder="Nome sugerido ou deixe em branco">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sugestão de MO <span style="color:var(--text-3)">(opcional)</span></label>
+        <input class="form-control" id="ag-sug-mo" placeholder="Nome sugerido ou deixe em branco">
+      </div>
+    </div>`
+  } else {
+    container.innerHTML = `
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text-2);margin-bottom:8px">
+      ℹ O motorista será designado pela Seção de Transportes após a confirmação do pedido.
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Sugestão de motorista <span style="color:var(--text-3)">(opcional)</span></label>
+        <input class="form-control" id="ag-sug-motorista" placeholder="Nome sugerido ou deixe em branco">
+      </div>
+      <div class="form-group"><!-- espaço --></div>
+    </div>`
+  }
+}
+
+function checkCarga() {
+  const v = getVeiculos().find(x=>x.id===document.getElementById('ag-veiculo').value)
+  if (!v || !v.cargaKg) return
+  const kg = parseInt(document.getElementById('ag-carga-kg').value)||0
+  const hint = document.getElementById('ag-carga-hint')
+  if (kg > v.cargaKg) {
+    hint.textContent = `⚠ Excede capacidade de ${v.cargaKg.toLocaleString('pt-BR')} kg!`
+    hint.style.color = 'var(--inop)'
+  } else {
+    hint.textContent = `Capacidade: ${v.cargaKg.toLocaleString('pt-BR')} kg`
+    hint.style.color = 'var(--text-3)'
+  }
+}
+
+function populateVehicleSelect(selectId, onlyAvailable) {
+  const el = document.getElementById(selectId)
+  const veiculos = getVeiculos()
+  const filtered = onlyAvailable ? veiculos.filter(v=>canSchedule(v)) : veiculos
+  el.innerHTML = filtered.map(v=>`<option value="${v.id}">[${v.status}] ${v.codigo} — ${v.nome}</option>`).join('')
+}
+
+/* ── ATRIBUIÇÃO DE TRIPULAÇÃO (Seção de Transportes) ──────── */
+function openAtribuirModal(agendaId) {
+  const a = DB.get('agendamentos').find(x=>x.id===agendaId)
+  if (!a) return
+  const v = getVeiculos().find(x=>x.id===a.veiculoId) || {}
+  const operadores = DB.get('operadores').filter(o=>o.ativo)
+  const isEmb = v.tipo === 'embarcacao'
+
+  function opOptions(papel) {
+    let pool = operadores.filter(o=>o.papel===papel)
+    if (!v.livreOperacao && v.operadoresFixos?.length)
+      pool = pool.filter(o=>v.operadoresFixos.includes(o.id))
+    if (v.habilitacoes?.length)
+      pool = pool.filter(o=>v.habilitacoes.every(h=>(o.habilitacoes||[]).includes(h)))
+    const curr = (a.tripulacao||{})[papel==='motorista'?'motorista':papel]
+    return `<option value="">— a atribuir —</option>` +
+      pool.map(o=>`<option value="${o.id}" ${o.id===curr?'selected':''}>${o.posto} ${o.nome} [${(o.habilitacoes||[]).join('/')}]</option>`).join('')
+  }
+
+  const tripFields = isEmb ? `
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Patrão <span>*</span></label>
+        <select class="form-control" id="atr-patrao">${opOptions('patrao')}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">MO — Mestre de Obras</label>
+        <select class="form-control" id="atr-mo">${opOptions('mo')}</select>
+      </div>
+    </div>` : `
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Motorista <span>*</span></label>
+        <select class="form-control" id="atr-motorista">${opOptions('motorista')}</select>
+        ${v.habilitacoes?.length?`<div class="form-hint">CNH/Hab. exigida: ${v.habilitacoes.join(', ')}</div>`:''}
+      </div>
+      <div class="form-group"><!-- espaço --></div>
+    </div>`
+
+  const modal = document.getElementById('modal-atribuir')
+  modal.querySelector('.modal-title').textContent = `Atribuir tripulação — ${v.codigo||''} ${v.nome||''}`
+  modal.querySelector('#atr-body').innerHTML = `
+    <div class="dp-section" style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text-2);line-height:1.7">
+        <strong>${a.solicitanteNome||'—'}</strong> · ${a.solicitanteSetor||''}<br>
+        📍 ${a.destino} — ${a.finalidade||''}<br>
+        🕐 ${fmtDateTime(a.saida)}${a.retorno?' → '+fmtDateTime(a.retorno):''}
+        ${a.tripulacao?.sugMotorista||a.tripulacao?.sugPatrao
+          ? `<br>💬 Sugestão do solicitante: <em>${a.tripulacao.sugMotorista||a.tripulacao.sugPatrao||a.tripulacao.sugMo||''}</em>` : ''}
+      </div>
+    </div>
+    ${tripFields}
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">Veículo atribuído</label>
+        <select class="form-control" id="atr-veiculo">
+          ${getVeiculos().filter(x=>canSchedule(x)).map(x=>
+            `<option value="${x.id}" ${x.id===a.veiculoId?'selected':''}>[${x.status}] ${x.codigo} — ${x.nome}</option>`
+          ).join('')}
+        </select>
+        <div class="form-hint">Pode reatribuir para outro veículo disponível</div>
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label class="form-label">Observações da Seção de Transportes</label>
+        <textarea class="form-control" id="atr-obs" rows="2" placeholder="Instruções ao motorista/patrão">${a.obsTransportes||''}</textarea>
+      </div>
+    </div>`
+  modal.dataset.agendaId = agendaId
+  modal.classList.add('open')
+}
+
+function confirmarAtribuicao() {
+  const modal = document.getElementById('modal-atribuir')
+  const agendaId = modal.dataset.agendaId
+  let agendas = DB.get('agendamentos')
+  const a = agendas.find(x=>x.id===agendaId)
+  if (!a) return
+
+  const v = getVeiculos().find(x=>x.id===(document.getElementById('atr-veiculo')?.value||a.veiculoId)) || {}
+  const isEmb = v.tipo === 'embarcacao'
+  const motorista = !isEmb ? (document.getElementById('atr-motorista')?.value||null) : null
+  const patrao    = isEmb  ? (document.getElementById('atr-patrao')?.value||null)    : null
+  const mo        = isEmb  ? (document.getElementById('atr-mo')?.value||null)         : null
+
+  if (!isEmb && !motorista) { toast('Atribua um motorista antes de confirmar','warning'); return }
+  if (isEmb && !patrao)     { toast('Atribua um patrão antes de confirmar','warning'); return }
+
+  const novoVeiculoId = document.getElementById('atr-veiculo')?.value || a.veiculoId
+  agendas = agendas.map(x => x.id===agendaId ? {
+    ...x,
+    veiculoId: novoVeiculoId,
+    tripulacao: { ...(x.tripulacao||{}), motorista, patrao, mo },
+    obsTransportes: document.getElementById('atr-obs')?.value.trim()||'',
+    status: 'confirmado'
+  } : x)
+  DB.set('agendamentos', agendas)
+  modal.classList.remove('open')
+  toast('Tripulação atribuída. Agendamento confirmado.','success')
+  renderView()
+}
+
+function openEditModal(id) {
+  const v = getVeiculos().find(x=>x.id===id)
+  if (!v) return
+  // preenche o modal de cadastro com dados existentes para edição
+  document.getElementById('nv-codigo').value = v.codigo||''
+  document.getElementById('nv-tipo').value = v.tipo||'viatura'
+  document.getElementById('nv-nome').value = v.nome||''
+  document.getElementById('nv-subtipo').value = v.subtipo||''
+  document.getElementById('nv-placa').value = v.placa||''
+  document.getElementById('nv-ano').value = v.ano||''
+  document.getElementById('nv-lotacao').value = v.lotacao||''
+  document.getElementById('nv-km').value = v.km||0
+  document.getElementById('nv-status').value = v.status||'P'
+  document.getElementById('nv-responsavel').value = v.responsavel||''
+  document.getElementById('nv-prox-manut').value = v.proxManut||''
+  document.getElementById('nv-obs').value = v.obs||''
+  document.getElementById('modal-novoVeiculo').classList.add('open')
+  document.getElementById('modal-novoVeiculo').dataset.editId = id
+}
+
+/* ── SALVAR ────────────────────────────────────────────────── */
+function salvarVeiculo() {
+  const codigo = document.getElementById('nv-codigo').value.trim()
+  const nome = document.getElementById('nv-nome').value.trim()
+  if (!codigo || !nome) { toast('Preencha código e denominação','warning'); return }
+  const editId = document.getElementById('modal-novoVeiculo').dataset.editId
+  const novo = {
+    id: editId || uid(),
+    codigo, nome,
+    tipo: document.getElementById('nv-tipo').value,
+    subtipo: document.getElementById('nv-subtipo').value.trim(),
+    placa: document.getElementById('nv-placa').value.trim(),
+    ano: parseInt(document.getElementById('nv-ano').value)||null,
+    lotacao: parseInt(document.getElementById('nv-lotacao').value)||5,
+    km: parseInt(document.getElementById('nv-km').value)||0,
+    status: document.getElementById('nv-status').value,
+    responsavel: document.getElementById('nv-responsavel').value.trim(),
+    proxManut: document.getElementById('nv-prox-manut').value,
+    obs: document.getElementById('nv-obs').value.trim(),
+    habilitacoes: [], livreOperacao: true, operadoresFixos: []
+  }
+  let veiculos = getVeiculos()
+  if (editId) {
+    // preserve habilitações existentes ao editar
+    const existing = veiculos.find(v=>v.id===editId)
+    if (existing) { novo.habilitacoes=existing.habilitacoes; novo.livreOperacao=existing.livreOperacao; novo.operadoresFixos=existing.operadoresFixos }
+    veiculos = veiculos.map(v=>v.id===editId?novo:v)
+    delete document.getElementById('modal-novoVeiculo').dataset.editId
+  } else {
+    veiculos.push(novo)
+  }
+  DB.set('veiculos', veiculos)
+  closeModal('novoVeiculo')
+  toast(editId?'Veículo atualizado':'Veículo cadastrado com sucesso','success')
+  renderView()
+}
+
+function salvarManutencao() {
+  const veiculoId = document.getElementById('mn-veiculo').value
+  const descricao = document.getElementById('mn-descricao').value.trim()
+  const data = document.getElementById('mn-data').value
+  if (!veiculoId || !descricao || !data) { toast('Preencha veículo, data e descrição','warning'); return }
+  const novoStatus = document.getElementById('mn-novo-status').value
+  const m = {
+    id: uid(), veiculoId,
+    tipo: document.getElementById('mn-tipo').value,
+    data, descricao,
+    km: parseInt(document.getElementById('mn-km').value)||null,
+    exec: document.getElementById('mn-exec').value.trim(),
+    proxManut: document.getElementById('mn-prox').value,
+    novoStatus: novoStatus||null
+  }
+  const manuts = DB.get('manutencoes')
+  manuts.push(m)
+  DB.set('manutencoes', manuts)
+  if (novoStatus || m.proxManut) {
+    let veiculos = getVeiculos()
+    veiculos = veiculos.map(v=>{
+      if (v.id !== veiculoId) return v
+      const upd = {...v}
+      if (novoStatus) upd.status = novoStatus
+      if (m.proxManut) upd.proxManut = m.proxManut
+      if (m.km && m.km > (v.km||0)) upd.km = m.km
+      return upd
+    })
+    DB.set('veiculos', veiculos)
+  }
+  closeModal('novaManut')
+  toast('Manutenção registrada. Status atualizado.','success')
+  renderView()
+  if (selectedVehicle && selectedVehicle.id === veiculoId) {
+    selectedVehicle = getVeiculos().find(v=>v.id===veiculoId)
+    renderDpContent()
+  }
+}
+
+function salvarAgendamento() {
+  const veiculoId = document.getElementById('ag-veiculo').value
+  const solicitanteNome = document.getElementById('ag-solicitante-nome').value.trim()
+  const destino = document.getElementById('ag-destino').value.trim()
+  const finalidade = document.getElementById('ag-finalidade').value.trim()
+  const saida = document.getElementById('ag-saida').value
+
+  if (!solicitanteNome || !destino || !finalidade || !saida) {
+    toast('Preencha solicitante, destino, finalidade e data de saída','warning'); return
+  }
+
+  const v = veiculoId ? getVeiculos().find(x=>x.id===veiculoId) : null
+  if (veiculoId && v && !canSchedule(v)) { toast('Veículo INOP — selecione outro ou deixe sem veículo','error'); return }
+
+  const isEmb = v?.tipo === 'embarcacao'
+  const a = {
+    id: uid(),
+    veiculoId: veiculoId || null,   // pode ficar sem veículo — Transportes atribui
+    prioridade: document.getElementById('ag-prioridade').value,
+    periodo: document.getElementById('ag-periodo').value,
+    solicitanteNome, solicitanteSetor: document.getElementById('ag-solicitante-setor').value.trim(),
+    destino, finalidade,
+    saida, retorno: document.getElementById('ag-retorno').value||null,
+    tripulacao: {                   // sugestões opcionais do solicitante
+      motorista: null, patrao: null, mo: null,
+      sugMotorista: (!isEmb ? document.getElementById('ag-sug-motorista')?.value.trim() : null) || null,
+      sugPatrao:    (isEmb  ? document.getElementById('ag-sug-patrao')?.value.trim()    : null) || null,
+      sugMo:        (isEmb  ? document.getElementById('ag-sug-mo')?.value.trim()        : null) || null,
+    },
+    passageiros: parseInt(document.getElementById('ag-pax').value)||0,
+    cargaKg: parseInt(document.getElementById('ag-carga-kg').value)||0,
+    cargaDesc: document.getElementById('ag-carga-desc').value.trim(),
+    obs: document.getElementById('ag-obs').value.trim(),
+    obsTransportes: '',
+    status: 'pendente'   // aguardando atribuição pela Seção de Transportes
+  }
+  const agendas = DB.get('agendamentos')
+  agendas.push(a)
+  DB.set('agendamentos', agendas)
+  closeModal('novoAgenda')
+  toast('Pedido enviado. Aguardando atribuição pela Seção de Transportes.','success')
+  renderView()
+}
+
+/* ── BIND EVENTS (pós render) ─────────────────────────────── */
+function bindFrotaEvents() {}
+
+/* ── THEME ─────────────────────────────────────────────────── */
+function toggleTheme() {
+  const curr = document.documentElement.getAttribute('data-theme')
+  const next = curr==='dark'?'light':'dark'
+  document.documentElement.setAttribute('data-theme', next)
+  localStorage.setItem('trsp_theme', next)
+}
+
+/* ── UTILS ─────────────────────────────────────────────────── */
+/* ── DATE UTILS ────────────────────────────────────────────── */
+// Formata ISO date string (YYYY-MM-DD) → dd/mm/aaaa
+function fmtDate(d) {
+  if (!d) return '—'
+  try {
+    // evita offset de timezone adicionando T12:00 local
+    const [y,m,day] = d.slice(0,10).split('-')
+    return `${day}/${m}/${y}`
+  } catch(e) { return d }
+}
+
+// Formata datetime string (ISO ou datetime-local) → dd/mm/aaaa HH:MM
+function fmtDateTime(d) {
+  if (!d) return '—'
+  try {
+    // datetime-local vem como "YYYY-MM-DDTHH:MM" sem timezone
+    const [datePart, timePart] = d.includes('T') ? d.split('T') : [d, '']
+    const [y,m,day] = datePart.split('-')
+    const time = timePart ? timePart.slice(0,5) : ''
+    return time ? `${day}/${m}/${y} ${time}` : `${day}/${m}/${y}`
+  } catch(e) { return d }
+}
+
+// Converte Date object → string no formato aceito por datetime-local (YYYY-MM-DDTHH:MM)
+// usando hora LOCAL, não UTC (evita o bug de offset)
+function toLocalDateTimeInput(date) {
+  const pad = n => String(n).padStart(2,'0')
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function limparSolicitante() {
+  document.getElementById('ag-solicitante-nome').value  = ''
+  document.getElementById('ag-solicitante-setor').value = ''
+  document.getElementById('ag-solicitante-nome').focus()
+  const hint = document.getElementById('ag-sol-hint')
+  if (hint) hint.remove()
+}
+
+function toast(msg, type='success') {
+  const tc = document.getElementById('toast-container')
+  const t = document.createElement('div')
+  t.className = `toast ${type}`
+  const icons = {success:'✓',warning:'⚠',error:'✕'}
+  t.innerHTML = `<span style="font-size:16px">${icons[type]||'ℹ'}</span> ${msg}`
+  tc.appendChild(t)
+  setTimeout(()=>t.style.opacity='0', 2800)
+  setTimeout(()=>t.remove(), 3100)
+}
+
+/* ── INIT ──────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('trsp_theme')||'dark'
+  document.documentElement.setAttribute('data-theme', savedTheme)
+  DB.init()
+  loadShared()
+  loadFrota()
+
+  // fechar modais ao clicar fora
+  document.querySelectorAll('.modal-overlay').forEach(o=>{
+    o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open') })
+  })
+
+  // esc key
+  document.addEventListener('keydown', e=>{
+    if (e.key==='Escape') {
+      document.querySelectorAll('.modal-overlay.open').forEach(o=>o.classList.remove('open'))
+      closeDetail()
+    }
+  })
+
+  // ouvir mudanças no cmasm_shared
+  window.addEventListener('storage', e=>{
+    if (e.key==='cmasm_shared') loadShared()
+  })
+})
+</script>
+</body>
+</html>

@@ -2,6 +2,7 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="assets/fonts.css">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CMASM · ERP</title>
 <link rel="canonical" href="xCore/cmasm-erp.html">
@@ -14,8 +15,6 @@
   window.location.replace(target.href);
 })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════════════════════════
    TOKENS
@@ -144,6 +143,10 @@ table{border-collapse:collapse;width:100%}
 .ni.active{background:rgba(59,130,246,.15);color:var(--acc);border:1px solid rgba(59,130,246,.2)}
 .ni svg{flex-shrink:0;opacity:.8}
 .ni.active svg{opacity:1}
+.ni-ext{justify-content:space-between}
+.ni-ext-ico{display:flex;align-items:center;gap:9px}
+.ni-ext-tag{font-size:9px;font-weight:600;letter-spacing:.6px;padding:2px 5px;border-radius:4px;background:rgba(6,182,212,.12);color:var(--acc2);border:1px solid rgba(6,182,212,.2);flex-shrink:0}
+.ni-ext:hover .ni-ext-tag{background:rgba(6,182,212,.22)}
 .sb-footer{padding:12px 8px;border-top:1px solid var(--border)}
 .sb-user{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px}
 .sb-uavatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
@@ -461,6 +464,43 @@ table{border-collapse:collapse;width:100%}
     </div>
 
 
+    <div class="sb-section">Módulos Externos</div>
+    <div class="ni ni-ext" onclick="openModulo('xpredial')" title="xPredial — Gestão Predial (porta 8002)">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="1"/><path d="M9 3v18M15 9h4M15 12h4M15 15h4M5 9h2M5 12h2M5 15h2"/></svg>
+        xPredial
+      </span>
+      <span class="ni-ext-tag">↗ ext</span>
+    </div>
+    <div class="ni ni-ext" onclick="openModulo('xseguranca')" title="xSegurança — CCTV e Segurança (porta 8000)">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        xSegurança
+      </span>
+      <span class="ni-ext-tag">↗ ext</span>
+    </div>
+    <div class="ni ni-ext" onclick="openModulo('xpaiol')" title="xPaiol — Controle de Paiois (porta 8003)">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        xPaiol
+      </span>
+      <span class="ni-ext-tag">↗ ext</span>
+    </div>
+    <div class="ni ni-ext" onclick="openModulo('xaguada')" title="xAguada — Sistema Hídrico (porta 8001)">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10C22 6 17 2 12 2z"/><path d="M12 8v8M8 12h8"/></svg>
+        xAguada
+      </span>
+      <span class="ni-ext-tag">↗ ext</span>
+    </div>
+    <div class="ni ni-ext" onclick="openModulo('xcalibracao')" title="xCalibracao — Calibração Metrológica (porta 8004)">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        xCalibracao
+      </span>
+      <span class="ni-ext-tag">↗ ext</span>
+    </div>
+
     <div class="sb-section" id="sb-admin-section">Administração</div>
     <div class="ni" data-page="usuarios" id="ni-usuarios" onclick="showPage('usuarios',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -554,7 +594,7 @@ table{border-collapse:collapse;width:100%}
   </div>
 
   <!-- Módulos Status -->
-  <div class="section-title" style="margin-top:20px">Status dos Módulos</div>
+  <div class="section-title" style="margin-top:20px">Módulos Internos</div>
   <div class="status-grid" id="dash-modulos">
     <div class="status-card" onclick="showPage('servicos')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Serviços (OS/PS)</div><div class="sc-code">CMASM-ERP/SVC</div></div><span class="badge badge-ok">● Ativo</span></div>
@@ -568,9 +608,50 @@ table{border-collapse:collapse;width:100%}
       <div class="sc-header"><div><div class="sc-name">Manutenção (CMMS)</div><div class="sc-code">CMASM-ERP/MANUT</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Ativos gerenciados</span><span id="mod-manut-count">0</span></div></div>
     </div>
+    <div class="status-card" onclick="showPage('estoque')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Estoque</div><div class="sc-code">CMASM-ERP/STQ</div></div><span class="badge badge-ok">● Ativo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Almoxarifado</span><span id="mod-estoque-count">0 itens</span></div></div>
+    </div>
+    <div class="status-card" onclick="showPage('vegetal')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Controle Vegetal</div><div class="sc-code">CMASM-ERP/VEG</div></div><span class="badge badge-ok">● Ativo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">xGrama</span><span class="sc-row-value">Maquinário de corte</span></div></div>
+    </div>
+    <div class="status-card" onclick="showPage('predial')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Locais &amp; Predial</div><div class="sc-code">CMASM-ERP/PRD</div></div><span class="badge badge-ok">● Ativo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">NBR 5674</span><span class="sc-row-value">Edificações</span></div></div>
+    </div>
+    <div class="status-card" onclick="showPage('paiois')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Paiois</div><div class="sc-code">CMASM-ERP/PAI</div></div><span class="badge badge-ok">● Ativo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Controle</span><span class="sc-row-value">Material e munições</span></div></div>
+    </div>
     <div class="status-card" onclick="showPage('calibracao')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Calibração</div><div class="sc-code">CMASM-ERP/CAL</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Equipamentos</span><span id="mod-calib-count">0 cadastrados</span></div></div>
+    </div>
+  </div>
+
+  <!-- Módulos Externos -->
+  <div class="section-title" style="margin-top:24px">Módulos Externos</div>
+  <div class="status-grid" id="dash-modulos-ext">
+    <div class="status-card" onclick="openModulo('xpredial')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">xPredial</div><div class="sc-code">:8002 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xpredial">○ Externo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Gestão predial · inspeções · NBR 5674</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xpredial')">Abrir ↗</button></div></div>
+    </div>
+    <div class="status-card" onclick="openModulo('xseguranca')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">xSegurança</div><div class="sc-code">:8000 · React + FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xseguranca">○ Externo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">CCTV · câmeras IP · detecção</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xseguranca')">Abrir ↗</button></div></div>
+    </div>
+    <div class="status-card" onclick="openModulo('xpaiol')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">xPaiol</div><div class="sc-code">:8003 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xpaiol">○ Externo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Monitoramento de paiois</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xpaiol')">Abrir ↗</button></div></div>
+    </div>
+    <div class="status-card" onclick="openModulo('xaguada')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">xAguada</div><div class="sc-code">:8001 · FastAPI + MQTT</div></div><span class="badge badge-cyan" id="ext-badge-xaguada">○ Externo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Sistema hídrico · ETE · SCADA</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xaguada')">Abrir ↗</button></div></div>
+    </div>
+    <div class="status-card" onclick="openModulo('xcalibracao')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">xCalibracao</div><div class="sc-code">:8004 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xcalibracao">○ Externo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Calibração metrológica · certificados</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xcalibracao')">Abrir ↗</button></div></div>
     </div>
   </div>
 </div>
@@ -1981,6 +2062,42 @@ function initAdminVisibility(){
 }
 
 /* ════ NAVIGATION ═════════════════════════════════════════ */
+/* ════ MÓDULOS EXTERNOS ══════════════════════════════════════ */
+// URLs configuráveis por env — ajuste para produção/Docker
+const MODULOS_EXTERNOS = {
+  xpredial:    { url: 'http://localhost:8002', nome: 'xPredial' },
+  xseguranca:  { url: 'http://localhost:8000', nome: 'xSegurança' },
+  xpaiol:      { url: 'http://localhost:8003', nome: 'xPaiol' },
+  xaguada:     { url: 'http://localhost:8001', nome: 'xAguada' },
+  xcalibracao: { url: 'http://localhost:8004', nome: 'xCalibracao' },
+};
+
+function openModulo(id){
+  const m = MODULOS_EXTERNOS[id];
+  if(!m){ toast('Módulo não configurado','error'); return; }
+  window.open(m.url, '_blank', 'noopener,noreferrer');
+}
+
+async function checkModulosExternos(){
+  for(const [id, m] of Object.entries(MODULOS_EXTERNOS)){
+    const badge = document.getElementById('ext-badge-'+id);
+    if(!badge) continue;
+    try{
+      const r = await fetch(m.url+'/health', {signal: AbortSignal.timeout(2000)});
+      if(r.ok){
+        badge.className='badge badge-ok';
+        badge.textContent='● Online';
+      } else {
+        badge.className='badge badge-warn';
+        badge.textContent='◐ Erro';
+      }
+    } catch {
+      badge.className='badge badge-neutral';
+      badge.textContent='○ Offline';
+    }
+  }
+}
+
 const PAGE_TITLES = {
   dashboard:'Sistema de Gestão Integrada · CMASM',
   organizacao:'Pessoal (TMFT) · CMASM-ERP',
@@ -2154,6 +2271,11 @@ function initDashboard(){
   setText('mod-frota-count',`${frotaPronta} prontos / ${frota.length} total`);
   setText('mod-manut-count',`${ativos.length} ativos · ${osManut.filter(o=>o.status!=='concluida').length} OS ativas`);
   setText('mod-calib-count',`${calibVencidas} vencidas · ${calibAVencer} a vencer`);
+  // Estoque count
+  const estoque=DB.get('estoque',[]);
+  setText('mod-estoque-count',`${estoque.length} itens`);
+  // Health check dos módulos externos (non-blocking)
+  checkModulosExternos();
   // Topbar badge — sistema OK vs alertas
   const badge=document.getElementById('topbar-badge');
   if(badge){

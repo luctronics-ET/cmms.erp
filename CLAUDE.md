@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Structure
 
-This git repo (`/home/luciano/DEV/cmasm.erp`) is the **xCMASM core workspace**. Contains the xCore nucleus and shared assets. External modules are independent repos/containers, kept outside this repo under `/home/luciano/DEV/cmasm.erp/.modulos-externos/` for temporary reference (will be removed — each module has its own repo).
+This git repo (`/home/luciano/DEV/cmasm.erp`) is the **xCMASM core workspace**. Contains the xCore nucleus and shared assets. External modules are independent repos/containers, kept outside this repo.
 
 ```
 cmasm.erp/                       ← this repo (ERP nucleus)
