@@ -8,42 +8,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Structure
 
-This git repo (`/home/luciano/DEV/cmasm.erp`) is the **xCMASM core workspace**. Contains the xCore nucleus and shared assets. External modules are independent repos/containers, kept outside this repo.
+This git repo (`/home/luciano/DEV/cmasm.erp`) is the **xCMASM HUB + ERP nucleus**. Contém o backend xCore, o portal principal e assets compartilhados. Módulos PMOC e módulos externos vivem em repos independentes em `/home/luciano/DEV/`.
 
 ```
-cmasm.erp/                       ← this repo (ERP nucleus)
+cmasm.erp/                       ← this repo (HUB + ERP)
 ├── cmasm_erp.html               # ★ MAIN ERP — single-file app, localStorage, no build step
 ├── index.html                   # Portal de acesso rápido (links para todos os módulos)
 │
-├── xCore/                       # Central FastAPI backend + HTML portals (port 8010)
-│   ├── backend/
-│   │   ├── main.py              # FastAPI app — serves HTML + all /api/* routes
-│   │   ├── db_core.py           # aiosqlite singleton (schema_core + schema_grama)
-│   │   └── grama.py             # /api/grama/* routes (vegetation control)
-│   ├── data/
-│   │   ├── schema_core.sql      # Core tables: usuarios, ativos, locais, os, estoque, sessoes
-│   │   └── schema_grama.sql     # Grama tables: areas, maquinas, operacoes, kanban, calendario
-│   ├── frontend/
-│   │   ├── servicos/            # Vue 3 redirect launcher (→ cmasm_erp.html?page=srv-dashboard)
-│   │   └── mapa/                # Leaflet installation map
-│   ├── predial/                 # xPredial frontend (HTML/JS, served at /predial/*)
-│   │   └── docs/                # Referência: árvore de locais CMASM, tabelas
-│   ├── paiol/                   # xPaiol frontend (HTML/JS, served at /paiol/*)
-│   ├── cmasm-erp.html           # Older separate ERP portal (legacy, served by xCore FastAPI)
-│   └── tools/
-│       ├── seed_usuarios.py     # Seeds 12 real users (run once after init)
-│       ├── seed_ativos.py       # Seeds fleet assets
-│       ├── seed_estoque.py      # Seeds inventory items
-│       └── migrate_from_backup.py  # Imports ERP_core JSON backup
+├── backend/                     # FastAPI API — xCore nucleus (port 8010)
+│   ├── main.py                  # FastAPI app — serves HTML + all /api/* routes
+│   ├── db_core.py               # aiosqlite singleton (schema_core + schema_grama)
+│   └── grama.py                 # /api/grama/* routes (vegetation control)
 │
-├── cmasm-api/                   # Node.js/Express API (MySQL, alternative backend)
-│   ├── src/
-│   │   ├── server.js            # Express entry point (port 3001)
-│   │   └── routes/index.js      # All /api/v1/* routes
-│   ├── database/migrations/
-│   │   ├── 001_schema.sql
-│   │   └── 002_seeds.sql
-│   └── .env.example
+├── data/                        # DB schemas
+│   ├── schema_core.sql          # Core tables: usuarios, ativos, locais, os, estoque, sessoes
+│   └── schema_grama.sql         # Grama tables: areas, maquinas, operacoes, kanban, calendario
 │
 ├── assets/                      # Shared static assets (served at /assets/*)
 │   ├── xcmasm-sdk.js            # Shared JS SDK for all HTML modules
@@ -51,6 +30,18 @@ cmasm.erp/                       ← this repo (ERP nucleus)
 │   ├── erp-module-shell.css     # Shared shell CSS
 │   └── fonts/                   # Self-hosted DM Sans + JetBrains Mono woff2
 │
+├── tools/                       # Seed/migration scripts
+│   ├── seed_usuarios.py         # Seeds 12 real users
+│   ├── seed_ativos.py
+│   ├── seed_estoque.py
+│   └── migrate_from_backup.py
+│
+├── referencias/                 # Templates para devs de módulos externos
+│   ├── ativo-template.html      # Base para novos módulos PMOC
+│   ├── xcmasm-govbr-portal.html # Template GOV.BR portal
+│   └── xcmasm-govbr-template.html
+│
+├── docs/                        # Specs e documentação interna
 ├── Rules.md                     # Business rules, entity flows, data relationships
 ├── AGENTS.md                    # Agent instructions, domain-specific rules, module guide
 └── .docs_cmasm/                 # Reference documents (CSV exports, OSM maps, PDFs)
@@ -86,12 +77,9 @@ python3 -m http.server 8080
 # Then open: http://localhost:8080/cmasm_erp.html
 ```
 
-**`xCore/cmasm-erp.html`** is an older, separate version of the portal — do not confuse with the main ERP at `cmasm_erp.html` (root).
-
 ### Starting xCore (FastAPI backend — optional)
 
 ```bash
-cd xCore
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
@@ -114,20 +102,11 @@ TOKEN_TTL_HOURS=8
 CORS_ORIGINS=http://localhost:3001,http://localhost:8002,...
 ```
 
-**cmasm-api (Node.js alternative)**:
+**xPredial** (satellite — repo separado em `/home/luciano/DEV/xPredial`):
 ```bash
-cd cmasm-api
-cp .env.example .env   # configure MYSQL_* vars
-npm install
-node src/server.js     # port 3001; GET http://localhost:3001/api/v1/health
-```
-
-**xPredial** (satellite):
-```bash
-cd xPredial
+cd /home/luciano/DEV/xPredial
 source .venv/bin/activate
 uvicorn backend.main:app --reload --port 8002
-# Frontend: cd frontend && python3 -m http.server 3001
 pytest tests -q
 ```
 
@@ -137,12 +116,11 @@ pytest tests -q
 
 ### How xCore serves everything
 
-`xCore/backend/main.py` is the single FastAPI app that:
+`backend/main.py` is the single FastAPI app that:
 1. Exposes all `/api/*` REST endpoints (auth, users, assets, locations, OS, inventory, grama)
-2. Serves `xCore/*.html` pages directly (e.g., GET `/cmasm-erp.html` → `cmasm-erp.html`)
-3. Mounts static directories: `/assets` → `../assets/`, `/predial` → `xCore/predial/`, `/paiol` → `xCore/paiol/`
+2. Mounts static directories: `/assets` → `assets/`
 
-So `http://localhost:8010/predial/inspecoes.html` serves the xPredial frontend without a separate server during development inside xCore.
+Módulos externos (xPredial, xPaiol, etc.) têm seus próprios servidores — não são mais servidos pelo xCore.
 
 ### Auth
 
@@ -159,7 +137,7 @@ const sdk = xcmasm({ baseURL: 'http://localhost:8010' });
 // Token stored in localStorage under 'xcmasm_token'
 ```
 
-### Module template (`xCore/ativo-template.html`)
+### Module template (`referencias/ativo-template.html`)
 
 Starting point for new asset-management HTML modules (no build step, localStorage-based). See `AGENTS.md §10` for the 10-step guide to create a new module from this template. Key config points: `TIPOS`, `UNIDADES_DEFAULT`, `PECAS_DEFAULT`, `SK`/`SE` (unique localStorage keys).
 

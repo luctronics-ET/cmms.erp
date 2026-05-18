@@ -147,6 +147,55 @@ CREATE TABLE IF NOT EXISTS estoque_movimentos (
 -- Migração aditiva: campos extras em ativos
 -- (ALTER TABLE só roda se a coluna não existir — verificado em db_core.py)
 
+-- PMOC de Refrigeração / Climatização
+CREATE TABLE IF NOT EXISTS pmoc_refrigeracao (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  ativo_id            TEXT REFERENCES ativos(id),
+  local_id            INTEGER REFERENCES locais(id),
+  -- Estado
+  estado_operacional  TEXT DEFAULT 'OP',   -- OP | INOP
+  est_idade           TEXT,                -- NOVA | SEMI | VELHA
+  obs                 TEXT,
+  -- Operação PMOC
+  permanencia         INTEGER DEFAULT 0,   -- 1=permanente (X no CSV)
+  criticidade         TEXT DEFAULT 'MÉDIA',-- CRÍTICA | ALTA | MÉDIA | BAIXA
+  horas_dia           REAL,
+  dias_semana         INTEGER,
+  -- Elétrico
+  tensao_nominal      REAL,
+  tensao_medida       REAL,
+  corrente_nominal    REAL,
+  corrente_medida     REAL,
+  potencia_kw         REAL,
+  quadro              TEXT,
+  disjuntor           TEXT,
+  cabo                TEXT,
+  -- Refrigerante
+  gas_tipo            TEXT,                -- R-22 | R-410A | R-32 …
+  carga_g             REAL,               -- carga estimada em gramas
+  pressao_padrao      TEXT,
+  pressao_medida      TEXT,
+  pressao_data        TEXT,
+  -- Temperaturas (padrão / medida)
+  temp_evaporadora    TEXT,
+  temp_evaporadora_m  TEXT,
+  temp_centro         TEXT,
+  temp_longe          TEXT,
+  -- Inventário
+  patrimonio          TEXT,
+  data_instalacao     TEXT,
+  ultima_manutencao   TEXT,
+  -- Metadados
+  pmoc_csv_id         INTEGER,            -- ID original do CSV para rastreabilidade
+  criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pmoc_refrig_ativo  ON pmoc_refrigeracao(ativo_id);
+CREATE INDEX IF NOT EXISTS idx_pmoc_refrig_local  ON pmoc_refrigeracao(local_id);
+CREATE INDEX IF NOT EXISTS idx_pmoc_refrig_estado ON pmoc_refrigeracao(estado_operacional);
+CREATE INDEX IF NOT EXISTS idx_pmoc_refrig_crit   ON pmoc_refrigeracao(criticidade);
+
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_usuarios_mat    ON usuarios(mat);
 CREATE INDEX IF NOT EXISTS idx_usuarios_ativo  ON usuarios(ativo);
