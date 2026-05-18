@@ -931,11 +931,13 @@ _PMOC_REFRIG_SELECT = """
            a.nome AS ativo_nome, a.tipo AS ativo_tipo, a.subtipo AS ativo_marca,
            a.pat AS ativo_pat, a.uso_atual,
            l.nome AS local_nome, l.codigo AS local_codigo, l.area_m2,
-           lp.nome AS predio_nome, lp.id AS predio_id
+           lp.nome AS predio_nome, lp.id AS predio_id,
+           lz.nome AS zona_nome, lz.id AS zona_id
     FROM pmoc_refrigeracao p
     LEFT JOIN ativos a ON a.id = p.ativo_id
     LEFT JOIN locais l ON l.id = p.local_id
     LEFT JOIN locais lp ON lp.id = l.parent_id
+    LEFT JOIN locais lz ON lz.id = lp.parent_id
 """
 
 
