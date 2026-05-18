@@ -1,72 +1,67 @@
 # xCMASM / cmasm.erp
 
-Workspace consolidado de gestão operacional do CMASM, com núcleo central em `xCore` e espelhos locais dos módulos satélite que antes ficavam fora da pasta principal.
+Repositório do **HUB + ERP central** do xCMASM (Centro de Mísseis e Armas Submarinas da Marinha do Brasil).
 
-## Escopo deste repositório
+## O que é este repo
 
-Este repositório passa a concentrar o workspace principal do `xCMASM` em `cmasm.erp`.
+`cmasm.erp` contém o núcleo operacional da plataforma:
 
-- `xCore/` é o núcleo da plataforma e concentra API central, ativos, locais, ordens de serviço, estoque e o domínio de controle vegetal.
-- `xPredial/`, `xPaiol/`, `xSeguranca/`, `xCalibracao/`, `xFonoclama/`, `xCFTV/` e `aguada-web/` agora existem também como cópias locais dentro deste workspace.
-- O ponto de entrada canônico do portal institucional é `xCore/cmasm-erp.html`.
+- **`cmasm_erp.html`** — portal principal single-file (HTML + JS, localStorage, sem build step)
+- **`backend/`** — API FastAPI (xCore, porta 8010): auth, usuários, ativos, locais, OS, estoque, grama
+- **`assets/`** — SDK JS, CSS shell, fontes compartilhadas entre todos os módulos
+- **`data/`** — schemas SQLite (`schema_core.sql`, `schema_grama.sql`)
+- **`tools/`** — scripts de seed e importação
+- **`referencias/`** — templates para devs de módulos externos (`ativo-template.html`, govbr-template)
 
-Importações recentes:
+Módulos PMOC e módulos externos vivem em repos independentes em `/home/luciano/DEV/`.
 
-- módulos externos foram espelhados localmente para facilitar manutenção, busca e migração incremental;
-- diretórios de dependência e ambiente não foram trazidos (`.git`, `node_modules`, `.venv`, caches e builds);
-- `cmasm_erp.html` permanece no repositório como ponte de compatibilidade para o portal canônico em `xCore/`.
+## Início rápido
 
-## Estado atual
-
-| Área | Situação |
-|---|---|
-| `xCore/` | funcional, portal principal em `xCore/cmasm-erp.html` |
-| `xPredial/` | funcional, com Docker e pytest |
-| `xCalibracao/` | importado localmente, ainda parcial |
-| `aguada-web/` | importado localmente como espelho do sistema hídrico |
-| `xSeguranca/` | frontend presente; backend pendente |
-
-## Estrutura principal
-
-```text
-xCore/         núcleo FastAPI + SQLite
-xPredial/      gestão predial
-xCalibracao/   instrumentos e certificados
-aguada-web/    sistema hídrico e MQTT
-xSeguranca/    vigilância/CFTV com frontend React
-```
-
-## Execução rápida
-
-### xCore
+### ERP (frontend)
 
 ```bash
-cd xCore
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn backend.main:app --reload --port 8010
+cd /home/luciano/DEV/cmasm.erp
+npx serve .
+# → http://localhost:3000/cmasm_erp.html
 ```
 
-### xPredial
+### API xCore (backend)
 
 ```bash
-cd xPredial
-python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn backend.main:app --reload --port 8002
-pytest tests -q
+uvicorn backend.main:app --port 8010 --reload
+# → http://localhost:8010/docs
 ```
 
-## Documentos úteis
+### Primeiro uso (seed)
 
-- `PLANO_IMPLEMENTACAO.md` descreve o estado atual do workspace e as próximas frentes.
-- `importacao.md` registra os espelhos locais e o alinhamento de caminhos após a consolidação em `cmasm.erp`.
-- `Rules.md` concentra regras de negócio e fluxos do sistema.
+```bash
+python tools/seed_usuarios.py   # 12 usuários; senha padrão "1234" → hash djb2 "170842"
+python tools/seed_ativos.py
+python tools/seed_estoque.py
+```
 
-## Observações
+## Módulos externos
 
-- O domínio de `xGrama` está embutido no `xCore` neste workspace.
-- O domínio de serviços/OS também está hoje concentrado no núcleo e em frontends locais, sem módulo `xServicos` independente.
-- Os satélites ainda podem existir em repositórios externos, mas `cmasm.erp` agora mantém cópias locais para referência e migração.
+| Módulo | Porta | Repo |
+|--------|-------|------|
+| xPredial | 8002 | `/home/luciano/DEV/xPredial` |
+| xPaiol | 8003 | `/home/luciano/DEV/xPaiol` |
+| xAguada | 8001 | `/home/luciano/DEV/xAguada` |
+| xCalibracao | 8004 | `/home/luciano/DEV/pmoc_calibracao` |
+| xSeguranca | 8000/3000 | `/home/luciano/DEV/xSeguranca` |
+| xRegrigeracao | — | `/home/luciano/DEV/xRegrigeracao` |
+| xFonoclama | — | `/home/luciano/DEV/xFonoclama` |
+| xCFTV | — | `/home/luciano/DEV/xCFTV` |
+
+Todos os externos consomem `GET /api/usuarios` via `XCORE_URL=http://localhost:8010`.
+
+## Docs
+
+| Arquivo | Conteúdo |
+|---------|----------|
+| `CLAUDE.md` | Guia para Claude Code — estrutura, padrões, endpoints |
+| `AGENTS.md` | Instruções de domínio para agentes IA |
+| `Rules.md` | Regras de negócio, fluxos, relacionamentos |
+| `MODULOS_EXTERNOS.md` | Arquitetura de integração entre módulos |
+| `PLANO_IMPLEMENTACAO.md` | Roadmap e status de cada módulo |

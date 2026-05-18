@@ -1,54 +1,44 @@
-# Importações e Consolidação do Workspace
+# Importação de Dados — xCMASM
 
-Atualizado em 2026-05-08.
+## Scripts disponíveis em `tools/`
 
-## Objetivo
+| Script | Fonte | Destino | Uso |
+|--------|-------|---------|-----|
+| `seed_usuarios.py` | hardcoded | `usuarios` | Primeiro uso: cria 12 usuários reais (senha `1234` → hash djb2 `170842`) |
+| `seed_ativos.py` | hardcoded | `ativos` | Primeiro uso: popula frota de ativos |
+| `seed_estoque.py` | hardcoded | `estoque` | Primeiro uso: popula itens de almoxarifado |
+| `seed_completo.py` | hardcoded | todos | Executa os três seeds acima em sequência |
+| `migrate_from_backup.py` | `cmasm_backup.json` | todas as tabelas | Importa backup JSON do ERP legado |
+| `migrate_legacy_js.py` | localStorage export | todas as tabelas | Importa export de localStorage do ERP_core HTML |
+| `import_from_refs.py` | `pmoc.refs/` | `locais`, `ativos` | Importa dados de locais/ativos dos CSVs de referência CMASM |
+| `import_pmoc_refrigeracao.py` | `pmoc.refs/CMASM_PMOC_REFRIG*.csv` | `locais`, `ativos`, `pmoc_refrigeracao` | Importa planilha PMOC de refrigeração |
+| `import_org_from_reference.py` | `.docs_cmasm/` | `usuarios`, `estrutura` | Importa organograma e TMFT dos CSVs |
+| `import_locais_xpredial.py` | xPredial DB | `locais` | Sincroniza locais do xPredial para o núcleo |
 
-Registrar a consolidação do antigo núcleo `xCMASM` dentro de `cmasm.erp` e o espelhamento local dos módulos que ainda estavam fora da pasta principal.
+## Execução
 
-## Estrutura consolidada
+```bash
+# Primeiro uso completo
+cd /home/luciano/DEV/cmasm.erp
+source .venv/bin/activate
+python tools/seed_completo.py
 
-- `xCore/` permanece como o núcleo operacional e canônico do ERP.
-- `xCore/cmasm-erp.html` é o ponto de entrada principal do portal institucional.
-- `cmasm_erp.html` agora funciona como ponte de compatibilidade para `xCore/cmasm-erp.html`.
-- `index.html` funciona como portal de acesso rápido e agora aponta para caminhos válidos dentro do workspace atual.
+# Importar PMOC de Refrigeração
+python tools/import_pmoc_refrigeracao.py
+# Dry-run (não grava no banco):
+python tools/import_pmoc_refrigeracao.py --dry-run
 
-## Módulos espelhados localmente
+# Importar locais/ativos dos CSVs de referência
+python tools/import_from_refs.py
+```
 
-Os diretórios abaixo foram copiados para dentro de `cmasm.erp/`:
+## Fontes de dados
 
-- `xFonoclama/`
-- `xPaiol/`
-- `xPredial/`
-- `xSeguranca/`
-- `aguada-web/`
-- `xCalibracao/`
-- `xCFTV/`
+| Diretório | Conteúdo |
+|-----------|----------|
+| `.docs_cmasm/` | CSVs autoritativos: usuários, cargos, TMFT, mapas OSM |
+| `/home/luciano/DEV/pmoc.refs/` | Planilhas PMOC: refrigeração, calibração, tabelas de locais |
 
-## Critérios da cópia
+## Banco de dados
 
-Foram excluídos do espelhamento:
-
-- `.git/`
-- `node_modules/`
-- `.venv/`
-- `.pytest_cache/`
-- `.playwright-mcp/`
-- `dist/`
-- `build/`
-- `coverage/`
-- `__pycache__/`
-
-O objetivo foi trazer código-fonte, documentação e artefatos de configuração úteis para manutenção e migração, sem replicar dependências e metadados de ambiente.
-
-## Ajustes aplicados após a importação
-
-- `xCMASM.code-workspace` passou a apontar para os diretórios locais dentro de `cmasm.erp/`.
-- `index.html` deixou de apontar para o caminho legado `/ERP_core/cmasm-erp.html` e passou a usar `xCore/cmasm-erp.html`.
-- Links de retorno no `xCore/frontend/servicos/` e no shell do `xPredial` foram alinhados com o novo layout.
-- O script `xPredial/scripts/seed_locais_cmasm.py` foi ajustado para ler `/.docs_cmasm/cmasm_cargos.csv` em vez de depender de `ERP_core/`.
-
-## Observações
-
-- Os módulos externos podem continuar existindo em repositórios separados fora de `cmasm.erp`, mas a manutenção cotidiana agora pode ser feita a partir deste workspace consolidado.
-- URLs de execução dos módulos continuam centralizadas em `assets/xcmasm-module-links.js` e podem depender de serviços locais em `localhost`.
+O banco SQLite é criado automaticamente em `data/core.db` ao iniciar o servidor. O schema é carregado de `data/schema_core.sql` + `data/schema_grama.sql`. Todas as migrações são aditivas (nunca DROP).
