@@ -926,6 +926,25 @@ class PmocRefrigIn(BaseModel):
     ultima_manutencao: Optional[str] = None
 
 
+class PmocRefrigCreateIn(PmocRefrigIn):
+    ativo_id: Optional[str] = None     # se vazio, cria novo ativo
+    local_id: Optional[int] = None
+    # Campos para criar ativo novo quando ativo_id ausente
+    ativo_tipo: str = "AC_SPLIT"        # AC_SPLIT | AC_JANELA | AC_PISO_TETO
+    ativo_marca: Optional[str] = None
+    ativo_nome: Optional[str] = None    # default: derivado de marca+btu+local
+    ativo_pat: Optional[str] = None
+    # Campos estruturais (não estão em PmocRefrigIn pois são imutáveis pós-import)
+    est_idade: Optional[str] = None     # NOVA | SEMI | VELHA
+    tensao_nominal: Optional[float] = None
+    corrente_nominal: Optional[float] = None
+    pressao_padrao: Optional[str] = None
+    temp_evaporadora: Optional[str] = None
+    temp_longe_padrao: Optional[str] = None
+    patrimonio: Optional[str] = None
+    data_instalacao: Optional[str] = None
+
+
 _PMOC_REFRIG_SELECT = """
     SELECT p.*,
            a.nome AS ativo_nome, a.tipo AS ativo_tipo, a.subtipo AS ativo_marca,
@@ -1019,6 +1038,76 @@ async def update_pmoc_refrig(pid: int, body: PmocRefrigIn):
             (1 if body.estado_operacional == "OP" else 0, row["ativo_id"]),
         )
     return await get_pmoc_refrig(pid)
+
+
+@app.post("/api/pmoc/refrigeracao", status_code=201)
+async def create_pmoc_refrig(body: PmocRefrigCreateIn):
+    ativo_id = body.ativo_id
+    if ativo_id:
+        exists = await db.fetch_one("SELECT id FROM ativos WHERE id = ?", (ativo_id,))
+        if not exists:
+            raise HTTPException(400, f"ativo_id '{ativo_id}' não encontrado")
+    else:
+        row = await db.fetch_one(
+            "SELECT id FROM ativos WHERE id LIKE 'hvac-%' ORDER BY CAST(SUBSTR(id, 6) AS INTEGER) DESC LIMIT 1"
+        )
+        next_seq = 1
+        if row and row["id"]:
+            try:
+                next_seq = int(row["id"].split("-")[1]) + 1
+            except (ValueError, IndexError):
+                next_seq = 1
+        ativo_id = f"hvac-{next_seq:03d}"
+        while await db.fetch_one("SELECT 1 FROM ativos WHERE id = ?", (ativo_id,)):
+            next_seq += 1
+            ativo_id = f"hvac-{next_seq:03d}"
+
+        nome_default = body.ativo_nome
+        if not nome_default:
+            partes = ["AC", body.ativo_marca or "", body.ativo_tipo.replace("AC_", "")]
+            nome_default = " ".join(p for p in partes if p).strip()
+        await db.execute(
+            "INSERT INTO ativos (id, tipo, subtipo, categoria, nome, pat, ativo, unidade_uso)"
+            " VALUES (?, ?, ?, 'climatizacao', ?, ?, ?, 'meses')",
+            (
+                ativo_id, body.ativo_tipo, body.ativo_marca,
+                nome_default, body.ativo_pat,
+                1 if body.estado_operacional == "OP" else 0,
+            ),
+        )
+
+    cur = await db.execute(
+        """INSERT INTO pmoc_refrigeracao
+           (ativo_id, local_id, estado_operacional, est_idade, obs,
+            permanencia, criticidade, horas_dia, dias_semana,
+            tensao_nominal, tensao_medida, corrente_nominal, corrente_medida, potencia_kw,
+            quadro, disjuntor, cabo,
+            gas_tipo, carga_g, pressao_padrao, pressao_medida, pressao_data,
+            temp_evaporadora, temp_evaporadora_m, temp_centro, temp_longe,
+            patrimonio, data_instalacao, ultima_manutencao)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            ativo_id, body.local_id, body.estado_operacional, body.est_idade, body.obs,
+            body.permanencia, body.criticidade, body.horas_dia, body.dias_semana,
+            body.tensao_nominal, body.tensao_medida, body.corrente_nominal, body.corrente_medida, body.potencia_kw,
+            body.quadro, body.disjuntor, body.cabo,
+            body.gas_tipo, body.carga_g, body.pressao_padrao, body.pressao_medida, body.pressao_data,
+            body.temp_evaporadora, body.temp_evaporadora_m, body.temp_centro, body.temp_longe,
+            body.patrimonio, body.data_instalacao, body.ultima_manutencao,
+        ),
+    )
+    return await get_pmoc_refrig(cur)
+
+
+@app.delete("/api/pmoc/refrigeracao/{pid}")
+async def delete_pmoc_refrig(pid: int, arquivar_ativo: int = 0):
+    row = await db.fetch_one("SELECT ativo_id FROM pmoc_refrigeracao WHERE id = ?", (pid,))
+    if not row:
+        raise HTTPException(404, "Registro PMOC não encontrado")
+    await db.execute("DELETE FROM pmoc_refrigeracao WHERE id = ?", (pid,))
+    if arquivar_ativo and row["ativo_id"]:
+        await db.execute("UPDATE ativos SET ativo = 0 WHERE id = ?", (row["ativo_id"],))
+    return {"ok": True}
 
 
 @app.post("/api/estoque/{iid}/movimentos", status_code=201)
