@@ -902,6 +902,123 @@ async def exportar_estoque_csv():
     )
 
 
+# ── PMOC Refrigeração ─────────────────────────────────────────────────────────
+class PmocRefrigIn(BaseModel):
+    estado_operacional: str = "OP"
+    obs: Optional[str] = None
+    permanencia: int = 0
+    criticidade: str = "MÉDIA"
+    horas_dia: Optional[float] = None
+    dias_semana: Optional[int] = None
+    tensao_medida: Optional[float] = None
+    corrente_medida: Optional[float] = None
+    potencia_kw: Optional[float] = None
+    quadro: Optional[str] = None
+    disjuntor: Optional[str] = None
+    cabo: Optional[str] = None
+    gas_tipo: Optional[str] = None
+    carga_g: Optional[float] = None
+    pressao_medida: Optional[str] = None
+    pressao_data: Optional[str] = None
+    temp_evaporadora_m: Optional[str] = None
+    temp_centro: Optional[str] = None
+    temp_longe: Optional[str] = None
+    ultima_manutencao: Optional[str] = None
+
+
+_PMOC_REFRIG_SELECT = """
+    SELECT p.*,
+           a.nome AS ativo_nome, a.tipo AS ativo_tipo, a.subtipo AS ativo_marca,
+           a.pat AS ativo_pat, a.uso_atual,
+           l.nome AS local_nome, l.codigo AS local_codigo, l.area_m2,
+           lp.nome AS predio_nome, lp.id AS predio_id
+    FROM pmoc_refrigeracao p
+    LEFT JOIN ativos a ON a.id = p.ativo_id
+    LEFT JOIN locais l ON l.id = p.local_id
+    LEFT JOIN locais lp ON lp.id = l.parent_id
+"""
+
+
+@app.get("/api/pmoc/refrigeracao/kpis")
+async def pmoc_refrig_kpis():
+    total = await db.fetch_one("SELECT COUNT(*) AS n FROM pmoc_refrigeracao")
+    op    = await db.fetch_one("SELECT COUNT(*) AS n FROM pmoc_refrigeracao WHERE estado_operacional = 'OP'")
+    inop  = await db.fetch_one("SELECT COUNT(*) AS n FROM pmoc_refrigeracao WHERE estado_operacional = 'INOP'")
+    crits = await db.fetch_all("SELECT criticidade, COUNT(*) AS n FROM pmoc_refrigeracao GROUP BY criticidade ORDER BY n DESC")
+    return {
+        "total": total["n"],
+        "op": op["n"],
+        "inop": inop["n"],
+        "por_criticidade": {r["criticidade"]: r["n"] for r in crits},
+    }
+
+
+@app.get("/api/pmoc/refrigeracao")
+async def list_pmoc_refrig(
+    estado: str | None = None,
+    criticidade: str | None = None,
+    local_id: int | None = None,
+    inop: int = 0,
+):
+    clauses, params = [], []
+    if estado:
+        clauses.append("p.estado_operacional = ?"); params.append(estado)
+    elif inop:
+        clauses.append("p.estado_operacional = 'INOP'")
+    if criticidade:
+        clauses.append("p.criticidade = ?"); params.append(criticidade)
+    if local_id is not None:
+        clauses.append("p.local_id = ?"); params.append(local_id)
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    return await db.fetch_all(
+        f"{_PMOC_REFRIG_SELECT} {where} ORDER BY l.nome, a.nome",
+        tuple(params),
+    )
+
+
+@app.get("/api/pmoc/refrigeracao/{pid}")
+async def get_pmoc_refrig(pid: int):
+    row = await db.fetch_one(
+        f"{_PMOC_REFRIG_SELECT} WHERE p.id = ?", (pid,)
+    )
+    if not row:
+        raise HTTPException(404, "Registro PMOC não encontrado")
+    return row
+
+
+@app.put("/api/pmoc/refrigeracao/{pid}")
+async def update_pmoc_refrig(pid: int, body: PmocRefrigIn):
+    row = await db.fetch_one("SELECT id, ativo_id FROM pmoc_refrigeracao WHERE id = ?", (pid,))
+    if not row:
+        raise HTTPException(404, "Registro PMOC não encontrado")
+    await db.execute(
+        """UPDATE pmoc_refrigeracao SET
+               estado_operacional=?, obs=?, permanencia=?, criticidade=?,
+               horas_dia=?, dias_semana=?,
+               tensao_medida=?, corrente_medida=?, potencia_kw=?,
+               quadro=?, disjuntor=?, cabo=?,
+               gas_tipo=?, carga_g=?, pressao_medida=?, pressao_data=?,
+               temp_evaporadora_m=?, temp_centro=?, temp_longe=?,
+               ultima_manutencao=?, atualizado_em=CURRENT_TIMESTAMP
+           WHERE id=?""",
+        (
+            body.estado_operacional, body.obs, body.permanencia, body.criticidade,
+            body.horas_dia, body.dias_semana,
+            body.tensao_medida, body.corrente_medida, body.potencia_kw,
+            body.quadro, body.disjuntor, body.cabo,
+            body.gas_tipo, body.carga_g, body.pressao_medida, body.pressao_data,
+            body.temp_evaporadora_m, body.temp_centro, body.temp_longe,
+            body.ultima_manutencao, pid,
+        ),
+    )
+    if row["ativo_id"]:
+        await db.execute(
+            "UPDATE ativos SET ativo = ? WHERE id = ?",
+            (1 if body.estado_operacional == "OP" else 0, row["ativo_id"]),
+        )
+    return await get_pmoc_refrig(pid)
+
+
 @app.post("/api/estoque/{iid}/movimentos", status_code=201)
 async def create_movimento(iid: int, body: MovimentoIn):
     item = await db.fetch_one("SELECT qtd_atual FROM estoque WHERE id = ?", (iid,))
