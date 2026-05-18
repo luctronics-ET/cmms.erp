@@ -50,7 +50,6 @@ _FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..")
 _SHARED_ASSETS_DIR = os.path.join(_FRONTEND_DIR, "assets")
 app.mount("/static", StaticFiles(directory=_FRONTEND_DIR), name="static")
 app.mount("/assets", StaticFiles(directory=_SHARED_ASSETS_DIR), name="assets")
-app.mount("/frontend", StaticFiles(directory=os.path.join(_FRONTEND_DIR, "frontend")), name="frontend")
 
 
 @app.get("/")

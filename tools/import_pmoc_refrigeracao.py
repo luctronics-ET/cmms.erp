@@ -18,6 +18,7 @@ import os
 import re
 import sqlite3
 import sys
+import unicodedata
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH  = os.path.join(BASE_DIR, "..", "data", "core.db")
@@ -36,13 +37,8 @@ DRY_RUN = "--dry-run" in sys.argv
 
 def slugify(text: str) -> str:
     """Texto → slug maiúsculo para uso em códigos."""
-    text = text.upper().strip()
-    text = re.sub(r"[áàâãä]", "A", text)
-    text = re.sub(r"[éèêë]", "E", text)
-    text = re.sub(r"[íìîï]", "I", text)
-    text = re.sub(r"[óòôõö]", "O", text)
-    text = re.sub(r"[úùûü]", "U", text)
-    text = re.sub(r"[ç]", "C", text)
+    text = unicodedata.normalize("NFD", text.upper().strip())
+    text = "".join(c for c in text if unicodedata.category(c) != "Mn")
     text = re.sub(r"[^A-Z0-9]", "-", text)
     text = re.sub(r"-{2,}", "-", text).strip("-")
     return text[:20]
@@ -77,8 +73,6 @@ def get_or_create_local(con: sqlite3.Connection, codigo: str, nome: str,
         "INSERT INTO locais (codigo, nome, tipo, parent_id, ativo) VALUES (?,?,?,?,1)",
         (codigo, nome, tipo, parent_id),
     )
-    if not DRY_RUN:
-        pass  # commit at end
     return cur.lastrowid
 
 
@@ -165,10 +159,6 @@ def main() -> None:
     # -----------------------------------------------------------------------
     # 2. Upsert ativos + pmoc_refrigeracao
     # -----------------------------------------------------------------------
-    # Find highest existing hvac id
-    existing_hvac = [
-        r[0] for r in con.execute("SELECT id FROM ativos WHERE id LIKE 'hvac-%'").fetchall()
-    ]
     existing_by_csv_id = {
         r[0]: r[1]
         for r in con.execute(
@@ -266,11 +256,7 @@ def main() -> None:
             "pmoc_csv_id":        csv_id,
         }
 
-        existing_pmoc = con.execute(
-            "SELECT id FROM pmoc_refrigeracao WHERE pmoc_csv_id = ?", (csv_id,)
-        ).fetchone()
-
-        if existing_pmoc:
+        if csv_id in existing_by_csv_id:
             fields = [f"{k}=?" for k in pmoc_data if k != "pmoc_csv_id"]
             vals = [pmoc_data[k] for k in pmoc_data if k != "pmoc_csv_id"]
             con.execute(
@@ -286,6 +272,7 @@ def main() -> None:
                 f"INSERT INTO pmoc_refrigeracao ({cols}) VALUES ({phs})",
                 list(pmoc_data.values()),
             )
+            existing_by_csv_id[csv_id] = ativo_id
             ins_pmoc += 1
 
     if DRY_RUN:

@@ -15,7 +15,6 @@ from __future__ import annotations
 import csv
 import os
 import sqlite3
-import time
 
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH   = os.path.join(BASE_DIR, "..", "data", "core.db")
@@ -102,6 +101,11 @@ def main() -> None:
     updated_estrutura = 0
     inserted_estrutura = 0
 
+    estrutura_by_id = {
+        r["id"]: r
+        for r in con.execute("SELECT id, nome, cargo, ct FROM estrutura").fetchall()
+    }
+
     for row in cargos_rows:
         cod   = row["CODIGO"].strip()
         nome  = row["UNIDADE"].strip()
@@ -110,9 +114,7 @@ def main() -> None:
         tipo  = infer_tipo(ct)
         pai   = infer_pai(cod)
 
-        existing = con.execute(
-            "SELECT id, nome, cargo, ct FROM estrutura WHERE id = ?", (cod,)
-        ).fetchone()
+        existing = estrutura_by_id.get(cod)
 
         if existing is None:
             con.execute(
@@ -147,19 +149,20 @@ def main() -> None:
 
     # Link ocupantes por nome
     linked = 0
+    usuarios_by_nome = {
+        r["nome"]: r["id"]
+        for r in con.execute("SELECT id, nome FROM usuarios WHERE ativo = 1").fetchall()
+    }
     for row in cargos_rows:
         cod     = row["CODIGO"].strip()
         ocupante = row["OCUPANTE"].strip()
         if not ocupante:
             continue
-        user = con.execute(
-            "SELECT id FROM usuarios WHERE nome = ? AND ativo = 1",
-            (ocupante,),
-        ).fetchone()
-        if user:
+        uid = usuarios_by_nome.get(ocupante)
+        if uid is not None:
             con.execute(
                 "UPDATE cargos SET usuario_id = ? WHERE unidade_id = ?",
-                (user["id"], cod),
+                (uid, cod),
             )
             linked += 1
         else:
@@ -173,9 +176,11 @@ def main() -> None:
         with open(USUARIOS_CSV, encoding="utf-8-sig") as f:
             user_rows = list(csv.DictReader(f))
 
+        next_uid = (con.execute("SELECT COALESCE(MAX(id), 0) FROM usuarios").fetchone()[0] or 0) + 1
+
         for row in user_rows:
             nome  = (row.get("NOME") or "").strip()
-            posto = (row.get("POSTO") or "").strip()
+            posto = (row.get("POSTO") or "").strip() or None
             mat   = (row.get("MATRICULA") or "").strip() or None
             email = (row.get("EMAIL") or "").strip() or None
             tel   = (row.get("TELEFONE") or "").strip() or None
@@ -198,12 +203,13 @@ def main() -> None:
 
             if existing:
                 con.execute(
-                    "UPDATE usuarios SET posto=COALESCE(NULLIF(?,0),posto), mat=COALESCE(?,mat), "
+                    "UPDATE usuarios SET posto=COALESCE(?,posto), mat=COALESCE(?,mat), "
                     "email=COALESCE(?,email), tel=COALESCE(?,tel) WHERE id=?",
                     (posto, mat, email, tel, existing["id"]),
                 )
             else:
-                uid = int(time.time() * 1000)
+                uid = next_uid
+                next_uid += 1
                 con.execute(
                     "INSERT INTO usuarios (id, nome, posto, mat, email, tel, tipo, role, pw_hash, ativo)"
                     " VALUES (?,?,?,?,?,?,?,?,?,1)",
