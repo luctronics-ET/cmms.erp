@@ -269,7 +269,81 @@
 
       cont.replaceChildren(kpiGrid, charts, alertas);
     },
+
+    ativos(cont) {
+      const { el, fmt } = window.engine.utils;
+      const rows = filteredAtivos();
+      const wrap = el('div');
+      cont.replaceChildren(wrap);
+      window.engine.table(wrap, {
+        cols: [
+          { key: 'nome', label: 'Nome' },
+          { key: 'tipo', label: 'Tipo', filter: true },
+          { key: 'categoria', label: 'Categoria', filter: true },
+          { key: 'criticidade', label: 'Criticidade', filter: true,
+            format: v => v ? window.engine.badge(v,
+              v === 'critico_24x7' ? 'red' : v === 'operacional' ? 'amber' : 'green') : '—' },
+          { key: 'uso_atual', label: 'Uso atual', format: v => fmt.num(v, 1) },
+          { key: 'unidade_uso', label: 'Un' },
+          { key: 'responsavel_pmoc', label: 'PMOC dono', filter: true },
+        ],
+        rows,
+        onRowClick: openAtivoDrawer,
+      });
+    },
   };
+
+  function openAtivoDrawer(ativo) {
+    const { el, fmt } = window.engine.utils;
+    const planos = (window.ERP_MANUT_MOCKS?.planos_manutencao || [])
+      .filter(p => p.ativo_id === ativo.id || (p.tipo_codigo && p.tipo_codigo === ativo.tipo));
+    const osDoAtivo = (state.cache.os?.data || []).filter(o => o.ativo_id === ativo.id);
+
+    function dadosView() {
+      return el('div', {},
+        ...Object.entries(ativo).map(([k, v]) =>
+          el('div', { style: { display: 'flex', gap: '8px', padding: '6px 0', borderBottom: '1px solid var(--line)' } },
+            el('div', { style: { color: 'var(--ink-3)', minWidth: '160px' } }, k),
+            el('div', {}, v == null ? '—' : String(v)),
+          )),
+      );
+    }
+    function planosView() {
+      if (!planos.length) return el('div', { style: { color: 'var(--ink-3)' } }, 'Sem planos vinculados.');
+      return el('ul', {}, ...planos.map(p =>
+        el('li', {}, `${p.servico_id} · ${JSON.stringify(p.frequencia)} · próx ${p.proxima_execucao}`)));
+    }
+    function osView() {
+      if (!osDoAtivo.length) return el('div', { style: { color: 'var(--ink-3)' } }, 'Sem OS para este ativo.');
+      return el('ul', {}, ...osDoAtivo.map(o =>
+        el('li', {}, `[${o.status}] ${o.codigo || o.id} · ${o.titulo}`)));
+    }
+
+    let activeSub = 'dados';
+    const subBody = el('div', { style: { marginTop: '10px' } });
+    function renderSub() {
+      subBody.replaceChildren(({ dados: dadosView, planos: planosView, os: osView }[activeSub])());
+    }
+    function tabBtn(id, label) {
+      return el('button', {
+        class: 'pe-btn ' + (activeSub === id ? 'pe-btn--primary' : 'pe-btn--ghost'),
+        style: { marginRight: '4px' },
+        onclick: () => { activeSub = id; renderSub(); refreshSubTabs(); },
+      }, label);
+    }
+    const subTabs = el('div', {}, tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', 'OS'));
+    function refreshSubTabs() {
+      subTabs.replaceChildren(tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', 'OS'));
+    }
+
+    const m = window.engine.modal({
+      title: ativo.nome,
+      body: el('div', {}, subTabs, subBody),
+      footer: [el('button', { class: 'pe-btn pe-btn--primary', onclick: () => m.close() }, 'Fechar')],
+    });
+    m.open();
+    renderSub();
+  }
 
   // ── data fetch ──────────────────────────────────────────────────────────
   async function fetchAll() {
