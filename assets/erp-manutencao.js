@@ -63,7 +63,7 @@
       root.innerHTML = '<div style="padding:24px;color:#ef4444">Erro: pmoc-engine não carregado.</div>';
       return;
     }
-    render(root);
+    fetchAll().finally(() => { render(root); });
   }
 
   // ── render principal ─────────────────────────────────────────────────────
@@ -185,10 +185,52 @@
 
   const RENDERERS = {};  // populated nas tasks 6-13
 
-  // ── data fetch (mínimo agora; Task 5 expande) ────────────────────────────
+  // ── data fetch ──────────────────────────────────────────────────────────
   async function fetchAll() {
-    // stub: chamada real virá na Task 5
-    return Promise.resolve();
+    if (state._fetching) return state._fetching;  // dedup chamadas concorrentes
+    const banner = document.getElementById('manut-banner');
+    if (banner) banner.remove();
+    const work = (async () => {
+      try {
+        const [ativos, os, estoque] = await Promise.all([
+          fetch('/api/ativos').then(r => { if (!r.ok) throw new Error('ativos ' + r.status); return r.json(); }),
+          fetch('/api/os').then(r => { if (!r.ok) throw new Error('os ' + r.status); return r.json(); }),
+          fetch('/api/estoque').then(r => { if (!r.ok) throw new Error('estoque ' + r.status); return r.json(); }),
+        ]);
+        state.cache.ativos   = { data: ativos,   ts: Date.now() };
+        state.cache.os       = { data: os,       ts: Date.now() };
+        state.cache.estoque  = { data: estoque,  ts: Date.now() };
+        state.catsAvailable = [...new Set(ativos.map(a => a.categoria).filter(Boolean))].sort();
+        if (state._renderChips) state._renderChips();
+      } catch (e) {
+        console.warn('[manut] fetchAll falhou:', e);
+        showErrorBanner(e.message, !!state.cache.ativos);
+      }
+    })();
+    state._fetching = work;
+    try { return await work; }
+    finally { state._fetching = null; }
+  }
+
+  function showErrorBanner(msg, hasCache) {
+    const { el } = window.engine.utils;
+    const root = document.getElementById('manut-root');
+    if (!root) return;
+    const banner = el('div', {
+      id: 'manut-banner',
+      style: {
+        background: hasCache ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.15)',
+        border: '1px solid ' + (hasCache ? 'var(--amber)' : 'var(--red)'),
+        color: hasCache ? 'var(--amber)' : 'var(--red)',
+        padding: '8px 12px', borderRadius: '6px',
+        margin: '0 0 12px', display: 'flex', gap: '12px', alignItems: 'center',
+      },
+    },
+      el('span', {}, hasCache ? `⚠ Dados desatualizados (${msg}).` : `⛔ Sem conexão com o núcleo (${msg}).`),
+      el('div', { style: { flex: 1 } }),
+      el('button', { class: 'pe-btn', onclick: () => fetchAll() }, 'Tentar novamente'),
+    );
+    root.insertBefore(banner, root.firstChild);
   }
 
   function isManutActive() {
