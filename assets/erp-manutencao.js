@@ -183,7 +183,93 @@
     state.tabDirty[id] = false;
   }
 
-  const RENDERERS = {};  // populated nas tasks 6-13
+  // ── helpers de derivação (filtrados pelo state.cats) ─────────────────────
+  function filteredAtivos() {
+    const all = state.cache.ativos?.data || [];
+    if (state.cats.size === 0) return all;
+    return all.filter(a => state.cats.has(a.categoria));
+  }
+  /** OS filtradas por categoria. OS sem ativo_id (manuais, sem vínculo)
+   *  passam por todos os filtros — são consideradas globais. */
+  function filteredOS() {
+    const all = state.cache.os?.data || [];
+    if (state.cats.size === 0) return all;
+    const ativosIds = new Set(filteredAtivos().map(a => a.id));
+    return all.filter(o => !o.ativo_id || ativosIds.has(o.ativo_id));
+  }
+  function estoqueBaixo() {
+    const all = state.cache.estoque?.data || [];
+    return all.filter(i => (i.qtd_atual ?? 0) < (i.qtd_minima ?? 0));
+  }
+
+  // ── renderers de cada tab ────────────────────────────────────────────────
+  const RENDERERS = {
+    dashboard(cont) {
+      const { el, fmt } = window.engine.utils;
+      const ativos = filteredAtivos();
+      const os = filteredOS();
+      const baixo = estoqueBaixo();
+      const osPorStatus = {};
+      for (const o of os) osPorStatus[o.status] = (osPorStatus[o.status] || 0) + 1;
+
+      const KPIS = [
+        { label: 'Ativos no filtro', value: ativos.length, sub: `${ativos.filter(a => a.ativo).length} em serviço` },
+        { label: 'OS abertas',       value: os.filter(o => o.status !== 'concluida' && o.status !== 'cancelada').length },
+        { label: 'OS concluídas',    value: os.filter(o => o.status === 'concluida').length },
+        { label: 'Estoque baixo',    value: baixo.length, sub: 'itens < min' },
+      ];
+
+      const kpiGrid = el('div', { style: {
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))',
+        gap: '12px', marginBottom: '14px',
+      } }, ...KPIS.map(k => el('div', { style: {
+        background: 'var(--panel)', border: '1px solid var(--line)',
+        borderRadius: '8px', padding: '12px',
+      } },
+        el('div', { style: { fontSize: '11px', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.5px' } }, k.label),
+        el('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '24px', color: 'var(--acc)', fontWeight: '700', marginTop: '4px' } }, String(k.value)),
+        k.sub ? el('div', { style: { fontSize: '11px', color: 'var(--ink-2)' } }, k.sub) : null,
+      )));
+
+      const charts = el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' } });
+      const donutEl = el('div'); const lineEl = el('div');
+      charts.appendChild(donutEl); charts.appendChild(lineEl);
+
+      window.engine.chartDonut(donutEl, {
+        title: 'OS por status',
+        data: Object.entries(osPorStatus).map(([label, value]) => ({
+          label, value,
+          color: ({
+            aberta: 'var(--blue)', em_execucao: 'var(--amber)',
+            concluida: 'var(--green)', cancelada: 'var(--red)',
+          })[label] || 'var(--ink-3)',
+        })),
+        totalLabel: 'OS',
+      });
+      // Line chart: mês x OS concluídas naquele mês
+      const byMonth = {};
+      for (const o of os.filter(x => x.status === 'concluida' && x.data_conclusao)) {
+        const m = (o.data_conclusao || '').slice(0, 7);
+        byMonth[m] = (byMonth[m] || 0) + 1;
+      }
+      const months = Object.keys(byMonth).sort().slice(-12);
+      window.engine.chartLine(lineEl, {
+        title: 'OS concluídas/mês (12m)',
+        series: [{ label: 'Concluídas', points: months.map((m, i) => ({ x: i + 1, y: byMonth[m] })) }],
+      });
+
+      const alertas = el('div', {
+        style: { background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px' },
+      },
+        el('div', { style: { fontWeight: '600', marginBottom: '8px' } }, 'Alertas críticos'),
+        baixo.length === 0 ? el('div', { style: { color: 'var(--ink-3)', fontSize: '13px' } }, 'Nenhum alerta de estoque') :
+        el('ul', { style: { margin: 0, paddingLeft: '18px', fontSize: '13px' } },
+          ...baixo.slice(0, 10).map(i => el('li', {}, `${i.nome} · saldo ${fmt.num(i.qtd_atual)} < min ${fmt.num(i.qtd_minima)}`))),
+      );
+
+      cont.replaceChildren(kpiGrid, charts, alertas);
+    },
+  };
 
   // ── data fetch ──────────────────────────────────────────────────────────
   async function fetchAll() {
