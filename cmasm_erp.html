@@ -934,69 +934,8 @@ table{border-collapse:collapse;width:100%}
 
 <!-- ════ MANUTENÇÃO ═══════════════════════════════════════════ -->
 <div id="page-manutencao" class="page">
-  <div class="page-hdr">
-    <div class="page-hdr-left"><h1>Manutenção (CMMS)</h1><p>Gestão de ativos · preventiva e corretiva</p></div>
-    <div class="page-hdr-right">
-      <button class="btn btn-secondary" onclick="openModal('modal-novo-ativo')">+ Ativo</button>
-      <button class="btn btn-primary" onclick="openModal('modal-nova-os-manut')">+ OS Manutenção</button>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <div class="tab active" onclick="showManutTab('ativos',this)">Ativos</div>
-    <div class="tab" onclick="showManutTab('os',this)">Ordens de Serviço</div>
-    <div class="tab" onclick="showManutTab('preventiva',this)">Preventiva</div>
-  </div>
-
-  <!-- Ativos -->
-  <div class="tab-panel active" id="manut-tab-ativos">
-    <div class="table-wrap">
-      <div class="table-toolbar">
-        <div class="search-box">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="ativo-search" placeholder="Buscar ativo..." oninput="renderAtivos()">
-        </div>
-        <select id="ativo-filter-status" onchange="renderAtivos()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
-          <option value="">Todos</option>
-          <option value="P">Pronto (P)</option>
-          <option value="OR">Op. c/ Restrição (OR)</option>
-          <option value="INOP">Inoperante (INOP)</option>
-          <option value="MANUT">Em Manutenção</option>
-        </select>
-      </div>
-      <table class="tbl">
-        <thead><tr><th>Cód.</th><th>Denominação</th><th>Categoria</th><th>Fabricante/Modelo</th><th>Horímetro/Km</th><th>Últ. Manut.</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="ativos-body"><tr><td colspan="8" class="tbl-empty">Nenhum ativo cadastrado</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- OS Manutenção -->
-  <div class="tab-panel" id="manut-tab-os">
-    <div class="table-wrap">
-      <div class="table-toolbar">
-        <div class="search-box">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="os-manut-search" placeholder="Buscar OS..." oninput="renderOSManut()">
-        </div>
-        <select id="os-manut-filter" onchange="renderOSManut()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
-          <option value="">Todos</option>
-          <option value="aberta">Aberta</option>
-          <option value="em_andamento">Em andamento</option>
-          <option value="concluida">Concluída</option>
-        </select>
-      </div>
-      <table class="tbl">
-        <thead><tr><th>Nº</th><th>Ativo</th><th>Tipo</th><th>Descrição</th><th>Responsável</th><th>Abertura</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="os-manut-body"><tr><td colspan="8" class="tbl-empty">Nenhuma OS de manutenção</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Preventiva -->
-  <div class="tab-panel" id="manut-tab-preventiva">
-    <div id="preventiva-grid" class="status-grid"></div>
-  </div>
+  <!-- Conteúdo populado por assets/erp-manutencao.js (refatoração V1). -->
+  <div id="manut-root"></div>
 </div>
 
 <!-- ════ CALIBRAÇÃO ═══════════════════════════════════════════ -->
@@ -2140,7 +2079,6 @@ function showPage(page, el){
     organograma: ()=>renderOrgTree(),
     servicos: ()=>{renderPS();renderOS();renderKanban();renderSR();},
     transportes: ()=>{renderFrota(_frotaFilter);renderAgenda();},
-    manutencao: ()=>{renderAtivos();renderOSManut();renderPreventiva();},
     calibracao: ()=>{renderCalib();renderCalibKPIs();},
     estoque: ()=>{renderEstoque();renderEstoqueKPIs();renderMovimentacoes();renderEstoqueAlertas();renderEstoqueValidades();},
     vegetal: ()=>{renderVegetalMaq();renderVegetalAtiv();renderVegetalOS();},
