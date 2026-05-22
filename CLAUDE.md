@@ -2,61 +2,68 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**xCMASM** (Centro de Mísseis e Armas Submarinas) is a **modular integrated platform** for facility management, security surveillance, equipment control, and asset management across a Brazilian naval facility.
+**xCMASM** (Centro de Mísseis e Armas Submarinas) is a **modular integrated platform** for asset and service management at a Brazilian naval facility.
+
+**Arquitetura: núcleo + PMOC único categorizado.** O sistema é composto por (1) o **núcleo** (`cmasm.erp`) — backend FastAPI + ERP web (`cmasm_erp.html`) com módulo Manutenção categorizado por `tipo` de ativo; e (2) um **PMOC único offline-first** (`cmasm.erp/pmoc/`), app HTML de campo com categorias internas (refrigeração, predial, paióis, transportes, grama, elétrica, calibração) que sincroniza com o núcleo via API.
+
+Ver `REQUISITOS.md` para a visão; `Regras de Negocio e Fluxos.md` para o **modelo de domínio canônico** (categorias, planos, OS, NECs, transportes, estoque); `Rules.md` para regras técnicas/operacionais do núcleo; `MODULOS_EXTERNOS.md` para o contrato com módulos *realmente* externos (hardware/Postgres próprio — `aguada-web`, `xSeguranca`, `xCFTV`, `xFonoclama`).
+
+O núcleo cobre: **usuários, organização, ativos, estoque, OS/serviços, manutenção (painel categorizado), documentos**. **PMOCs não são módulos externos** — são categorias internas do app único de campo.
 
 ---
 
 ## Repository Structure
 
-This git repo (`/home/luciano/DEV/cmasm.erp`) is the **xCMASM HUB + ERP nucleus**. Contém o backend xCore, o portal principal e assets compartilhados. Módulos PMOC e módulos externos vivem em repos independentes em `/home/luciano/DEV/`.
+Este repo (`/home/luciano/DEV/cmasm.erp`) contém **o núcleo + o PMOC único**. Não existem mais repos `pmoc_<dom>` separados — categorias do PMOC vivem em `pmoc/` dentro deste mesmo repo.
 
 ```
-cmasm.erp/                       ← this repo (HUB + ERP)
-├── cmasm_erp.html               # ★ MAIN ERP — single-file app, localStorage, no build step
-├── index.html                   # Portal de acesso rápido (links para todos os módulos)
+cmasm.erp/                       ← este repo (NÚCLEO + PMOC ÚNICO)
+├── cmasm_erp.html               # ★ MAIN ERP — single-file app do núcleo
+├── index.html                   # Portal de acesso rápido
 │
-├── backend/                     # FastAPI API — xCore nucleus (port 8010)
+├── pmoc/                        # ★ PMOC único (app de campo offline-first)
+│   └── (a criar — categorias internas: refrigeracao, predial, paiois,
+│        transportes, grama, eletrica, calibracao)
+│
+├── backend/                     # FastAPI — núcleo (port 8010)
 │   ├── main.py                  # FastAPI app — serves HTML + all /api/* routes
-│   ├── db_core.py               # aiosqlite singleton (schema_core + schema_grama)
-│   └── grama.py                 # /api/grama/* routes (vegetation control)
+│   ├── db_core.py               # aiosqlite singleton
+│   └── grama.py                 # /api/grama/* routes
 │
 ├── data/                        # DB schemas
-│   ├── schema_core.sql          # Core tables: usuarios, ativos, locais, os, estoque, sessoes
-│   └── schema_grama.sql         # Grama tables: areas, maquinas, operacoes, kanban, calendario
+│   ├── schema_core.sql          # Core: usuarios, ativos, locais, os, estoque, sessoes
+│   ├── schema_catalogo.sql      # Catálogo de serviços + planos + qualificações + sync
+│   └── schema_grama.sql         # Grama: areas, maquinas, operacoes, kanban, calendario
 │
-├── assets/                      # Shared static assets (served at /assets/*)
-│   ├── xcmasm-sdk.js            # Shared JS SDK for all HTML modules
-│   ├── xcmasm-module-links.js   # Module navigation links
+├── assets/                      # Static assets (served at /assets/*)
+│   ├── xcmasm-sdk.js            # Shared JS SDK
+│   ├── pmoc-engine.js           # Componentes UI usados pelo PMOC
+│   ├── pmoc-engine.css
 │   ├── erp-module-shell.css     # Shared shell CSS
 │   └── fonts/                   # Self-hosted DM Sans + JetBrains Mono woff2
 │
 ├── tools/                       # Seed/migration scripts
-│   ├── seed_usuarios.py         # Seeds 12 real users
-│   ├── seed_ativos.py
-│   ├── seed_estoque.py
-│   └── migrate_from_backup.py
+├── referencias/                 # Templates e seeds
+├── docs/                        # Specs internas (skill: superpowers)
 │
-├── referencias/                 # Templates para devs de módulos externos
-│   ├── ativo-template.html      # Base para novos módulos PMOC
-│   ├── xcmasm-govbr-portal.html # Template GOV.BR portal
-│   └── xcmasm-govbr-template.html
-│
-├── docs/                        # Specs e documentação interna
-├── Rules.md                     # Business rules, entity flows, data relationships
-├── AGENTS.md                    # Agent instructions, domain-specific rules, module guide
-└── .docs_cmasm/                 # Reference documents (CSV exports, OSM maps, PDFs)
+├── REQUISITOS.md                # Visão, princípios arquiteturais, roadmap
+├── Regras de Negocio e Fluxos.md # ★ Modelo de domínio canônico
+├── Rules.md                     # Regras técnicas/operacionais do núcleo
+├── MODULOS_EXTERNOS.md          # Contrato com módulos realmente externos
+├── todo.md                      # Backlog ativo
+└── .docs_cmasm/                 # Documentos de referência (CSV, OSM, PDFs)
 ```
 
-**Módulos Externos** (sistemas independentes — repos, bancos e containers Docker próprios):
-| Módulo | Stack | Porta | Integração com xCore |
-|--------|-------|-------|----------------------|
-| xPredial | FastAPI + HTML/JS | 8002 | `GET /api/usuarios` via XCORE_URL |
-| xSeguranca | React + FastAPI + PostgreSQL | 8000/3000 | Independente |
-| xPaiol | FastAPI + HTML/JS | 8003 | `GET /api/usuarios` via XCORE_URL |
-| xCalibracao | FastAPI (stub) | 8004 | `GET /api/usuarios` via XCORE_URL |
-| aguada-web | FastAPI + MQTT + HTML/JS | 8001 | Independente (sistema hídrico) |
-| xCFTV | Java (Spring) | — | Independente (vídeo/plantas) |
-| xFonoclama | ESP32 + React | — | Independente (alertas sonoros) |
+**Módulos *realmente* externos** (sistemas com hardware/Postgres próprio — detalhes em `MODULOS_EXTERNOS.md`):
+
+| Módulo | Stack | Porta / Tipo |
+|--------|-------|--------------|
+| aguada-web | FastAPI + MQTT + nginx | 8001 (hardware ESP32) |
+| xSeguranca | React + FastAPI + PostgreSQL | 8000/3000 |
+| xFonoclama | firmware ESP32 | — |
+| xCFTV | Java | — |
+
+> Repos legados em `/home/luciano/DEV/pmoc_*` (refrigeracao, eletrica, calibracao, corte, transportes) estão a arquivar. `pmoc.refs` permanece como repo de referências/seeds.
 
 ---
 
@@ -117,10 +124,11 @@ pytest tests -q
 ### How xCore serves everything
 
 `backend/main.py` is the single FastAPI app that:
-1. Exposes all `/api/*` REST endpoints (auth, users, assets, locations, OS, inventory, grama)
+1. Exposes all `/api/*` REST endpoints (auth, users, assets, locations, OS, inventory, grama, sync, catálogo)
 2. Mounts static directories: `/assets` → `assets/`
+3. Serve estaticamente o PMOC em `/pmoc/` (a configurar).
 
-Módulos externos (xPredial, xPaiol, etc.) têm seus próprios servidores — não são mais servidos pelo xCore.
+Módulos realmente externos (aguada-web, xSeguranca, xCFTV, xFonoclama) têm seus próprios servidores e se integram via `GET /api/usuarios` e `POST /api/os` com `modulo_origem`.
 
 ### Auth
 
@@ -137,13 +145,9 @@ const sdk = xcmasm({ baseURL: 'http://localhost:8010' });
 // Token stored in localStorage under 'xcmasm_token'
 ```
 
-### Module template (`referencias/ativo-template.html`)
+### Módulos externos — integration
 
-Starting point for new asset-management HTML modules (no build step, localStorage-based). See `AGENTS.md §10` for the 10-step guide to create a new module from this template. Key config points: `TIPOS`, `UNIDADES_DEFAULT`, `PECAS_DEFAULT`, `SK`/`SE` (unique localStorage keys).
-
-### Módulos Externos integration
-
-All external modules set `XCORE_URL = os.getenv("XCORE_URL", "http://localhost:8010")` and call xCore for shared data (users, org structure). xSeguranca is fully independent (own PostgreSQL + Redis).
+Módulos realmente externos (aguada-web, xSeguranca, xCFTV, xFonoclama) configuram `XCORE_URL = os.getenv("XCORE_URL", "http://localhost:8010")` e chamam o núcleo para dados compartilhados (usuários, organograma). xSeguranca é totalmente independente (PostgreSQL + Redis próprios).
 
 ---
 
@@ -159,8 +163,11 @@ All external modules set `XCORE_URL = os.getenv("XCORE_URL", "http://localhost:8
 | Inventory | `GET /api/estoque`, `POST /api/estoque/{id}/movimentos` |
 | Grama | `GET/POST /api/grama/maquinas|areas|manutencao|operacoes` |
 | Grama board | `GET /api/grama/kanban`, `GET /api/grama/calendario` |
-| Compat | `GET /api/shared` (returns `cmasm_shared` format for localStorage compat) |
-| Import | `POST /api/sync/erp` (imports ERP_core JSON backup) |
+| PMOC sync | `GET /api/sync/manifest?modulo=<categoria>`, `POST /api/sync/push`, `GET /api/sync/cursor` |
+| Categorias | `GET /api/modulos` (categorias registradas + status — `modulos_registrados`) |
+| Catálogo | `GET/POST/PUT /api/catalogo/servicos|planos|qualificacoes` *(a implementar — schema pronto)* |
+| Compat | `GET /api/shared` (formato legado para localStorage) |
+| Import | `POST /api/sync/erp` (importa backup ERP_core JSON) |
 
 ---
 
@@ -210,9 +217,17 @@ Reference CSS: `assets/erp-module-shell.css` (module shell layout).
 
 | File | Purpose |
 |------|---------|
-| `Rules.md` | Business rules: entity relationships, asset categories, OS types, fleet data |
-| `AGENTS.md` | Module-by-module agent guide, ativo-template walkthrough, integration keys |
-| `MODULOS_EXTERNOS.md` | Satellite module status and integration notes |
-| `PLANO_IMPLEMENTACAO.md` | Implementation roadmap |
-| `.github/instructions/xpredial-melhorias.instructions.md` | xPredial mandatory bug fixes |
-| `.docs_cmasm/` | Authoritative org data (CSV user/cargo lists, OSM facility maps) |
+| `REQUISITOS.md` | Visão, princípios arquiteturais, roadmap, decisões registradas |
+| `Regras de Negocio e Fluxos.md` | **Modelo de domínio canônico** — categorias de ativos, planos, OS/PS/SR/NEC, transportes, estoque |
+| `Rules.md` | Regras técnicas/operacionais do núcleo: schema, lifecycle, sync, catálogo |
+| `MODULOS_EXTERNOS.md` | Contrato com módulos *realmente* externos (aguada-web, xSeguranca, xCFTV, xFonoclama) |
+| `todo.md` | Backlog ativo, organizado por prioridade |
+| `.docs_cmasm/` | Documentos autoritativos (CSV de usuários/cargos, mapas OSM) |
+| `pmoc.refs/` (irmão deste repo) | Repositório de referências e seeds: CSVs normativos, POPs, mapas, planilhas |
+
+### Convenções para mudanças
+
+- **Núcleo**: tela de Manutenção é categorizada (tabs por `tipo` de ativo). Adicionar uma nova categoria significa adicionar tab + filtro, não criar repo novo.
+- **PMOC único**: oferece as mesmas categorias no app de campo offline-first. Adicionar uma categoria nova ao PMOC = adicionar seção/aba interna em `cmasm.erp/pmoc/`.
+- **Módulo externo**: reservado a sistemas com hardware/Postgres próprio. PMOC **não** é externo.
+- **Migração de schema**: aditiva. `PRAGMA table_info` antes de qualquer `ALTER`. Nunca `DROP`.

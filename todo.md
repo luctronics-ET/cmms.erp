@@ -1,260 +1,172 @@
-# xCMASM · TODO / Backlog / Planos Futuros
+# xCMASM · TODO / Backlog
 
-> Status: 16 de Maio de 2026 · versão 5.5
-
----
-
-## 🤖 SKILLS & AGENTES — Customizações de IA para o workspace
-
-- [ ] `/create-skill xCMASM-new-module` — guia de 10 passos para criar novo módulo satélite a partir de `ativo-template.html`: design system, Docker, integração `XCORE_URL`, padrão de API client vanilla JS
-- [ ] `/create-skill xCMASM-os-workflow` — encapsula regras de negócio do ciclo OS (máquina de estados PS→OS, reserva de materiais, manutenção preventiva) para evitar erros de contrato frontend↔backend
-- [ ] `/create-agent xCore-api-explorer` — agente que consulta `:8010/docs` e responde sobre endpoints disponíveis; útil ao desenvolver integrações de satélites
+> Atualizado: 2026-05-22 · alinhado à arquitetura **núcleo + PMOC único categorizado**.
+> Fontes: `REQUISITOS.md`, `Regras de Negocio e Fluxos.md`, `Rules.md`, `MODULOS_EXTERNOS.md`.
+> Spec da consolidação: `docs/superpowers/specs/2026-05-22-pmoc-unificado-design.md`.
 
 ---
 
-## 🏗️ ARQUITETURA — Consolidação do Workspace
+## 🚨 P0 — Tela Manutenção categorizada no núcleo
 
-- [ ] Arquivar `xCMASM/` (snapshot legado) → mover para `.archive_xCMASM/` após confirmar que pmoc-engine.js e xcmasm-govbr* foram portados
-- [ ] Migrar `cmasm.erp/predial/` → `xPredial/` (frontend do satélite deve viver no repo do satélite)
-- [ ] Migrar `cmasm.erp/paiol/` → `xPaiol/frontend/`
-- [ ] Criar `DEV/docker-compose.yml` orquestrador raiz: sobe xCore + todos os satélites com uma única `docker compose up`
-- [ ] Criar rede Docker compartilhada `xcmasm` para comunicação inter-containers por nome de serviço
-- [ ] Criar `Dockerfile` + `docker-compose.yml` para xPaiol e xCalibracao (baseado em xAguada)
-- [ ] Garantir 100% offline: substituir todas as referências a `fonts.googleapis.com` por `/assets/fonts.css` (fontes self-hosted já existem em `assets/fonts/`)
-- [ ] Centralizar GOV.BR design system offline: copiar `xcmasm-govbr.css` de xCMASM/assets/ para cmasm.erp/assets/ e criar `xcmasm-template.html` base para novos módulos
+O painel central de Manutenção em `cmasm_erp.html` deve mostrar todos os ativos agrupados por categoria, conforme `Regras de Negocio e Fluxos.md §7` e `Rules.md §6`.
 
----
-
-## 🏗️ ARQUITETURA — Módulos Externos (containers independentes)
-
-> Módulos externos têm repo, banco e Docker próprios. Conectam-se ao ERP via `XCORE_URL`.
-
-### Integração ERP ↔ Módulos Externos
-- [ ] Navbar ERP: botões "Módulos Externos" apontando para URLs configuráveis de cada módulo
-- [ ] Página dashboard-resumo por módulo externo (iframe ou card com métricas chave via API)
-- [ ] `GET /api/modulos` — endpoint xCore para listar módulos externos registrados + status (health check)
-- [ ] Padronizar autenticação: módulos recebem Bearer token do operador para chamar `/api/usuarios`
-
-### xPredial (porta 8002)
-- [ ] Confirmar integração `GET /api/usuarios` com token do ERP
-- [ ] Botão "→ OS" no ERP abre xPredial pré-filtrado por local
-
-### aguada-web (porta 8001)
-- [ ] Endpoint de push: aguada-web → xCore `/api/ativos/{id}` com leituras horárias
-
-### xSeguranca (porta 8000/3000)
-- [ ] Futura: importar lista de usuários do ERP via `GET /api/usuarios`
+- [ ] Tabs por categoria: `climatizacao`, `frota_terrestre`, `frota_naval`, `maquinas_corte`, `eletrica`, `predial`, `instrumentos`, `paiois_item`
+- [ ] Lista de ativos por tab com status do próximo serviço:
+  - 🟢 verde = `uso_atual < proximo_uso × 0,80`
+  - 🟡 amarelo = `uso_atual ≥ proximo_uso × 0,80`
+  - 🔴 vermelho = `uso_atual ≥ proximo_uso`
+- [ ] Origem do `uso_atual` visível (OS concluída | push de PMOC | manual) com timestamp
+- [ ] Atalho "Abrir OS preventiva" → cria PS pré-preenchido com snapshot do serviço
+- [ ] Histórico de OS por ativo (modal)
+- [ ] Substituir mocks por dados reais (`/api/os/kpis` + `/api/ativos`)
 
 ---
 
-## 🔴 PRIORIDADE ALTA — Funcionalidades incompletas em módulos existentes
+## 🚨 P0 — API de Catálogo de Serviços + Planos
 
-### Auth & Sessão
-- [x] Timeout de sessão por inatividade (8h) — timer de inatividade JS, aviso 15min antes, auto-logout ✅
-- [x] Log de acesso: registrar login/logout com timestamp — _appendAccessLog() + renderAccessLog() na aba Admin ✅
-- [x] Perfil de acesso por seção: gestor só autoriza PS da sua lotação — canAutorizarPS() filtra por lotação do solicitante ✅
+Schema já existe (`data/schema_catalogo.sql`); falta a camada de endpoints.
+
+- [ ] `GET/POST/PUT /api/catalogo/servicos` com versionamento imutável (cada edit → nova `versao`)
+- [ ] `GET/POST/PUT /api/catalogo/planos`
+- [ ] `GET/POST/PUT /api/catalogo/qualificacoes` + `/api/usuarios/{id}/qualificacoes`
+- [ ] Incluir catálogo + planos + qualificações + POPs no `manifest` (filtro por categoria)
+- [ ] Aceitar `ps_criada` com `servico_snapshot` (escopo local) — armazenar snapshot e não criar entrada em `catalogo_servicos`
+- [ ] UI núcleo: CRUD de serviços/planos com simulação (carga prevista de OS/mês)
+- [ ] Seed inicial: serviços de refrigeração (limpeza padrão split, troca de gás, limpeza de duto) — extrair de `pmoc.refs/CMASM_PMOC_REFRIG*.csv`
+- [ ] Seed: qualificações a partir de `pmoc.refs/cmasm10_competencias.csv`
+
+---
+
+## 🚨 P0 — Fechamento da API de sincronização
+
+Sync já está ~90% pronta. Contrato agora usa `modulo=<categoria>` (ex: `modulo=refrigeracao`), não mais `pmoc_<dom>`.
+
+- [x] Schema `sync_eventos`, `sync_cursor`, `modulos_registrados` em `data/schema_catalogo.sql`
+- [x] `GET /api/sync/manifest?modulo=&since=` (delta via `since=` ainda não implementado — retorna full)
+- [x] `POST /api/sync/push` idempotente
+- [x] `GET /api/sync/cursor?modulo=&device=`
+- [x] `GET /api/modulos`
+- [x] Handlers: `uso_atual_inc`, `estoque_mov`, `os_criada`, `os_status`, `documento_anexo`, `ps_criada`, `os_executada`, `inspecao_concluida`, `plano_adiado`, `qualificacao_uso`
+- [ ] Manifest com delta (`since=`): retornar só ativos/serviços/planos com `atualizado_em > since`
+- [ ] **Auth Bearer em todos os endpoints `/api/sync/*`**
+- [ ] **Teste de integração end-to-end**: criar 50 eventos offline no PMOC, sync, conferir consistência
+
+---
+
+## 🚨 P0 — Esqueleto do PMOC único
+
+App de campo único em `cmasm.erp/pmoc/`, com categorias internas. Substitui o conceito antigo de "N PMOCs separados".
+
+- [x] Componentes UI base em `assets/pmoc-engine.js` v2 (vanilla JS): `header`, `table`, `modal`, `badge`, `kanban`, `calendar`, `chartDonut`, `chartLine`, `chat`, `camera`, `confirm`, `gantt`
+- [x] `engine.bootstrap({ modulo, nucleo, cssPath })`
+- [x] Eventos via `CustomEvent`
+- [x] Demo standalone: `/assets/pmoc-engine-demo.html`
+- [ ] **Criar `cmasm.erp/pmoc/index.html`** — shell único com seletor de categoria
+- [ ] **Cliente sync embutido** (push/pull/cursor) — chama `/api/sync/*`
+- [ ] **Wrapper IndexedDB** (`idb.get`, `idb.put`, `idb.bulkPut`, `idb.getAll`, `idb.delete`)
+- [ ] **Auth helper** (login, refresh, cache de token)
+- [ ] **Motor de planos** embutido (`resolverFrequencia`, `calcularProxima`, `avaliarCondicionais`, `verificarRecursos`)
+- [ ] Servir `cmasm.erp/pmoc/` em `/pmoc/` via FastAPI (mount estático)
+- [ ] **Categoria piloto: refrigeração** — seeds prontos em `pmoc.refs/`
+
+---
+
+## 🟠 P1 — Demais categorias do PMOC
+
+Cada item abaixo é uma **seção interna** do PMOC único (não um repo).
+
+- [ ] Categoria: predial
+- [ ] Categoria: paióis
+- [ ] Categoria: transportes
+- [ ] Categoria: grama
+- [ ] Categoria: elétrica
+- [ ] Categoria: calibração
+
+---
+
+## 🟠 P1 — Núcleo: melhorias de Serviços / Estoque / Manutenção
 
 ### Serviços (PS → OS → SR)
-- [x] **SR (Solicitação de Recursos)** — workflow PS→OS→SR completo ✅
-  - SR de material → baixa automática no Estoque + mov_estoque
-  - SR de transporte → cria agendamento pendente em Transportes
-  - SR de local → cria reserva confirmada em Predial
-  - SR de serviço externo → registra fornecedor/NF (status pendente até NF vinculada)
-- [x] Histórico de alterações em cada PS/OS — renderSrvHistorico() no modal de detalhe, mostra status_de→status_para + obs + timestamp ✅
-- [x] Cancelamento OS com motivo obrigatório — modal modal-cancel-os com textarea + confirmCancelOs() ✅
-- [x] Notificação visual quando uma PS do usuário logado muda de status — pollOsUpdates() compara snapshots a cada 5min, notifica via toast ✅
-- [x] Prazo em OS: alerta visual quando está vencendo (< 2 dias) — badge VENCIDA/VENCENDO na lista, kanban e hist. dashboard ✅
+- [ ] Origens: aceitar criação de OS via push do PMOC (`modulo_origem = <categoria>`, `origem_id = uuid`)
+- [ ] Vínculo SR ↔ Estoque ↔ Transportes ↔ Predial usando o catálogo
+- [ ] Notificação ao solicitante quando status muda (polling 5min)
+- [ ] Exportar histórico de OS de um ativo (PDF)
 
-### Locais & Predial
-- [x] Modal `+ Local` para cadastrar/editar locais — modal-local-new com openLocalModal()/saveLocal() ✅
-- [x] Modal `+ Edificação` — botão 🏢 no header de Locais abre modal-local-new com tipo=edificio ✅
-- [x] Editar local: click na linha ou botão ✂ abre modal para edição ✅
-- [ ] Mapa/planta baixa simplificada da instalação (SVG interativo)
-- [ ] Controle de chaves: quem está com qual chave de qual sala
-- [x] Integração com Serviços: ocorrência predial pode gerar OS automaticamente — botão "→ OS" em `renderOcorrencias()`, `gerarOSdeOcorrencia()` cria PS autorizada + OS aberta ✅
-- [ ] Salas com controle de acesso, temperatura/umidade, alimentacao Eletrica initerrupta
-- [ ] reserva de salas de reuniao, auditorio, refeitorio
+### Estoque
+- [ ] Marcar materiais como "relevantes para categoria X" — filtra no manifest
+- [ ] `POST /api/estoque/{id}/reservar` chamado em OS aberta com material
+- [ ] Painel "Necessidades" consolida `qtd_atual < qtd_minima` por seção
+- [ ] Aceitar eventos `estoque_mov` vindos do PMOC
 
-### Materiais e Estoque
-- [x] Modal completo de `+ Item` (modal-estoque) — todos os campos: nome, código, categoria, unidade, qtd, local, obs ✅
-- [x] Modal de `+ Entrada` e `− Saída` com campos: documento, fornecedor/requisitante, obs ✅
-- [x] Histórico de movimentações no modal de edição do item (últimas 50, com tipo/qty/fornecedor/data) ✅
-- [x] Relatório de consumo por período — filtro De/Até + tipo + exportação CSV em `exportarConsumoCSV()` ✅
-- [x] Requisição de material linkada a OS de Serviços (SR → Estoque) — coberta pela SR de material ✅
-- [x] Controle de validade para itens perecíveis — campo `validade` no modal de item, aba "Validades" com semáforo 30/90 dias, `renderEstoqueValidades()` ✅
-- [x] Alertas de reposição automáticos no dashboard — painel Estoque Baixo no srv-dashboard ✅
+### Manutenção (painel)
+- [ ] Ao detectar `uso_atual ≥ proximo_uso`, gerar PS rascunho clicável (sem auto-abrir OS)
 
-### Transportes 
-- [x] Modal de detalhes do agendamento confirmado — openAgendaDetalhe() mostra veículo, tripulação, destino, km, obs ✅
-- [ ] Permissoes de uso, habilitacoes, 
-- [x] Histórico de viagens por veículo — aba agenda-dp no detalhe do veículo + seção "Histórico recente" na agenda (inclui concluídas) ✅
-- [x] Exportação de escala de transportes (CSV) — botão "↓ CSV" na aba Agendamentos, `exportarEscalaCSV()` ✅
-- [x] Controle de kilometragem: atualizar km ao concluir agendamento — modal-concluirViagem + confirmarConclusaoViagem() atualiza vehicle.km ✅
-- [x] Integração com Manutenção: bloqueio automático de veículo com OS aberta — já existia via `criarOSManut()`; agendamento confirmado seta status `OR`, conclusão restaura para `P` ✅
-- [ ] mock para reastreamento via GPS e telemetria condicao 
-
-### Controle Vegetal
-- [x] Modal `+ Maquinário` — modal-nova-maq + salvarMaquina() em xgrama.html ✅
-- [x] Modal `+ Atividade` com seleção de maquinário e operador — modal-nova-op em xgrama.html ✅
-- [x] Área cadastrada com frequência de corte — modal-nova-area + salvarArea() em xgrama.html ✅
-- [x] Integração com horímetro: atualizar ao registrar atividade — xgrama.html registra horas de uso ✅
-- [x] Programação de cortes por área (calendário) — página calendario em xgrama.html ✅
-
-
-
-### Paiois
-- [x] Modal `+ Paiol` (modal-paiol) — salvarPaiol(), editarPaiol(), detalhe do paiol em paiol-inventario.html ✅
-- [x] Modal `+ Item de Inventário` — campos lote, validade, qtd, qtdMin, categoria, unidade em paiol-inventario.html ✅
-- [x] Controle de acesso: log de entrada/saída — aba Log de Acesso + modal Registrar Acesso em paiol-inventario.html ✅
-- [x] Alerta de validade: aba Validades com semáforo 30/90/180d + banner de alerta no topo ✅
-- [x] Relatório de inventário: exportação CSV de todos os itens em paiol-inventario.html ✅
-- [x] Integração com OS de Serviços: saída de material por OS — modal `modal-mov-paiol` com select de OS vinculada, `salvarMovPaiol()` ✅
+### Documentos
+- [ ] Schema `documentos (id, nome, tipo, vinculo_tipo, vinculo_id, url, sha256, criado_por, ts)`
+- [ ] Upload via núcleo (drag & drop) e via push do PMOC (`documento_anexo`)
+- [ ] Filtro por ativo / OS / local
+- [ ] Versionamento via `substitui_doc_id`
 
 ---
 
-## 🟡 PRIORIDADE MÉDIA — Módulos planejados mas não iniciados
+## 🟡 P2 — Hub e ergonomia
 
-### Calibração (módulo existente — melhorias)
-- [ ] Importação CSV de instrumentos
-- [ ] Gerar documento de programação de calibração (lista mensal)
-- [ ] Histórico completo por instrumento (todos os certificados anteriores)
-- [ ] Alerta de vencimento no dashboard por módulo (GAMI, GAS, GM separados)
-
-### Manutenção (módulo existente — melhorias)
-- [ ] Plano preventivo completo: frequência por tipo de equipamento configurável
-- [ ] Peças de reposição: link com Estoque (ao criar OS, reservar peças)
-- [ ] Checklist de inspeção por ativo
-- [ ] QR Code por ativo para abertura rápida de OS via celular
-- [ ] Exportar histórico de manutenção de um ativo (PDF)
-
-### Serviço de Estado
-- [ ] Escala de serviço: plantões (OSD, OID, Quarto de Serviço)
-- [ ] Motorista de Serviço: escala mensal com visualização
-- [ ] Lançador de ilha: roteiro fixo de horários (saída 07:00, 12:00, 17:30)
-- [ ] Oficial de Serviço do Dia: designação diária com roteiro e passagem de serviço
-- [ ] Livro de Quarto digital: registro de ocorrências do plantão
-- [ ] Integração com organograma: só militares CMASM podem ser escalados
-
-### Recursos Humanos / Pessoal
-- [ ] Férias e licenças: controle de períodos por militar
-- [ ] Cursos e qualificações: registro por pessoa com validade
-- [ ] Avaliações de desempenho: TAF, ficha de conceito
-- [ ] Organograma com fotos (upload de foto por usuário)
-- [ ] Quadro de pessoal presente/ausente do dia
-
-### Contratos e Licitações (CMASM-30)
-- [ ] Registro de contratos ativos: fornecedor, objeto, vigência, valor
-- [ ] Alerta de vencimento de contratos
-- [ ] Integração com Estoque (NFs vinculadas a contratos)
-- [ ] DFD, ETP, Termo de Referência — formulários padronizados
-- [ ] Pesquisa de preços PNCP (integração API externa — requer conexão)
-
-### Comunicação Interna
-- [ ] Avisos e comunicados: admin publica, todos visualizam no dashboard
-- [ ] Mensagens diretas entre usuários (BroadcastChannel ou localStorage polling)
-- [ ] Boletim Interno digital: criação e publicação de BIs
+- [ ] Hub: card por categoria do PMOC com último sync, pendentes, status (verde/amarelo/vermelho)
+- [ ] Hub: alerta global de categorias com sync > 24h
+- [ ] Login: lembrar último mat. + atalho de Enter
+- [ ] Timeout configurável por usuário (1h–24h)
+- [ ] Mapa/planta da instalação (Leaflet + tile local) para Locais
+- [ ] QR Code por ativo (núcleo gera; PMOC consome via scanner do celular)
+- [ ] Dashboard: KPIs reais a partir de `/api/os/kpis`
 
 ---
 
-## 🟢 PRIORIDADE BAIXA — Roadmap futuro
+## 🟡 P2 — DevEx e padronização
 
-### IoT / Telemetria ESP32
-- [ ] Bridge Python/Raspberry Pi ↔ ESP32 via MQTT (Mosquitto)
-- [ ] Endpoint local REST: `POST /telemetria` recebe JSON do bridge
-- [ ] Dados por veículo/embarcação: GPS (lat/lon), temperatura motor, vibração
-- [ ] Mapa de posicionamento em tempo real (Leaflet.js + tile local)
-- [ ] Histórico de rotas por veículo
-- [ ] RFID: registro automático de saída/retorno do cais/garagem
-- [ ] Alertas de temperatura: motor acima de 95°C → notificação em Transportes
-
-### BMS (Building Management System)
-- [ ] Sensores de temperatura por ambiente (ESP32 + DHT22)
-- [ ] Consumo elétrico por edificação (via medidor com saída RS-485)
-- [ ] Nível de cisternas e reservatórios
-- [ ] Dashboard predial em tempo real com mapa da instalação
-- [ ] Histórico de consumo de água/energia com gráficos mensais
-
-### Migração para Stack Laravel + Docker
-- [ ] PRD já gerado (sessão anterior — disponível em project files)
-- [ ] Docker Compose com: app, nginx, postgres, redis, websockets, mqtt
-- [ ] Laravel 10+ / PHP 8.2 backend
-- [ ] Vue.js 3 + CoreUI Free Edition frontend
-- [ ] Migração dos dados do localStorage para PostgreSQL 15
-- [ ] Auth com JWT + refresh tokens
-- [ ] WebSockets para notificações em tempo real (substituir polling)
-- [ ] API REST documentada com OpenAPI/Swagger
-- [ ] RBAC completo por módulo e operação
-
-### Mobile
-- [ ] PWA: manifest.json + service worker para uso offline
-- [ ] Interface responsiva para tablets (patrulha, depósito, cais)
-- [ ] QR Code scanner via câmera do celular (ativos, paiois)
-
-### Relatórios e BI
-- [ ] Relatório mensal de OS por departamento (exportar PDF)
-- [ ] Indicadores de manutenção: MTBF, MTTR por ativo
-- [ ] Consumo de estoque por período e por seção
-- [ ] Painel gerencial: KPIs consolidados para Direção
+- [ ] Documento `cmasm.erp/pmoc/CATEGORIAS.md` — guia para adicionar uma nova categoria ao PMOC
+- [ ] Lint do ERP: rodar ESLint no `cmasm_erp.html`
+- [ ] `docker-compose.yml` orquestrador em `/home/luciano/DEV/` — sobe núcleo + módulos com hardware
+- [ ] Garantir 100% offline: substituir referências a `fonts.googleapis.com` por `/assets/fonts.css`
 
 ---
 
-## 🔧 DÍVIDA TÉCNICA
+## 🟢 P3 — Roadmap longo (REQUISITOS.md §7)
 
-- [ ] `editCargo()` / `salvarCargo()` — modal existe mas função edit não preenche select de ocupante corretamente
-- [ ] `populateUserSelect()` usa nome como `value` em vez de `id` — inconsistente com o resto
-- [x] `renderAdminDB()` agora busca counts reais da API (usuarios, ativos, locais, OS, estoque) ✅
-- [ ] `exportBackup()` / `importBackup()` não incluem módulos novos
-- [ ] `clearAllData()` não limpa chaves dos módulos novos
-- [ ] Dashboard: cards de módulo não refletem status de estoque/paiois
-- [ ] IDs em módulos novos usam `Date.now()` — possível colisão em loop
-- [ ] `fmtDateSimple()` não trata datas no formato `ISO completo` corretamente
-
----
-
-## ✅ CONCLUÍDO (histórico)
-
-### Sessão 9 Mai 2026 (tarde)
-- [x] SR (Solicitação de Recursos) implementada: tab SR em Serviços, modal com 4 tipos (material/transporte/local/externo), integração com Estoque/Transportes/Predial ✅
-- [x] Perfil de acesso por seção: `canAutorizarPS()` — gestor só autoriza PS da sua lotação; guards em `autorizarPS()` e `rejeitarPS()` ✅
-- [x] Predial → Serviços: `gerarOSdeOcorrencia()` — botão "→ OS" em cada ocorrência aberta ✅
-- [x] Estoque: filtro de período + exportação CSV de movimentações (`exportarConsumoCSV`) ✅
-- [x] Estoque: modal de criação/edição de itens com campo `validade`; aba "Validades" com semáforo ✅
-- [x] Paiois: modal `modal-mov-paiol` com select de OS vinculada (`salvarMovPaiol`) ✅
-- [x] Transportes: exportação CSV da escala (`exportarEscalaCSV`) ✅
-- [x] Transportes: veículo marcado `OR` ao confirmar agendamento, restaurado para `P` ao concluir ✅
-
-### Sessão 9 Mai 2026
-- [x] Rules.md reestruturado: diagrama limpo, categorias snake_case, tipos OS completos, máquina de estados PS/OS (8 status), seção PS/NECs, funcionalidades Transportes, modelo distribuído de Estoque + CADBEM
-- [x] Modal de movimentação de estoque (↕) — entrada / saída / ajuste com campos documento, fornecedor e obs
-- [x] Migração aditiva `estoque_movimentos`: colunas `documento` e `fornecedor` via `ALTER TABLE`
-- [x] `MovimentoIn` atualizado + INSERT com novos campos
-- [x] Botão ↕ na tabela de estoque (ao lado de ✎), funções `openMovimentoModal` + `saveMovimento`
-- [x] 12/12 vínculos locais→cargos→usuários (estrutura_id aditivo + JOIN COALESCE)
-- [x] 8 locais físicos inseridos (IDs 301-308), 27 ativos.loc corrigidos → contadores reais na tabela Locais
-- [x] `xCMASM/frontend/servicos/index.html` → redirect para `cmasm-erp.html?page=srv-dashboard`
-
-- [x] Single-file HTML unificado (todos os módulos separados → xcmasm.html)
-- [x] Login com identificação parcial (nome/NIP/lotação/e-mail, case-insensitive)
-- [x] Acesso visitante (somente leitura, sem senha)
-- [x] TMFT com seed data real (15 pessoas)
-- [x] Cargos com CRUD e ocupante linkado
-- [x] Organograma colapsável (Regimento Interno Nov/2024, 29 nós)
-- [x] Fluxo PS → OS (criação, autorização, rejeição, execução, conclusão)
-- [x] Kanban de OS por status
-- [x] Transportes: frota (viatura/embarcação/máquina), agendamento 2 fases
-- [x] Serviço do Dia: Motorista do Diretor + MS com histórico
-- [x] Manutenção CMMS: ativos, OS corretiva/preventiva, horímetro
-- [x] Calibração: instrumentos, KPIs, alertas de vencimento
-- [x] Dashboard com KPIs globais, badge de alertas, relógio
-- [x] Lazy rendering (boot rápido — apenas dashboard na inicialização)
-- [x] Tema dark/light com persistência
-- [x] Backup/restore JSON
-- [x] Guard de visitante em todas as funções de escrita
-- [x] Módulo Estoque (estrutura + seed + CRUD básico)
-- [x] Módulo Controle Vegetal (maquinário + atividades + OS)
-- [x] Módulo Locais & Predial (edificações + reservas + ocorrências)
-- [x] Módulo Paiois (inventário + movimentações + alertas de validade)
+- [ ] Auth com argon2 + refresh token (substituir djb2)
+- [ ] PWA do PMOC (manifest + service worker)
+- [ ] Upload de fotos no PMOC com `multipart/form-data` (hoje só base64)
+- [ ] RFID/QR no Estoque
+- [ ] Bridge IoT ESP32 (MQTT → `/api/sync/push`)
+- [ ] Telemetria GPS/temperatura na categoria transportes
+- [ ] Bridge CADBEM (CSV)
+- [ ] BMS (sensores prediais)
+- [ ] Indicadores: MTBF, MTTR por ativo
 
 ---
 
-*Atualizado em: 9 de Maio de 2026 (noite — sessão 3)*
+## 🧹 Limpeza pós-consolidação (2026-05-22)
+
+- [ ] Arquivar repos legados: `pmoc_refrigeracao`, `pmoc_eletrica`, `pmoc_calibracao`, `pmoc_corte`, `pmoc_transportes` → `.archive_pmoc_legado/` ou `.delete/`
+- [ ] Validar que nada do `cmasm.erp` ainda referencia esses repos por path
+- [ ] Atualizar `xCMASM.code-workspace` / `cmasm.erp.code-workspace` se houver folders apontando para repos arquivados
+
+---
+
+## 🔧 Dívida técnica
+
+- [ ] `cmasm_erp.html` está em 4281 linhas — dividir em arquivos quando passar para módulos ES (`<script type="module">`) sem build step
+- [ ] `Date.now()` como ID em módulos legados — migrar para `crypto.randomUUID()`
+- [ ] `exportBackup()` / `importBackup()` não conhecem schema novo
+- [ ] `clearAllData()` não limpa stores de módulos novos
+- [ ] `populateUserSelect()` usa nome como `value` — inconsistente com IDs
+- [ ] Remover arquivos órfãos em `referencias/` (duplicatas)
+
+---
+
+## ✅ Concluído recente
+
+- [x] 2026-05-22 — **Consolidação arquitetural**: docs atualizadas para "núcleo + PMOC único categorizado". `TEMPLATE_PMOC.md` removido. `MODULOS_EXTERNOS.md` enxugado para módulos *realmente* externos. `Regras de Negocio e Fluxos.md` copiado para o repo do núcleo.
+- [x] 2026-05-18 — Reestruturação dos `.md`: `Rules.md`, `MODULOS_EXTERNOS.md`, `TEMPLATE_PMOC.md`, `REQUISITOS.md`, `todo.md`
+- [x] 2026-05-17 — Endpoints `POST` e `DELETE /api/pmoc/refrigeracao`
+- [x] 2026-05-16 — `GET /api/pmoc/refrigeracao` inclui `zona_nome`
+- [x] 2026-05-14 — Bugs e melhorias nos scripts de importação
