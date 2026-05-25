@@ -7,6 +7,7 @@ _DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 _SCHEMAS = [
     os.path.join(_DATA_DIR, "schema_core.sql"),
     os.path.join(_DATA_DIR, "schema_grama.sql"),
+    os.path.join(_DATA_DIR, "schema_catalogo.sql"),
 ]
 
 
@@ -26,6 +27,10 @@ class CoreDB:
             for col, ddl in [
                 ("subtipo", "ALTER TABLE ativos ADD COLUMN subtipo TEXT"),
                 ("placa",   "ALTER TABLE ativos ADD COLUMN placa   TEXT"),
+                # núcleo magro v2 — campos exigidos pelo motor de manutenção (Rules.md §15)
+                ("criticidade",       "ALTER TABLE ativos ADD COLUMN criticidade TEXT DEFAULT 'operacional'"),
+                ("responsavel_pmoc",  "ALTER TABLE ativos ADD COLUMN responsavel_pmoc TEXT"),
+                ("janela_default",    "ALTER TABLE ativos ADD COLUMN janela_default TEXT"),
             ]:
                 if col not in existing:
                     await db.execute(ddl)
@@ -43,6 +48,18 @@ class CoreDB:
                 ("fornecedor", "ALTER TABLE estoque_movimentos ADD COLUMN fornecedor TEXT"),
             ]:
                 if col not in mov_existing:
+                    await db.execute(ddl)
+            # núcleo magro v2 — ordens_servico precisa vincular ativo + snapshot de serviço (Rules.md §10)
+            os_existing = {row[1] async for row in await db.execute("PRAGMA table_info(ordens_servico)")}
+            for col, ddl in [
+                ("ativo_id",                "ALTER TABLE ordens_servico ADD COLUMN ativo_id TEXT"),
+                ("servico_id",              "ALTER TABLE ordens_servico ADD COLUMN servico_id TEXT"),
+                ("servico_versao_snapshot", "ALTER TABLE ordens_servico ADD COLUMN servico_versao_snapshot INTEGER"),
+                ("servico_snapshot",        "ALTER TABLE ordens_servico ADD COLUMN servico_snapshot TEXT"),
+                ("hora_inicio",             "ALTER TABLE ordens_servico ADD COLUMN hora_inicio TEXT"),
+                ("hora_fim",                "ALTER TABLE ordens_servico ADD COLUMN hora_fim TEXT"),
+            ]:
+                if col not in os_existing:
                     await db.execute(ddl)
             await db.commit()
 

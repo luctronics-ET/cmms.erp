@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from .db_core import CoreDB
 from .grama import router as grama_router, init_grama
+from .sync import router as sync_router
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DB_PATH   = os.getenv("DB_PATH",   os.path.join(os.path.dirname(__file__), "..", "data", "core.db"))
@@ -44,12 +45,16 @@ app.add_middleware(
 
 db = CoreDB(DB_PATH)
 app.include_router(grama_router)
+app.include_router(sync_router)
 
 # Serve xCore frontend files (HTMLs, JS, CSS, assets)
 _FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..")
 _SHARED_ASSETS_DIR = os.path.join(_FRONTEND_DIR, "assets")
+_PMOC_DIR = os.path.join(_FRONTEND_DIR, "pmoc")
 app.mount("/static", StaticFiles(directory=_FRONTEND_DIR), name="static")
 app.mount("/assets", StaticFiles(directory=_SHARED_ASSETS_DIR), name="assets")
+if os.path.isdir(_PMOC_DIR):
+    app.mount("/pmoc", StaticFiles(directory=_PMOC_DIR, html=True), name="pmoc")
 
 
 @app.get("/")
@@ -111,9 +116,9 @@ async def proxy_xpredial(path: str, request: Request):
     return await _proxy_xpredial(path, request)
 
 
-@app.get("/api/modulos")
-async def list_modulos():
-    """Lista os módulos satélite registrados com status de saúde."""
+@app.get("/api/satellites")
+async def list_satellites():
+    """Status de saúde dos satélites FastAPI (xPredial, xAguada, xPaiol, xCalibracao)."""
     results = []
     async with httpx.AsyncClient(timeout=3.0) as client:
         for sat in _SATELLITES:
@@ -124,6 +129,22 @@ async def list_modulos():
                 status = "offline"
             results.append({**sat, "status": status})
     return results
+
+
+@app.get("/api/modulos")
+async def list_modulos():
+    """Lista PMOCs registrados (modulos_registrados) com categorias atendidas."""
+    import json as _json
+    rows = await db.fetch_all(
+        "SELECT nome, descricao, url_navegacao, categorias_atend, ativo, criado_em "
+        "FROM modulos_registrados WHERE ativo=1 ORDER BY nome"
+    )
+    for row in rows:
+        try:
+            row["categorias_atend"] = _json.loads(row["categorias_atend"] or "[]")
+        except (ValueError, TypeError):
+            row["categorias_atend"] = []
+    return rows
 
 
 @app.on_event("startup")

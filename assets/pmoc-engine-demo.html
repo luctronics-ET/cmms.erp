@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>pmoc-engine v2 — demo</title>
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/assets/pmoc-engine.css">
+  <style>
+    .wrap   { max-width: 1200px; margin: 0 auto; padding: 16px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    h2      { font-size: 16px; color: var(--ink-2); margin: 24px 0 10px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+    section { margin-bottom: 28px; }
+    .demo-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    @media (max-width: 800px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="hdr"></div>
+  <div class="wrap">
+
+    <section>
+      <h2>Badges</h2>
+      <div class="demo-row" id="badges"></div>
+    </section>
+
+    <section>
+      <h2>Modal &amp; Confirm</h2>
+      <div class="demo-row">
+        <button class="pe-btn" id="open-modal">Abrir modal</button>
+        <button class="pe-btn pe-btn--danger" id="confirm-danger">Cancelar OS (com motivo)</button>
+        <button class="pe-btn" id="confirm-simple">Confirmar simples</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Tabela com filtros</h2>
+      <div id="tbl"></div>
+    </section>
+
+    <section>
+      <h2>Kanban (arraste cards)</h2>
+      <div id="kan"></div>
+    </section>
+
+    <section>
+      <h2>Calendário (arraste eventos)</h2>
+      <div id="cal"></div>
+    </section>
+
+    <section>
+      <h2>Charts</h2>
+      <div class="grid-2">
+        <div id="donut"></div>
+        <div id="line"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Chat &amp; Câmera</h2>
+      <div class="grid-2">
+        <div style="height: 320px;"><div id="chat" style="height:100%"></div></div>
+        <div>
+          <button class="pe-btn pe-btn--primary" id="cam-start">Iniciar câmera</button>
+          <div id="cam" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Gantt (planos × tempo — arraste as barras)</h2>
+      <div id="gantt"></div>
+    </section>
+
+  </div>
+
+  <script src="/assets/pmoc-engine.js"></script>
+  <script>
+    // ─── bootstrap
+    engine.bootstrap({ modulo: 'demo', cssPath: '/assets/pmoc-engine.css' });
+    const { el } = engine.utils;
+
+    // ─── header
+    const hdr = engine.header(document.getElementById('hdr'), {
+      modulo: 'PMOC · Refrigeração (demo)',
+      user: { nome: 'TC Freitas' },
+      syncStatus: { online: true, pending: 2, lastSync: new Date().toISOString() },
+    });
+    hdr.element.addEventListener('pe:sync-click', () => hdr.setSync({ pending: 0, lastSync: new Date().toISOString() }));
+
+    // ─── badges
+    const badges = document.getElementById('badges');
+    ['ok', 'green', 'amber', 'red', 'blue', 'acc'].forEach(k => badges.appendChild(engine.badge(k.toUpperCase(), k)));
+
+    // ─── modal & confirm
+    document.getElementById('open-modal').onclick = () => {
+      const m = engine.modal({
+        title: 'Detalhe da OS-001',
+        body: el('div', {},
+          el('p', {}, 'Limpeza padrão de split — Sala 201.'),
+          el('p', {}, 'Materiais reservados: Detergente 1L, Hidrojateamento.'),
+          el('p', {}, 'Executor: Cb Silva · Estimado: 90 min'),
+        ),
+        footer: [
+          el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Fechar'),
+          el('button', { class: 'pe-btn pe-btn--primary' }, 'Iniciar execução'),
+        ],
+      });
+      m.open();
+    };
+    document.getElementById('confirm-danger').onclick = async () => {
+      const reason = await engine.confirm({
+        title: 'Cancelar OS', text: 'Esta ação é irreversível.',
+        kind: 'danger', okText: 'Cancelar OS', requireReason: true,
+      });
+      alert(reason ? `Motivo: ${reason}` : 'Cancelado');
+    };
+    document.getElementById('confirm-simple').onclick = async () => {
+      const ok = await engine.confirm({ title: 'Confirmar?', text: 'Salvar alterações?' });
+      alert(ok ? 'OK' : 'Cancelado');
+    };
+
+    // ─── tabela
+    const ativos = [
+      { id: 'a1', nome: 'AC-Sala-201', tipo: 'AC_SPLIT', criticidade: 'critico_24x7', uso: 1240, prox: '2026-05-25' },
+      { id: 'a2', nome: 'AC-Sala-202', tipo: 'AC_SPLIT', criticidade: 'operacional', uso: 540, prox: '2026-06-10' },
+      { id: 'a3', nome: 'AC-Auditório', tipo: 'AC_CENTRAL', criticidade: 'admin', uso: 320, prox: '2027-01-15' },
+      { id: 'a4', nome: 'AC-Sala-CIC', tipo: 'AC_SPLIT', criticidade: 'critico_24x7', uso: 980, prox: '2026-05-20' },
+      { id: 'a5', nome: 'AC-Refeitório', tipo: 'AC_SPLIT', criticidade: 'operacional', uso: 720, prox: '2026-06-30' },
+    ];
+    engine.table(document.getElementById('tbl'), {
+      cols: [
+        { key: 'nome', label: 'Nome' },
+        { key: 'tipo', label: 'Tipo', filter: true },
+        { key: 'criticidade', label: 'Criticidade', filter: true,
+          format: v => engine.badge(v, v === 'critico_24x7' ? 'red' : v === 'operacional' ? 'amber' : 'green') },
+        { key: 'uso',  label: 'Uso (h)', format: v => engine.utils.fmt.num(v) },
+        { key: 'prox', label: 'Próximo serviço', format: v => engine.utils.fmt.date(v) },
+      ],
+      rows: ativos,
+      onRowClick: r => alert(`Abrindo ${r.nome}`),
+    });
+
+    // ─── kanban
+    engine.kanban(document.getElementById('kan'), {
+      columns: [
+        { id: 'aberta',      title: 'Aberta' },
+        { id: 'iniciada',    title: 'Iniciada' },
+        { id: 'em_execucao', title: 'Em execução' },
+        { id: 'pronto',      title: 'Pronto' },
+        { id: 'concluida',   title: 'Concluída' },
+      ],
+      cards: [
+        { id: 'os-1', columnId: 'aberta',      title: 'Limpeza Split CIC',    badges: [{ text: 'URGENTE', kind: 'red' }, { text: 'AC', kind: 'blue' }] },
+        { id: 'os-2', columnId: 'aberta',      title: 'Troca gás Sala 202',   badges: [{ text: 'PREV', kind: 'green' }] },
+        { id: 'os-3', columnId: 'iniciada',    title: 'Inspeção Auditório',   badges: [{ text: 'INSP', kind: 'blue' }] },
+        { id: 'os-4', columnId: 'em_execucao', title: 'Limpeza Refeitório',   badges: [{ text: 'ROTINA', kind: 'amber' }] },
+        { id: 'os-5', columnId: 'pronto',      title: 'Higienização Sala 201',badges: [{ text: 'OK', kind: 'green' }] },
+      ],
+      onMove: (id, from, to) => console.log('moveu', id, from, '→', to),
+    });
+
+    // ─── calendar
+    engine.calendar(document.getElementById('cal'), {
+      events: [
+        { id: 'c1', date: engine.utils.fmt.iso(new Date()),                        title: 'Limpeza Split CIC' },
+        { id: 'c2', date: engine.utils.fmt.iso(new Date(Date.now() + 2*86400000)), title: 'Inspeção mensal', color: 'var(--green)' },
+        { id: 'c3', date: engine.utils.fmt.iso(new Date(Date.now() + 5*86400000)), title: 'Troca de gás',    color: 'var(--amber)' },
+        { id: 'c4', date: engine.utils.fmt.iso(new Date(Date.now() + 5*86400000)), title: 'Limpeza Sala 202',color: 'var(--blue)' },
+      ],
+      onEventClick: ev => console.log('clicou', ev),
+      onEventDrop:  (id, novo, antigo) => console.log('reagendado', id, antigo, '→', novo),
+    });
+
+    // ─── donut
+    engine.chartDonut(document.getElementById('donut'), {
+      title: 'OS por status',
+      data: [
+        { label: 'Aberta',      value: 8,  color: 'var(--blue)' },
+        { label: 'Em execução', value: 5,  color: 'var(--amber)' },
+        { label: 'Concluída',   value: 12, color: 'var(--green)' },
+        { label: 'Cancelada',   value: 1,  color: 'var(--red)' },
+      ],
+      totalLabel: 'OS',
+    });
+
+    // ─── line
+    engine.chartLine(document.getElementById('line'), {
+      title: 'Uso (h) por mês — AC-Sala-201',
+      series: [{
+        label: 'Horas',
+        points: [
+          { x: 1, y: 80 }, { x: 2, y: 110 }, { x: 3, y: 95 },
+          { x: 4, y: 130 }, { x: 5, y: 150 }, { x: 6, y: 140 },
+        ],
+      }],
+    });
+
+    // ─── chat
+    engine.chat(document.getElementById('chat'), {
+      currentUser: 'TC Freitas',
+      messages: [
+        { id: 'm1', author: 'Cb Silva',   text: 'Iniciando limpeza no Sala 201.', ts: new Date(Date.now() - 600000).toISOString() },
+        { id: 'm2', author: 'TC Freitas', text: 'Ok, foto do filtro antes/depois.', ts: new Date(Date.now() - 540000).toISOString() },
+        { id: 'm3', author: 'Cb Silva',   text: 'Filtro saturado — substituí.',     ts: new Date(Date.now() - 60000).toISOString() },
+      ],
+      onSend: m => console.log('msg:', m),
+    });
+
+    // ─── câmera
+    let cam;
+    document.getElementById('cam-start').onclick = async () => {
+      if (cam) { cam.stop(); cam.element.remove(); cam = null; }
+      cam = engine.camera({ onCapture: data => console.log('foto:', data.slice(0, 80) + '…') });
+      document.getElementById('cam').appendChild(cam.element);
+      await cam.start();
+    };
+
+    // ─── gantt
+    const today = new Date();
+    const startIso = engine.utils.fmt.iso(new Date(today.getFullYear(), today.getMonth(), 1));
+    const endIso   = engine.utils.fmt.iso(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+    engine.gantt(document.getElementById('gantt'), {
+      range: { start: startIso, end: endIso },
+      tasks: [
+        { id: 't1', label: 'Limpeza splits andar 2', start: engine.utils.fmt.iso(today), end: engine.utils.fmt.iso(new Date(today.getTime() + 4*86400000)), color: 'var(--acc)' },
+        { id: 't2', label: 'Inspeção AC central',    start: engine.utils.fmt.iso(new Date(today.getTime() + 5*86400000)), end: engine.utils.fmt.iso(new Date(today.getTime() + 6*86400000)), color: 'var(--green)' },
+        { id: 't3', label: 'Troca de gás (CIC)',     start: engine.utils.fmt.iso(new Date(today.getTime() + 8*86400000)), end: engine.utils.fmt.iso(new Date(today.getTime() + 10*86400000)), color: 'var(--amber)' },
+      ],
+      onTaskMove: (id, s, e) => console.log('mov gantt:', id, s, '→', e),
+    });
+  </script>
+</body>
+</html>

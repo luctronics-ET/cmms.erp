@@ -291,7 +291,136 @@
         onRowClick: openAtivoDrawer,
       });
     },
+
+    os(cont) {
+      const { el } = window.engine.utils;
+      const view = state._osView || (state._osView = 'kanban');
+      const toggleWrap = el('div', { style: { marginBottom: '10px', display: 'flex', gap: '4px' } },
+        el('button', {
+          class: 'pe-btn ' + (view === 'kanban' ? 'pe-btn--primary' : 'pe-btn--ghost'),
+          onclick: () => { state._osView = 'kanban'; RENDERERS.os(cont); },
+        }, 'Kanban'),
+        el('button', {
+          class: 'pe-btn ' + (view === 'lista' ? 'pe-btn--primary' : 'pe-btn--ghost'),
+          onclick: () => { state._osView = 'lista'; RENDERERS.os(cont); },
+        }, 'Lista'),
+      );
+      const body = el('div');
+      cont.replaceChildren(toggleWrap, body);
+
+      if (view === 'kanban') renderOsKanban(body);
+      else renderOsLista(body);
+    },
   };
+
+  const OS_STATUS_ORDEM = ['aberta', 'autorizada', 'iniciada', 'em_execucao', 'espera', 'pronto', 'concluida', 'cancelada'];
+
+  // Transições permitidas (espelha Rules.md §4)
+  const OS_TRANSICOES = {
+    aberta:      ['autorizada', 'cancelada'],
+    autorizada:  ['iniciada', 'cancelada'],
+    iniciada:    ['em_execucao', 'espera', 'cancelada'],
+    em_execucao: ['espera', 'pronto', 'cancelada'],
+    espera:      ['em_execucao', 'cancelada'],
+    pronto:      ['concluida', 'em_execucao', 'cancelada'],
+    concluida:   [],
+    cancelada:   [],
+  };
+
+  function transitionAllowed(de, para) {
+    return (OS_TRANSICOES[de] || []).includes(para);
+  }
+
+  function renderOsKanban(body) {
+    const os = filteredOS();
+    const cards = os.map(o => ({
+      id: o.id, columnId: o.status, title: o.titulo || o.codigo || o.id,
+      badges: [
+        o.tipo ? { text: o.tipo, kind: 'blue' } : null,
+        o.prioridade ? { text: o.prioridade, kind: o.prioridade === 'urgente' || o.prioridade === 'alta' ? 'red' : 'amber' } : null,
+      ].filter(Boolean),
+      _raw: o,
+    }));
+    const k = window.engine.kanban(body, {
+      columns: OS_STATUS_ORDEM.map(s => ({ id: s, title: s })),
+      cards,
+      onCardClick: c => openOsDrawer(c._raw),
+      onMove: async (id, from, to) => {
+        if (!transitionAllowed(from, to)) {
+          toast(`Transição inválida: ${from} → ${to}`, 'red');
+          // reverte client-side
+          const card = k._cards?.find(c => c.id === id);
+          if (card) card.columnId = from;
+          state.tabDirty.os = true; RENDERERS.os(document.getElementById('manut-tab-content'));
+          return;
+        }
+        try {
+          const r = await fetch(`/api/os/${id}/status`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: to, obs: 'movido via painel manutenção' }),
+          });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          const o = (state.cache.os?.data || []).find(x => x.id === id);
+          if (o) o.status = to;
+          toast(`OS movida: ${from} → ${to}`, 'green');
+        } catch (e) {
+          toast(`Falha ao mover OS: ${e.message}`, 'red');
+          state.tabDirty.os = true; RENDERERS.os(document.getElementById('manut-tab-content'));
+        }
+      },
+    });
+    k._cards = cards;
+  }
+
+  function renderOsLista(body) {
+    const { el, fmt } = window.engine.utils;
+    const os = filteredOS();
+    const wrap = el('div');
+    body.replaceChildren(wrap);
+    window.engine.table(wrap, {
+      cols: [
+        { key: 'codigo', label: 'Código' },
+        { key: 'titulo', label: 'Título' },
+        { key: 'tipo', label: 'Tipo', filter: true },
+        { key: 'status', label: 'Status', filter: true,
+          format: v => window.engine.badge(v, v === 'concluida' ? 'green' : v === 'cancelada' ? 'red' : 'amber') },
+        { key: 'prioridade', label: 'Prioridade', filter: true },
+        { key: 'data_abertura', label: 'Aberta', format: v => fmt.date(v) },
+      ],
+      rows: os,
+      onRowClick: openOsDrawer,
+    });
+  }
+
+  function openOsDrawer(os) {
+    const { el } = window.engine.utils;
+    const m = window.engine.modal({
+      title: `${os.codigo || os.id} · ${os.titulo || ''}`,
+      body: el('div', {},
+        ...Object.entries(os).map(([k, v]) =>
+          el('div', { style: { display: 'flex', gap: '8px', padding: '4px 0', borderBottom: '1px solid var(--line)' } },
+            el('div', { style: { color: 'var(--ink-3)', minWidth: '140px' } }, k),
+            el('div', {}, v == null ? '—' : String(v)),
+          )),
+      ),
+      footer: [el('button', { class: 'pe-btn pe-btn--primary', onclick: () => m.close() }, 'Fechar')],
+    });
+    m.open();
+  }
+
+  // Toast simples (5s)
+  function toast(text, kind) {
+    const { el } = window.engine.utils;
+    const t = el('div', { style: {
+      position: 'fixed', bottom: '20px', right: '20px', zIndex: '999',
+      background: 'var(--panel)', border: `1px solid var(--${kind || 'acc'})`,
+      color: `var(--${kind || 'acc'})`,
+      padding: '10px 14px', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,.4)',
+      maxWidth: '420px',
+    } }, text);
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 5000);
+  }
 
   function openAtivoDrawer(ativo) {
     const { el, fmt } = window.engine.utils;

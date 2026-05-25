@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CMASM · PMOC</title>
+<link rel="stylesheet" href="/assets/fonts.css">
+<link rel="stylesheet" href="assets/pmoc.css">
+</head>
+<body>
+
+<header class="pmoc-header">
+  <div class="brand">
+    <span class="logo">CMASM</span>
+    <span class="sub">PMOC</span>
+  </div>
+  <div class="cat-title" id="cat-title">—</div>
+  <div class="header-actions">
+    <span id="sync-status" class="sync-status sync-idle">offline</span>
+    <span id="pendentes" class="badge-pendentes" title="Eventos pendentes">0</span>
+    <button id="btn-sync" class="btn btn-acc">Sincronizar</button>
+    <span id="user-pill" class="user-pill">—</span>
+  </div>
+</header>
+
+<div id="dev-banner" class="dev-banner hidden">
+  Modo dev — usando seeds locais, sem sincronização com o núcleo.
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <nav class="cat-nav" id="cat-nav"></nav>
+    <div class="filters">
+      <h4>Filtros</h4>
+      <label class="f-block">
+        <span>Local</span>
+        <select id="f-local"><option value="">Todos</option></select>
+      </label>
+      <label class="f-block">
+        <span>Status</span>
+        <select id="f-status">
+          <option value="">Todos</option>
+          <option value="ok">Em dia</option>
+          <option value="proximo">Próximo</option>
+          <option value="vencido">Vencido</option>
+        </select>
+      </label>
+      <label class="f-block">
+        <span>Busca</span>
+        <input type="search" id="f-busca" placeholder="nome, placa, patrimônio…">
+      </label>
+    </div>
+    <div class="sb-footer">
+      <small id="seed-source">—</small>
+      <small id="last-sync">nunca sincronizado</small>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="toolbar">
+      <div class="tb-info">
+        <span id="count-info">0 ativos</span>
+      </div>
+      <div class="tb-actions">
+        <button class="btn" id="btn-leitura" disabled>+ Leitura</button>
+        <button class="btn btn-acc" id="btn-os" disabled>+ Nova OS</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="ativos-table" id="ativos-table">
+        <thead><tr id="thead-row"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty-state" class="empty hidden">Sem ativos para os filtros atuais.</div>
+    </div>
+  </main>
+
+  <aside class="detail" id="detail">
+    <header class="detail-head">
+      <h2 id="d-title">—</h2>
+      <button class="btn-icon" onclick="closeDetail()" title="Fechar">×</button>
+    </header>
+    <nav class="detail-tabs" id="detail-tabs">
+      <button class="dt active" data-tab="geral">Geral</button>
+      <button class="dt" data-tab="hist">Histórico OS</button>
+      <button class="dt" data-tab="manut">Manutenção</button>
+      <button class="dt" data-tab="docs">Documentos</button>
+    </nav>
+    <div class="detail-body">
+      <section id="tab-geral" class="tab-pane active"></section>
+      <section id="tab-hist" class="tab-pane"></section>
+      <section id="tab-manut" class="tab-pane"></section>
+      <section id="tab-docs" class="tab-pane"></section>
+    </div>
+    <footer class="detail-foot">
+      <button class="btn" id="d-btn-leitura">Registrar leitura</button>
+      <button class="btn btn-acc" id="d-btn-os">Nova OS</button>
+    </footer>
+  </aside>
+</div>
+
+<!-- Modal genérico -->
+<div id="modal" class="modal hidden">
+  <div class="modal-body">
+    <header class="modal-head">
+      <h3 id="modal-title">—</h3>
+      <button class="btn-icon" onclick="closeModal()">×</button>
+    </header>
+    <div id="modal-content"></div>
+    <footer class="modal-foot" id="modal-foot"></footer>
+  </div>
+</div>
+
+<!-- Login modal -->
+<div id="login-modal" class="modal hidden">
+  <div class="modal-body small">
+    <header class="modal-head"><h3>Acesso PMOC</h3></header>
+    <div class="modal-content">
+      <label class="f-block"><span>Matrícula</span><input id="lg-mat" type="text" autocomplete="username"></label>
+      <label class="f-block"><span>Senha</span><input id="lg-pwd" type="password" autocomplete="current-password"></label>
+      <div id="lg-err" class="err hidden"></div>
+    </div>
+    <footer class="modal-foot">
+      <button class="btn" id="lg-dev">Continuar offline (modo dev)</button>
+      <button class="btn btn-acc" id="lg-go">Entrar</button>
+    </footer>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="assets/pmoc.js"></script>
+</body>
+</html>

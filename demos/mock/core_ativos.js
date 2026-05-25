@@ -1,0 +1,40 @@
+const MOCK = (() => ({
+  modulo: 'core_ativos', titulo: 'Núcleo · Ativos', icon: '📦',
+  user: { nome: 'TC Freitas' },
+  sync: { online: true, pending: 0, lastSync: new Date().toISOString() },
+  kpis: [
+    { label: 'Total',          value: 184, sub: 'ativos cadastrados' },
+    { label: 'Em serviço',     value: 167 },
+    { label: 'Arquivados',     value: 17 },
+    { label: 'Categorias',     value: 9 },
+  ],
+  donut: { title: 'Por categoria', data: [
+    { label: 'Climatização',  value: 28, color: 'var(--blue)' },
+    { label: 'Frota terr.',   value: 12, color: 'var(--green)' },
+    { label: 'Frota naval',   value: 4,  color: 'var(--acc)' },
+    { label: 'Máq. corte',    value: 12, color: 'var(--amber)' },
+    { label: 'Elétrica',      value: 14, color: 'var(--red)' },
+    { label: 'Predial',       value: 64, color: 'var(--ink-3)' },
+    { label: 'Instrumentos',  value: 50, color: 'var(--ink-2)' },
+  ]},
+  ativos: {
+    cols: [
+      { key: 'id', label: 'ID' },
+      { key: 'nome', label: 'Nome' },
+      { key: 'tipo', label: 'Tipo' },
+      { key: 'categoria', label: 'Categoria', filter: true },
+      { key: 'criticidade', label: 'Criticidade', filter: true,
+        format: v => engine.badge(v, v === 'critico_24x7' ? 'red' : v === 'operacional' ? 'amber' : 'green') },
+      { key: 'responsavel_pmoc', label: 'PMOC dono', filter: true },
+      { key: 'uso_atual', label: 'Uso atual', format: v => engine.utils.fmt.num(v, 1) },
+    ],
+    rows: [
+      { id: 'a01', nome: 'AC-Sala-CIC',      tipo: 'AC_SPLIT',    categoria: 'climatizacao', criticidade: 'critico_24x7', responsavel_pmoc: 'pmoc_refrigeracao', uso_atual: 1820 },
+      { id: 'a02', nome: 'S-10 Pickup',       tipo: 'VTR_PICKUP',  categoria: 'frota_terrestre', criticidade: 'operacional', responsavel_pmoc: 'pmoc_transportes',  uso_atual: 142800 },
+      { id: 'a03', nome: 'GMG-1 Caterpillar', tipo: 'GERADOR',     categoria: 'eletrica',     criticidade: 'critico_24x7', responsavel_pmoc: 'pmoc_eletrica',     uso_atual: 2480 },
+      { id: 'a04', nome: 'FS220 #2',          tipo: 'FS220',       categoria: 'maquinas_corte', criticidade: 'operacional', responsavel_pmoc: 'pmoc_grama',        uso_atual: 198.2 },
+      { id: 'a05', nome: 'ETPM Fátima',       tipo: 'EMB_LANCHA',  categoria: 'frota_naval',  criticidade: 'critico_24x7', responsavel_pmoc: 'pmoc_transportes',  uso_atual: 4200 },
+      { id: 'a06', nome: 'Multímetro Fluke',  tipo: 'MULTIMETRO',  categoria: 'instrumentos', criticidade: 'admin',        responsavel_pmoc: 'pmoc_calibracao',   uso_atual: 0 },
+    ],
+  },
+}))();

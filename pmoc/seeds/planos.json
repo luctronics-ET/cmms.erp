@@ -1,0 +1,150 @@
+[
+  {
+    "id": "plano_gar_oleo",
+    "tipo_codigo": "GAR",
+    "nome": "Troca de óleo 4T",
+    "intervalo": 50,
+    "unidade": "h",
+    "materiais": [
+      {
+        "descricao": "Óleo SAE 30 1L",
+        "qtd": 1
+      }
+    ]
+  },
+  {
+    "id": "plano_sol_oleo",
+    "tipo_codigo": "SOL",
+    "nome": "Troca óleo + filtro diesel",
+    "intervalo": 50,
+    "unidade": "h",
+    "materiais": [
+      {
+        "descricao": "Óleo 15W-40",
+        "qtd": 4
+      },
+      {
+        "descricao": "Filtro óleo Solis",
+        "qtd": 1
+      }
+    ]
+  },
+  {
+    "id": "plano_fs220_lubrif",
+    "tipo_codigo": "FS220",
+    "nome": "Lubrificação geral",
+    "intervalo": 25,
+    "unidade": "h"
+  },
+  {
+    "id": "plano_ts114_inspecao",
+    "tipo_codigo": "TS114",
+    "nome": "Inspeção de disco e correias",
+    "intervalo": 30,
+    "unidade": "h"
+  },
+  {
+    "id": "plano_vtr_pickup_oleo",
+    "tipo_codigo": "VTR_PICKUP",
+    "nome": "Troca de óleo + filtro",
+    "intervalo": 5000,
+    "unidade": "km",
+    "materiais": [
+      {
+        "descricao": "Óleo 5W-30 sint. 4L",
+        "qtd": 1
+      },
+      {
+        "descricao": "Filtro de óleo",
+        "qtd": 1
+      }
+    ]
+  },
+  {
+    "id": "plano_vtr_pickup_freios",
+    "tipo_codigo": "VTR_PICKUP",
+    "nome": "Inspeção de freios",
+    "intervalo": 10000,
+    "unidade": "km",
+    "materiais": [
+      {
+        "descricao": "Pastilhas de freio",
+        "qtd": 1
+      }
+    ]
+  },
+  {
+    "id": "plano_vtr_carga_oleo",
+    "tipo_codigo": "VTR_CARGA",
+    "nome": "Troca de óleo + filtro (carga)",
+    "intervalo": 10000,
+    "unidade": "km",
+    "materiais": [
+      {
+        "descricao": "Óleo diesel 15W-40",
+        "qtd": 8
+      },
+      {
+        "descricao": "Filtro de óleo pesado",
+        "qtd": 1
+      }
+    ]
+  },
+  {
+    "id": "plano_emb_lancha_oleo",
+    "tipo_codigo": "EMB_LANCHA",
+    "nome": "Troca de óleo motor de popa",
+    "intervalo": 50,
+    "unidade": "h",
+    "materiais": [
+      {
+        "descricao": "Óleo náutico 2T",
+        "qtd": 2
+      },
+      {
+        "descricao": "Filtro de óleo",
+        "qtd": 1
+      }
+    ]
+  },
+  {
+    "id": "plano_emb_lancha_anodo",
+    "tipo_codigo": "EMB_LANCHA",
+    "nome": "Troca de ânodo de zinco",
+    "intervalo": 12,
+    "unidade": "meses",
+    "materiais": [
+      {
+        "descricao": "Ânodo de zinco",
+        "qtd": 2
+      }
+    ]
+  },
+  {
+    "id": "plano_ac_split_limpeza",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Limpeza de filtros",
+    "intervalo": 1,
+    "unidade": "meses"
+  },
+  {
+    "id": "plano_ac_split_gas",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Verificação de gás",
+    "intervalo": 12,
+    "unidade": "meses",
+    "materiais": [
+      {
+        "descricao": "Gás R-410A (se necessário)",
+        "qtd": 0
+      }
+    ]
+  },
+  {
+    "id": "plano_ac_central_limpeza",
+    "tipo_codigo": "AC_CENTRAL",
+    "nome": "Limpeza completa + verificação",
+    "intervalo": 3,
+    "unidade": "meses"
+  }
+]

@@ -1,0 +1,1178 @@
+================================================================================
+SISTEMA ERP + CMMS + BMS COM COREUI - ARQUIVOS COMPLETOS
+================================================================================
+Data: 20/03/2026
+Versão: 1.0
+================================================================================
+
+ESTRUTURA DE PASTAS:
+================================================================================
+erp-cmms-system/
+├── docker/
+│   ├── docker-compose.yml
+│   ├── nginx/
+│   │   └── default.conf
+│   ├── php/
+│   │   ├── Dockerfile
+│   │   └── php.ini
+│   ├── postgres/
+│   │   └── init.sql
+│   └── mosquitto/
+│       └── config/
+│           └── mosquitto.conf
+├── backend/
+│   └── (Laravel - criar com: composer create-project laravel/laravel backend)
+├── frontend/
+│   ├── package.json
+│   ├── src/
+│   │   ├── main.js
+│   │   ├── router/
+│   │   │   └── index.js
+│   │   ├── store/
+│   │   │   ├── index.js
+│   │   │   └── modules/
+│   │   │       ├── auth.js
+│   │   │       └── sidebar.js
+│   │   └── plugins/
+│   │       └── axios.js
+│   └── (estrutura Vue criada com: npm create vite@latest frontend)
+└── README.md
+
+================================================================================
+ARQUIVO 1: docker/docker-compose.yml
+================================================================================
+version: '3.8'
+
+services:
+  # Nginx Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: erp_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - app
+    networks:
+      - erp_network
+    restart: unless-stopped
+
+  # PHP-FPM Application
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp_app
+    volumes:
+      - ./backend:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+    environment:
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=erp_cmms_db
+      - DB_USERNAME=erp_user
+      - DB_PASSWORD=erp_secure_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - erp_network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: erp_postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - POSTGRES_DB=erp_cmms_db
+      - POSTGRES_USER=erp_user
+      - POSTGRES_PASSWORD=erp_secure_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=pt_BR.UTF-8 --lc-ctype=pt_BR.UTF-8
+    networks:
+      - erp_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d erp_cmms_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: erp_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass erp_redis_password
+    networks:
+      - erp_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Laravel WebSockets
+  websockets:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp_websockets
+    volumes:
+      - ./backend:/var/www/html
+    command: php artisan websockets:serve
+    ports:
+      - "6001:6001"
+    environment:
+      - LARAVEL_WEBSOCKETS_PORT=6001
+    depends_on:
+      - app
+      - redis
+    networks:
+      - erp_network
+    restart: unless-stopped
+
+  # MQTT Broker (Mosquitto) para sensores IoT
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: erp_mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto/config:/mosquitto/config
+      - ./docker/mosquitto/data:/mosquitto/data
+      - ./docker/mosquitto/log:/mosquitto/log
+      - mqtt_data:/mosquitto/data
+    networks:
+      - erp_network
+    restart: unless-stopped
+
+  # Laravel Queue Worker
+  queue:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp_queue
+    volumes:
+      - ./backend:/var/www/html
+    command: php artisan queue:work --sleep=3 --tries=3
+    depends_on:
+      - app
+      - redis
+      - postgres
+    networks:
+      - erp_network
+    restart: unless-stopped
+
+  # Laravel Scheduler
+  scheduler:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: erp_scheduler
+    volumes:
+      - ./backend:/var/www/html
+    command: /bin/sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    depends_on:
+      - app
+      - postgres
+    networks:
+      - erp_network
+    restart: unless-stopped
+
+  # Adminer (Gerenciador de Banco de Dados)
+  adminer:
+    image: adminer:latest
+    container_name: erp_adminer
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    depends_on:
+      - postgres
+    networks:
+      - erp_network
+    restart: unless-stopped
+
+networks:
+  erp_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  mqtt_data:
+    driver: local
+
+
+================================================================================
+ARQUIVO 2: docker/php/Dockerfile
+================================================================================
+FROM php:8.2-fpm-alpine
+
+# Argumentos de build
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+# Instalar dependências do sistema
+RUN apk add --no-cache \
+    git \
+    curl \
+    libpng-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    postgresql-dev \
+    oniguruma-dev \
+    icu-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    supervisor \
+    nodejs \
+    npm
+
+# Instalar extensões PHP
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    pgsql \
+    mbstring \
+    zip \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    intl \
+    opcache
+
+# Instalar Redis extension
+RUN pecl install redis \
+    && docker-php-ext-enable redis
+
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Configurar usuário
+RUN addgroup -g ${GROUP_ID} laravel \
+    && adduser -D -u ${USER_ID} -G laravel laravel
+
+# Configurar diretório de trabalho
+WORKDIR /var/www/html
+
+# Copiar configurações personalizadas do PHP
+COPY php.ini /usr/local/etc/php/conf.d/custom.ini
+
+# Configurar permissões
+RUN chown -R laravel:laravel /var/www/html
+
+# Mudar para usuário laravel
+USER laravel
+
+# Expor porta 9000
+EXPOSE 9000
+
+# Comando padrão
+CMD ["php-fpm"]
+
+
+================================================================================
+ARQUIVO 3: docker/php/php.ini
+================================================================================
+[PHP]
+; Configurações gerais
+memory_limit = 512M
+upload_max_filesize = 100M
+post_max_size = 100M
+max_execution_time = 300
+max_input_time = 300
+
+; Timezone
+date.timezone = America/Sao_Paulo
+
+; Error Reporting (desenvolvimento)
+display_errors = On
+display_startup_errors = On
+error_reporting = E_ALL
+
+; Logs
+log_errors = On
+error_log = /var/log/php_errors.log
+
+; Session
+session.save_handler = redis
+session.save_path = "tcp://redis:6379?auth=erp_redis_password"
+session.gc_maxlifetime = 86400
+
+; OPcache (produção)
+opcache.enable = 1
+opcache.enable_cli = 1
+opcache.memory_consumption = 256
+opcache.interned_strings_buffer = 16
+opcache.max_accelerated_files = 20000
+opcache.validate_timestamps = 1
+opcache.revalidate_freq = 2
+opcache.fast_shutdown = 1
+
+; Realpath Cache
+realpath_cache_size = 4096K
+realpath_cache_ttl = 600
+
+; File Uploads
+file_uploads = On
+upload_tmp_dir = /tmp
+
+; Security
+expose_php = Off
+allow_url_fopen = On
+allow_url_include = Off
+
+; Performance
+max_input_vars = 3000
+
+
+================================================================================
+ARQUIVO 4: docker/nginx/default.conf
+================================================================================
+server {
+    listen 80;
+    listen [::]:80;
+    server_name localhost;
+
+    root /var/www/html/public;
+    index index.php index.html;
+
+    charset utf-8;
+
+    # Logs
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    # Gzip Compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json;
+
+    # Security Headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Aumentar limites de upload
+    client_max_body_size 100M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    # PHP-FPM Configuration
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass app:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_buffering off;
+        
+        # Aumentar timeouts
+        fastcgi_read_timeout 300;
+        fastcgi_send_timeout 300;
+    }
+
+    # Negar acesso a arquivos .htaccess
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+
+    # Cache de assets estáticos
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # WebSocket support para Laravel WebSockets
+    location /ws {
+        proxy_pass http://websockets:6001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+
+================================================================================
+ARQUIVO 5: docker/mosquitto/config/mosquitto.conf
+================================================================================
+# Mosquitto MQTT Broker Configuration
+# Para sensores ESP32 com ESP-NOW
+
+# Listener padrão MQTT
+listener 1883
+protocol mqtt
+
+# WebSocket listener
+listener 9001
+protocol websockets
+
+# Configurações de persistência
+persistence true
+persistence_location /mosquitto/data/
+
+# Log
+log_dest file /mosquitto/log/mosquitto.log
+log_dest stdout
+log_type all
+log_timestamp true
+
+# Conexões
+max_connections -1
+max_queued_messages 1000
+
+# Autenticação (opcional - descomentar para produção)
+# allow_anonymous false
+# password_file /mosquitto/config/passwd
+
+# Autenticação simples (desenvolvimento)
+allow_anonymous true
+
+# ACL (Access Control List) - opcional
+# acl_file /mosquitto/config/acl
+
+# Retain
+max_queued_bytes 0
+message_size_limit 0
+
+# QoS
+max_inflight_messages 20
+max_keepalive 65535
+
+# Tópicos para sensores ESP32
+# Padrão: sensores/{mac_address}/{tipo}/{id}
+# Exemplo: sensores/AA:BB:CC:DD:EE:FF/temperatura/1
+
+
+================================================================================
+ARQUIVO 6: docker/postgres/init.sql
+================================================================================
+-- Script de inicialização do PostgreSQL
+-- Configurações adicionais podem ser adicionadas aqui
+
+-- Criar extensões úteis
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+-- Configurar locale
+SET lc_messages TO 'pt_BR.UTF-8';
+SET lc_monetary TO 'pt_BR.UTF-8';
+SET lc_numeric TO 'pt_BR.UTF-8';
+SET lc_time TO 'pt_BR.UTF-8';
+
+
+================================================================================
+ARQUIVO 7: frontend/package.json
+================================================================================
+{
+  "name": "erp-cmms-frontend",
+  "version": "1.0.0",
+  "description": "Sistema ERP + CMMS + BMS com CoreUI",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js --fix",
+    "format": "prettier --write \"src/**/*.{js,vue,css,scss}\""
+  },
+  "dependencies": {
+    "vue": "^3.3.4",
+    "vue-router": "^4.2.5",
+    "vuex": "^4.1.0",
+    "@coreui/vue": "^5.0.0",
+    "@coreui/icons": "^3.0.1",
+    "@coreui/icons-vue": "^2.0.1",
+    "@coreui/chartjs": "^4.0.0",
+    "chart.js": "^4.4.0",
+    "axios": "^1.6.0",
+    "lodash": "^4.17.21",
+    "date-fns": "^2.30.0",
+    "vee-validate": "^4.12.0",
+    "yup": "^1.3.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.4.0",
+    "vite": "^4.5.0",
+    "sass": "^1.69.5",
+    "eslint": "^8.53.0",
+    "eslint-plugin-vue": "^9.18.1",
+    "prettier": "^3.1.0",
+    "@vue/eslint-config-prettier": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+
+
+================================================================================
+ARQUIVO 8: frontend/src/main.js
+================================================================================
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import store from './store'
+
+// CoreUI
+import CoreuiVue from '@coreui/vue'
+import CIcon from '@coreui/icons-vue'
+import { iconsSet as icons } from './assets/icons'
+
+// CoreUI Styles
+import '@coreui/coreui/dist/css/coreui.min.css'
+import 'bootstrap/dist/css/bootstrap.min.css'
+
+// Custom Styles
+import './assets/scss/style.scss'
+
+// Axios (configurado globalmente)
+import axios from './plugins/axios'
+
+// Criar aplicação Vue
+const app = createApp(App)
+
+// Registrar plugins
+app.use(router)
+app.use(store)
+app.use(CoreuiVue)
+
+// Prover ícones globalmente
+app.provide('icons', icons)
+
+// Registrar componente global CIcon
+app.component('CIcon', CIcon)
+
+// Disponibilizar axios globalmente
+app.config.globalProperties.$axios = axios
+
+// Montar aplicação
+app.mount('#app')
+
+
+================================================================================
+ARQUIVO 9: frontend/src/plugins/axios.js
+================================================================================
+import axios from 'axios'
+import router from '../router'
+
+// Configuração base do axios
+const instance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost/api',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
+  }
+})
+
+// Interceptor de requisição - adicionar token
+instance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Interceptor de resposta - tratamento de erros
+instance.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  (error) => {
+    if (error.response) {
+      switch (error.response.status) {
+        case 401:
+          // Token inválido ou expirado
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          router.push('/auth/login')
+          break
+        
+        case 403:
+          // Sem permissão
+          console.error('Acesso negado:', error.response.data.message)
+          break
+        
+        case 404:
+          console.error('Recurso não encontrado')
+          break
+        
+        case 422:
+          // Erro de validação
+          console.error('Erro de validação:', error.response.data.errors)
+          break
+        
+        case 500:
+          console.error('Erro interno do servidor')
+          break
+        
+        default:
+          console.error('Erro na requisição:', error.response.data)
+      }
+    } else if (error.request) {
+      console.error('Erro de rede:', error.message)
+    }
+    
+    return Promise.reject(error)
+  }
+)
+
+export default instance
+
+
+================================================================================
+ARQUIVO 10: frontend/src/router/index.js
+================================================================================
+import { createRouter, createWebHashHistory } from 'vue-router'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import AuthLayout from '@/layouts/AuthLayout.vue'
+
+const routes = [
+  {
+    path: '/',
+    redirect: '/dashboard',
+    component: DefaultLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '/dashboard',
+        name: 'Dashboard',
+        component: () => import('@/views/Dashboard.vue'),
+        meta: { title: 'Dashboard' }
+      },
+      
+      // Usuários
+      {
+        path: '/usuarios',
+        name: 'Usuarios',
+        component: () => import('@/views/usuarios/Lista.vue'),
+        meta: { title: 'Usuários' }
+      },
+      
+      // Departamentos
+      {
+        path: '/departamentos',
+        name: 'Departamentos',
+        component: () => import('@/views/departamentos/Lista.vue'),
+        meta: { title: 'Departamentos' }
+      },
+      
+      // Localizações
+      {
+        path: '/localizacoes',
+        name: 'Localizacoes',
+        component: () => import('@/views/localizacoes/Lista.vue'),
+        meta: { title: 'Localizações' }
+      },
+      
+      // Serviços (OS)
+      {
+        path: '/servicos',
+        name: 'ServicosList',
+        component: () => import('@/views/servicos/Lista.vue'),
+        meta: { title: 'Ordens de Serviço' }
+      },
+      {
+        path: '/servicos/novo',
+        name: 'ServicosNovo',
+        component: () => import('@/views/servicos/Novo.vue'),
+        meta: { title: 'Nova OS' }
+      },
+      {
+        path: '/servicos/:id',
+        name: 'ServicosDetalhes',
+        component: () => import('@/views/servicos/Detalhes.vue'),
+        meta: { title: 'Detalhes da OS' }
+      },
+      {
+        path: '/servicos/:id/editar',
+        name: 'ServicosEditar',
+        component: () => import('@/views/servicos/Editar.vue'),
+        meta: { title: 'Editar OS' }
+      },
+      
+      // Estoque
+      {
+        path: '/estoque',
+        name: 'EstoqueList',
+        component: () => import('@/views/estoque/Lista.vue'),
+        meta: { title: 'Estoque' }
+      },
+      {
+        path: '/estoque/movimentacoes',
+        name: 'EstoqueMovimentacoes',
+        component: () => import('@/views/estoque/Movimentacoes.vue'),
+        meta: { title: 'Movimentações de Estoque' }
+      },
+      
+      // Manutenção
+      {
+        path: '/ativos',
+        name: 'AtivosList',
+        component: () => import('@/views/ativos/Lista.vue'),
+        meta: { title: 'Ativos' }
+      },
+      {
+        path: '/manutencao/preventiva',
+        name: 'ManutencaoPreventiva',
+        component: () => import('@/views/manutencao/Preventiva.vue'),
+        meta: { title: 'Manutenção Preventiva' }
+      },
+      
+      // Sensores (BMS)
+      {
+        path: '/sensores',
+        name: 'SensoresMonitoramento',
+        component: () => import('@/views/sensores/Monitoramento.vue'),
+        meta: { title: 'Monitoramento de Sensores' }
+      },
+      {
+        path: '/sensores/historico',
+        name: 'SensoresHistorico',
+        component: () => import('@/views/sensores/Historico.vue'),
+        meta: { title: 'Histórico de Sensores' }
+      },
+      
+      // Configurações
+      {
+        path: '/configuracoes',
+        name: 'Configuracoes',
+        component: () => import('@/views/Configuracoes.vue'),
+        meta: { title: 'Configurações' }
+      },
+      
+      // Perfil
+      {
+        path: '/perfil',
+        name: 'Perfil',
+        component: () => import('@/views/Perfil.vue'),
+        meta: { title: 'Meu Perfil' }
+      }
+    ]
+  },
+  
+  // Rotas de Autenticação
+  {
+    path: '/auth',
+    component: AuthLayout,
+    children: [
+      {
+        path: 'login',
+        name: 'Login',
+        component: () => import('@/views/auth/Login.vue'),
+        meta: { title: 'Login' }
+      },
+      {
+        path: 'recuperar-senha',
+        name: 'RecuperarSenha',
+        component: () => import('@/views/auth/RecuperarSenha.vue'),
+        meta: { title: 'Recuperar Senha' }
+      }
+    ]
+  },
+  
+  // 404 - Not Found
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/errors/404.vue'),
+    meta: { title: 'Página não encontrada' }
+  }
+]
+
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes,
+  scrollBehavior() {
+    return { top: 0 }
+  }
+})
+
+// Guard de navegação - verificar autenticação
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('token')
+  
+  // Atualizar título da página
+  document.title = to.meta.title 
+    ? `${to.meta.title} - ERP CMMS` 
+    : 'ERP CMMS'
+  
+  // Verificar se rota requer autenticação
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!isAuthenticated) {
+      next({ name: 'Login', query: { redirect: to.fullPath } })
+    } else {
+      next()
+    }
+  } else {
+    // Se já está autenticado e tenta acessar login, redirecionar para dashboard
+    if (isAuthenticated && to.name === 'Login') {
+      next({ name: 'Dashboard' })
+    } else {
+      next()
+    }
+  }
+})
+
+export default router
+
+
+================================================================================
+ARQUIVO 11: frontend/src/store/index.js
+================================================================================
+import { createStore } from 'vuex'
+import auth from './modules/auth'
+import sidebar from './modules/sidebar'
+import notifications from './modules/notifications'
+
+export default createStore({
+  modules: {
+    auth,
+    sidebar,
+    notifications
+  },
+  
+  state: {
+    loading: false,
+    darkMode: localStorage.getItem('theme') === 'dark'
+  },
+  
+  mutations: {
+    SET_LOADING(state, status) {
+      state.loading = status
+    },
+    
+    TOGGLE_DARK_MODE(state) {
+      state.darkMode = !state.darkMode
+      localStorage.setItem('theme', state.darkMode ? 'dark' : 'light')
+      document.documentElement.setAttribute(
+        'data-coreui-theme',
+        state.darkMode ? 'dark' : 'light'
+      )
+    },
+    
+    SET_DARK_MODE(state, value) {
+      state.darkMode = value
+      localStorage.setItem('theme', value ? 'dark' : 'light')
+      document.documentElement.setAttribute(
+        'data-coreui-theme',
+        value ? 'dark' : 'light'
+      )
+    }
+  },
+  
+  actions: {
+    setLoading({ commit }, status) {
+      commit('SET_LOADING', status)
+    },
+    
+    toggleDarkMode({ commit }) {
+      commit('TOGGLE_DARK_MODE')
+    },
+    
+    initializeTheme({ commit, state }) {
+      commit('SET_DARK_MODE', state.darkMode)
+    }
+  },
+  
+  getters: {
+    isLoading: state => state.loading,
+    isDarkMode: state => state.darkMode
+  }
+})
+
+
+================================================================================
+ARQUIVO 12: frontend/src/store/modules/auth.js
+================================================================================
+import api from '@/plugins/axios'
+import router from '@/router'
+
+export default {
+  namespaced: true,
+  
+  state: {
+    user: JSON.parse(localStorage.getItem('user')) || null,
+    token: localStorage.getItem('token') || null,
+    permissions: JSON.parse(localStorage.getItem('permissions')) || []
+  },
+  
+  mutations: {
+    SET_USER(state, user) {
+      state.user = user
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user))
+      } else {
+        localStorage.removeItem('user')
+      }
+    },
+    
+    SET_TOKEN(state, token) {
+      state.token = token
+      if (token) {
+        localStorage.setItem('token', token)
+      } else {
+        localStorage.removeItem('token')
+      }
+    },
+    
+    SET_PERMISSIONS(state, permissions) {
+      state.permissions = permissions
+      if (permissions) {
+        localStorage.setItem('permissions', JSON.stringify(permissions))
+      } else {
+        localStorage.removeItem('permissions')
+      }
+    },
+    
+    CLEAR_AUTH(state) {
+      state.user = null
+      state.token = null
+      state.permissions = []
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
+      localStorage.removeItem('permissions')
+    }
+  },
+  
+  actions: {
+    async login({ commit }, credentials) {
+      try {
+        const response = await api.post('/login', credentials)
+        const { token, user, permissions } = response.data
+        
+        commit('SET_TOKEN', token)
+        commit('SET_USER', user)
+        commit('SET_PERMISSIONS', permissions || [])
+        
+        return response.data
+      } catch (error) {
+        commit('CLEAR_AUTH')
+        throw error
+      }
+    },
+    
+    async logout({ commit }) {
+      try {
+        await api.post('/logout')
+      } catch (error) {
+        console.error('Erro ao fazer logout:', error)
+      } finally {
+        commit('CLEAR_AUTH')
+        router.push('/auth/login')
+      }
+    },
+    
+    async fetchUser({ commit }) {
+      try {
+        const response = await api.get('/me')
+        commit('SET_USER', response.data.user)
+        commit('SET_PERMISSIONS', response.data.permissions || [])
+        return response.data
+      } catch (error) {
+        commit('CLEAR_AUTH')
+        throw error
+      }
+    },
+    
+    async updateProfile({ commit }, data) {
+      try {
+        const response = await api.put('/me', data)
+        commit('SET_USER', response.data.user)
+        return response.data
+      } catch (error) {
+        throw error
+      }
+    }
+  },
+  
+  getters: {
+    isAuthenticated: state => !!state.token,
+    currentUser: state => state.user,
+    userPermissions: state => state.permissions,
+    
+    hasPermission: (state) => (permission) => {
+      return state.permissions.includes(permission)
+    },
+    
+    hasAnyPermission: (state) => (permissions) => {
+      return permissions.some(p => state.permissions.includes(p))
+    },
+    
+    hasAllPermissions: (state) => (permissions) => {
+      return permissions.every(p => state.permissions.includes(p))
+    }
+  }
+}
+
+
+================================================================================
+ARQUIVO 13: frontend/src/store/modules/sidebar.js
+================================================================================
+export default {
+  namespaced: true,
+  
+  state: {
+    sidebarVisible: true,
+    sidebarUnfoldable: false
+  },
+  
+  mutations: {
+    TOGGLE_SIDEBAR(state, value) {
+      if (typeof value === 'boolean') {
+        state.sidebarVisible = value
+      } else {
+        state.sidebarVisible = !state.sidebarVisible
+      }
+    },
+    
+    TOGGLE_UNFOLDABLE(state) {
+      state.sidebarUnfoldable = !state.sidebarUnfoldable
+      localStorage.setItem('sidebarUnfoldable', state.sidebarUnfoldable)
+    },
+    
+    SET_SIDEBAR_VISIBLE(state, value) {
+      state.sidebarVisible = value
+    },
+    
+    SET_UNFOLDABLE(state, value) {
+      state.sidebarUnfoldable = value
+      localStorage.setItem('sidebarUnfoldable', value)
+    }
+  },
+  
+  actions: {
+    toggleSidebar({ commit }, value) {
+      commit('TOGGLE_SIDEBAR', value)
+    },
+    
+    toggleUnfoldable({ commit }) {
+      commit('TOGGLE_UNFOLDABLE')
+    },
+    
+    initializeSidebar({ commit }) {
+      const unfoldable = localStorage.getItem('sidebarUnfoldable') === 'true'
+      commit('SET_UNFOLDABLE', unfoldable)
+    }
+  },
+  
+  getters: {
+    sidebarVisible: state => state.sidebarVisible,
+    sidebarUnfoldable: state => state.sidebarUnfoldable
+  }
+}
+
+
+================================================================================
+COMANDOS DE INSTALAÇÃO E SETUP
+================================================================================
+
+# 1. CRIAR ESTRUTURA DE PASTAS
+mkdir -p erp-cmms-system/docker/{nginx,php,postgres,mosquitto/config}
+cd erp-cmms-system
+
+# 2. COPIAR ARQUIVOS DOCKER
+# Crie cada arquivo com o conteúdo acima:
+# - docker-compose.yml
+# - docker/php/Dockerfile
+# - docker/php/php.ini
+# - docker/nginx/default.conf
+# - docker/mosquitto/config/mosquitto.conf
+# - docker/postgres/init.sql
+
+# 3. CRIAR PROJETO LARAVEL
+composer create-project laravel/laravel backend
+cd backend
+composer require laravel/sanctum
+composer require spatie/laravel-permission
+composer require beyondcode/laravel-websockets
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+
+# 4. CONFIGURAR .ENV DO LARAVEL
+cp .env.example .env
+# Edite .env com as configurações do docker-compose.yml
+
+# 5. CRIAR PROJETO VUE
+cd ..
+npm create vite@latest frontend -- --template vue
+cd frontend
+npm install @coreui/vue @coreui/icons @coreui/icons-vue @coreui/chartjs
+npm install chart.js vue-router@4 vuex@4 axios
+npm install -D sass
+
+# 6. COPIAR ARQUIVOS FRONTEND
+# Crie cada arquivo com o conteúdo acima:
+# - package.json (substituir)
+# - src/main.js
+# - src/plugins/axios.js
+# - src/router/index.js
+# - src/store/index.js
+# - src/store/modules/auth.js
+# - src/store/modules/sidebar.js
+
+# 7. INICIAR CONTAINERS
+cd ..
+docker-compose up -d
+
+# 8. EXECUTAR MIGRATIONS
+docker exec -it erp_app bash
+php artisan key:generate
+php artisan migrate:fresh --seed
+exit
+
+# 9. BUILD FRONTEND
+cd frontend
+npm run build
+
+# 10. ACESSAR SISTEMA
+# http://localhost
+# Credenciais: admin@example.com / password
+
+================================================================================
+FIM DO ARQUIVO
+================================================================================

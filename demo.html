@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>xCMASM · Hub (demo)</title>
+  <link rel="stylesheet" href="/assets/fonts.css">
+  <link rel="stylesheet" href="/assets/pmoc-engine.css">
+  <style>
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .hero {
+      padding: 28px; background: linear-gradient(180deg, var(--panel), var(--bg2));
+      border: 1px solid var(--line); border-radius: 10px; margin-bottom: 24px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 22px; font-weight: 700; }
+    .hero p  { margin: 0; color: var(--ink-2); font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+      padding: 16px; text-decoration: none; color: var(--ink);
+      display: flex; flex-direction: column; gap: 10px;
+      transition: transform .12s, border-color .12s;
+    }
+    .card:hover { transform: translateY(-2px); border-color: var(--acc); }
+    .card__head { display: flex; align-items: center; gap: 10px; }
+    .card__icon { font-size: 22px; }
+    .card__name { font-weight: 600; font-size: 15px; flex: 1; }
+    .card__desc { font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+    .card__foot { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    h2 { font-size: 13px; color: var(--ink-2); margin: 28px 0 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+    .kpi__label { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .5px; }
+    .kpi__value { font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--acc); margin-top: 4px; }
+    .kpi__sub   { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
+  </style>
+</head>
+<body>
+  <div id="hdr"></div>
+  <div class="wrap">
+
+    <div class="hero">
+      <h1>Hub xCMASM</h1>
+      <p>Portal de acesso aos módulos PMOC. Esta é uma versão <strong>demo</strong> — dados mock, sem sincronização ativa.</p>
+    </div>
+
+    <h2>Status geral</h2>
+    <div class="kpis" id="kpis"></div>
+
+    <h2>Módulos PMOC</h2>
+    <div class="grid" id="mods"></div>
+
+    <h2>Núcleo</h2>
+    <div class="grid" id="core"></div>
+  </div>
+
+  <script src="/assets/pmoc-engine.js"></script>
+  <script>
+    engine.bootstrap({ modulo: 'hub', cssPath: '/assets/pmoc-engine.css' });
+    const { el, fmt } = engine.utils;
+
+    engine.header(document.getElementById('hdr'), {
+      modulo: 'Hub · Centro de Mísseis e Armas Submarinas',
+      user: { nome: 'TC Freitas' },
+      syncStatus: { online: true, pending: 0, lastSync: new Date().toISOString() },
+    });
+
+    const KPIS = [
+      { label: 'OS abertas',     value: 14, sub: 'em 5 PMOCs' },
+      { label: 'Manut. vencidas', value: 3,  sub: 'requer ação' },
+      { label: 'Estoque baixo',   value: 7,  sub: 'itens < min' },
+      { label: 'PMOCs online',    value: '6/7', sub: 'pmoc_paiois offline 2h' },
+    ];
+    document.getElementById('kpis').replaceChildren(...KPIS.map(k =>
+      el('div', { class: 'kpi' },
+        el('div', { class: 'kpi__label' }, k.label),
+        el('div', { class: 'kpi__value' }, String(k.value)),
+        el('div', { class: 'kpi__sub' }, k.sub),
+      ),
+    ));
+
+    const MODS = [
+      { id: 'refrigeracao', icon: '❄️', name: 'pmoc_refrigeracao', desc: 'Climatização — splits, AC central',           os: 4, sync: 'há 12 min', online: true },
+      { id: 'eletrica',     icon: '⚡', name: 'pmoc_eletrica',     desc: 'Elétrica, geradores, no-breaks',              os: 2, sync: 'há 32 min', online: true },
+      { id: 'predial',      icon: '🏛️', name: 'pmoc_predial',      desc: 'Locais, inspeção predial, chaves',            os: 3, sync: 'há 1 h',    online: true },
+      { id: 'paiois',       icon: '🛡️', name: 'pmoc_paiois',       desc: 'Paiois e inventário militar',                 os: 0, sync: 'há 2 h',    online: false },
+      { id: 'transportes',  icon: '🚐', name: 'pmoc_transportes',  desc: 'Viaturas e embarcações, Papeleta 6',          os: 2, sync: 'há 8 min',  online: true },
+      { id: 'grama',        icon: '🌱', name: 'pmoc_grama',        desc: 'Controle vegetal e máquinas de corte',        os: 1, sync: 'há 18 min', online: true },
+      { id: 'calibracao',   icon: '📐', name: 'pmoc_calibracao',   desc: 'Instrumentos calibrados, validades',          os: 2, sync: 'há 45 min', online: true },
+    ];
+    document.getElementById('mods').replaceChildren(...MODS.map(m => {
+      const card = el('a', { class: 'card', href: `/demos/${m.id}.html` },
+        el('div', { class: 'card__head' },
+          el('span', { class: 'card__icon' }, m.icon),
+          el('span', { class: 'card__name' }, m.name),
+          engine.badge(m.online ? 'online' : 'offline', m.online ? 'green' : 'red'),
+        ),
+        el('div', { class: 'card__desc' }, m.desc),
+        el('div', { class: 'card__foot' },
+          engine.badge(`${m.os} OS abertas`, m.os > 0 ? 'amber' : 'green'),
+          engine.badge(`sync ${m.sync}`, 'blue'),
+        ),
+      );
+      return card;
+    }));
+
+    const CORE = [
+      { id: 'servicos',   icon: '🧰', name: 'Serviços',     desc: 'Workflow PS → OS → SR (núcleo)' },
+      { id: 'ativos',     icon: '📦', name: 'Ativos',       desc: 'Cadastro mestre de equipamentos' },
+      { id: 'estoque',    icon: '🗄️', name: 'Estoque',      desc: 'Materiais e movimentos' },
+      { id: 'usuarios',   icon: '👥', name: 'Usuários',     desc: 'Organização e qualificações' },
+      { id: 'documentos', icon: '📄', name: 'Documentos',   desc: 'POPs, certificados, fotos' },
+      { id: 'engine',     icon: '🧩', name: 'Componentes (engine)', desc: 'Demo dos componentes do pmoc-engine v2' },
+    ];
+    document.getElementById('core').replaceChildren(...CORE.map(m =>
+      el('a', {
+        class: 'card',
+        href: m.id === 'engine' ? '/assets/pmoc-engine-demo.html' : `/demos/core_${m.id}.html`,
+      },
+        el('div', { class: 'card__head' },
+          el('span', { class: 'card__icon' }, m.icon),
+          el('span', { class: 'card__name' }, m.name),
+        ),
+        el('div', { class: 'card__desc' }, m.desc),
+      ),
+    ));
+  </script>
+</body>
+</html>

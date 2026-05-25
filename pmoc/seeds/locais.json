@@ -1,0 +1,34 @@
+[
+  {
+    "id": "loc_001",
+    "nome": "Bloco Admin"
+  },
+  {
+    "id": "loc_002",
+    "nome": "Bloco TI"
+  },
+  {
+    "id": "loc_003",
+    "nome": "Cais CMASM"
+  },
+  {
+    "id": "loc_004",
+    "nome": "Casa de Máquinas"
+  },
+  {
+    "id": "loc_005",
+    "nome": "Galpão Armas"
+  },
+  {
+    "id": "loc_006",
+    "nome": "Galpão Manutenção"
+  },
+  {
+    "id": "loc_007",
+    "nome": "Garagem CMASM"
+  },
+  {
+    "id": "loc_008",
+    "nome": "Ilha das Flores"
+  }
+]
