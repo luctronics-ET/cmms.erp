@@ -186,6 +186,44 @@ def test_manifest_returns_required_keys(app_client):
     assert "tec_refrig" in codigos
 
 
+def test_manifest_rejects_invalid_since(app_client):
+    client, _ = app_client
+    r = client.get("/api/sync/manifest", params={"modulo": "pmoc_refrigeracao", "since": "ontem"})
+    assert r.status_code == 422
+    assert "since" in r.json()["detail"]
+
+
+def test_manifest_since_returns_only_delta_without_losing_relevant_planos(app_client):
+    client, main = app_client
+    since = "2026-05-18T10:30:00"
+    _exec(main,
+        "INSERT INTO ativos (id, tipo, categoria, nome, ativo, criado_em) VALUES (?, ?, ?, ?, 1, ?)",
+        ("a-old", "AC_SPLIT", "climatizacao", "AC antigo", "2026-05-18 10:00:00"))
+    _exec(main,
+        "INSERT INTO ativos (id, tipo, categoria, nome, ativo, criado_em) VALUES (?, ?, ?, ?, 1, ?)",
+        ("a-new", "AC_SPLIT", "climatizacao", "AC novo", "2026-05-18 11:00:00"))
+    _exec(main,
+        "INSERT INTO catalogo_servicos (id, codigo, nome, escopo, versao, aplicavel_a, atualizado_em) "
+        "VALUES (?, ?, ?, 'central', 1, ?, ?)",
+        ("s-old", "LIMP_OLD", "Limpeza antiga", '{"categorias":["climatizacao"]}', "2026-05-18 10:00:00"))
+    _exec(main,
+        "INSERT INTO catalogo_servicos (id, codigo, nome, escopo, versao, aplicavel_a, atualizado_em) "
+        "VALUES (?, ?, ?, 'central', 1, ?, ?)",
+        ("s-new", "LIMP_NEW", "Limpeza nova", '{"categorias":["climatizacao"]}', "2026-05-18 11:00:00"))
+    _exec(main,
+        "INSERT INTO planos_manutencao (id, servico_id, ativo_id, frequencia, atualizado_em) "
+        "VALUES (?, ?, ?, ?, ?)",
+        ("p-delta", "s-old", "a-old", '{"tipo":"periodica","valor":"P1M"}', "2026-05-18 11:00:00"))
+
+    r = client.get("/api/sync/manifest", params={"modulo": "pmoc_refrigeracao", "since": since})
+    assert r.status_code == 200
+    body = r.json()
+
+    assert {a["id"] for a in body["ativos"]} == {"a-new"}
+    assert {s["codigo"] for s in body["catalogo_servicos"]} == {"LIMP_NEW"}
+    assert {p["id"] for p in body["planos_manutencao"]} == {"p-delta"}
+
+
 def test_manifest_filters_ativos_by_modulo_categorias(app_client):
     client, main = app_client
     # Seed: 2 ativos, um de climatização (relevante p/ pmoc_refrigeracao), outro não

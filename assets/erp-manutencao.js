@@ -12,7 +12,7 @@
   const state = {
     cats: new Set(),            // categorias selecionadas
     catsAvailable: [],          // derivado dos ativos carregados
-    cache: { ativos: null, os: null, estoque: null },
+    cache: { ativos: null, os: null, estoque: null, planos: null, catalogo: null },
     activeTab: 'dashboard',
     tabDirty: { dashboard: true, ativos: true, os: true, planos: true,
                 catalogo: true, estoque: true, calgantt: true, config: true },
@@ -202,6 +202,67 @@
     return all.filter(i => (i.qtd_atual ?? 0) < (i.qtd_minima ?? 0));
   }
 
+  // ── helpers de manutenção preventiva (semáforo) ─────────────────────────
+
+  /** Converte duração ISO 8601 (P1M, P3M, P1Y, P14D) em dias aproximados. */
+  function parseDurationDays(val) {
+    if (!val || typeof val !== 'string') return 30;
+    const m = val.match(/^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?/);
+    if (!m) return 30;
+    return (parseInt(m[1] || 0) * 365) + (parseInt(m[2] || 0) * 30) + (parseInt(m[3] || 0));
+  }
+
+  /** Retorna { color: 'green'|'amber'|'red', label, daysUntil } para um plano. */
+  function planStatus(plan) {
+    if (!plan.proxima_execucao) return { color: 'green', label: '—', daysUntil: Infinity };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const next  = new Date(plan.proxima_execucao); next.setHours(0, 0, 0, 0);
+    const daysUntil = Math.round((next - today) / 86400000);
+    const freq = plan.frequencia || {};
+    let intervalDays = 30;
+    if (freq.tipo === 'periodica') {
+      const raw = typeof freq.valor === 'string' ? freq.valor
+        : typeof freq.valor === 'object' ? (freq.valor.operacional || freq.valor.critico_24x7 || 'P3M')
+        : 'P3M';
+      intervalDays = parseDurationDays(raw);
+    } else if (freq.tipo === 'por_uso') {
+      intervalDays = 90;  // fallback para planos por uso (sem limiar de data)
+    }
+    if (daysUntil < 0)                   return { color: 'red',   label: `${Math.abs(daysUntil)}d vencida`, daysUntil };
+    if (daysUntil <= intervalDays * 0.2) return { color: 'amber', label: `${daysUntil}d`,                  daysUntil };
+    return { color: 'green', label: `${daysUntil}d`, daysUntil };
+  }
+
+  function _allPlanos() {
+    const cached = state.cache.planos?.data;
+    return (cached && cached.length) ? cached : (window.ERP_MANUT_MOCKS?.planos_manutencao || []);
+  }
+  function _allCatalogo() {
+    const cached = state.cache.catalogo?.data;
+    return (cached && cached.length) ? cached : (window.ERP_MANUT_MOCKS?.catalogo_servicos || []);
+  }
+
+  /** Todos os planos activos para um ativo (por ativo_id ou por tipo). */
+  function planosDoAtivo(ativo) {
+    return _allPlanos().filter(p =>
+      (p.ativo !== 0) &&
+      (p.ativo_id === ativo.id || (p.tipo_codigo && p.tipo_codigo === ativo.tipo)));
+  }
+
+  /** Pior status semáforo entre os planos do ativo (para badge na tabela). */
+  function ativoWorstStatus(ativo) {
+    const mine = planosDoAtivo(ativo);
+    if (!mine.length) return null;
+    const ss = mine.map(planStatus);
+    if (ss.some(s => s.color === 'red'))   return { color: 'red',   label: `${ss.filter(s => s.color === 'red').length} vencida(s)` };
+    if (ss.some(s => s.color === 'amber')) return { color: 'amber', label: `${ss.filter(s => s.color === 'amber').length} próx.` };
+    return { color: 'green', label: 'Em dia' };
+  }
+
+  function servicoNome(id) {
+    return (_allCatalogo().find(s => s.id === id) || {}).nome || id;
+  }
+
   // ── renderers de cada tab ────────────────────────────────────────────────
   const RENDERERS = {
     dashboard(cont) {
@@ -272,11 +333,15 @@
 
     ativos(cont) {
       const { el, fmt } = window.engine.utils;
-      const rows = filteredAtivos();
+      const rows = filteredAtivos().map(a => ({ ...a, _status: ativoWorstStatus(a) }));
       const wrap = el('div');
       cont.replaceChildren(wrap);
       window.engine.table(wrap, {
         cols: [
+          { key: '_status', label: '⬤', format: s => {
+            if (!s) return window.engine.badge('—', 'default');
+            return window.engine.badge(s.label, s.color === 'red' ? 'red' : s.color === 'amber' ? 'amber' : 'green');
+          }},
           { key: 'nome', label: 'Nome' },
           { key: 'tipo', label: 'Tipo', filter: true },
           { key: 'categoria', label: 'Categoria', filter: true },
@@ -372,6 +437,315 @@
     k._cards = cards;
   }
 
+  // ── novos renderers: Planos, Catálogo, Estoque ──────────────────────────
+
+  Object.assign(RENDERERS, {
+    planos(cont) {
+      const { el, fmt } = window.engine.utils;
+      const allPlanos = _allPlanos();
+      const visibles = state.cats.size === 0 ? allPlanos : allPlanos.filter(p => {
+        if (p.ativo_id) {
+          const at = (state.cache.ativos?.data || []).find(a => a.id === p.ativo_id);
+          return at && state.cats.has(at.categoria);
+        }
+        return (state.cache.ativos?.data || []).some(a =>
+          state.cats.has(a.categoria) && a.tipo === p.tipo_codigo);
+      });
+      const rows = visibles.map(p => ({
+        ...p,
+        _status:       planStatus(p),
+        _servico_nome: servicoNome(p.servico_id),
+      }));
+      const wrap = el('div');
+      cont.replaceChildren(wrap);
+      window.engine.table(wrap, {
+        cols: [
+          { key: '_status', label: '⬤', format: s =>
+            window.engine.badge(s.label, s.color === 'red' ? 'red' : s.color === 'amber' ? 'amber' : 'green') },
+          { key: '_servico_nome',    label: 'Serviço' },
+          { key: 'tipo_codigo',      label: 'Tipo',    format: v => v || '—' },
+          { key: 'proxima_execucao', label: 'Próxima', format: v => v ? fmt.date(v) : '—' },
+          { key: 'ultima_execucao',  label: 'Última',  format: v => v ? fmt.date(v) : '—' },
+          { key: 'responsavel_pmoc', label: 'PMOC', filter: true },
+        ],
+        rows,
+        onRowClick: p => {
+          const at = p.ativo_id
+            ? (state.cache.ativos?.data || []).find(a => a.id === p.ativo_id)
+            : null;
+          if (at) openAtivoDrawer(at);
+        },
+      });
+    },
+
+    catalogo(cont) {
+      const { el } = window.engine.utils;
+      const wrap = el('div');
+      cont.replaceChildren(wrap);
+      window.engine.table(wrap, {
+        cols: [
+          { key: 'codigo',             label: 'Código' },
+          { key: 'nome',               label: 'Serviço' },
+          { key: 'escopo',             label: 'Escopo', filter: true,
+            format: v => window.engine.badge(v, v === 'central' ? 'blue' : 'amber') },
+          { key: 'versao',             label: 'v.' },
+          { key: 'tempo_estimado_min', label: 'Tempo (min)', format: v => v || '—' },
+          { key: 'ativo',              label: 'Status',
+            format: v => window.engine.badge(v ? 'ativo' : 'arquivado', v ? 'green' : 'default') },
+        ],
+        rows: _allCatalogo(),
+        onRowClick: svc => {
+          const { el } = window.engine.utils;
+          const aplic = typeof svc.aplicavel_a === 'object' ? (svc.aplicavel_a || {}) : {};
+          const cats  = (aplic.categorias || []).join(', ') || '—';
+          const body  = el('div', {},
+            ...[
+              ['Código', svc.codigo], ['Escopo', svc.escopo], ['Versão', svc.versao],
+              ['Tempo (min)', svc.tempo_estimado_min || '—'], ['Categorias', cats],
+              ['Descrição', svc.descricao || '—'],
+            ].map(([k, v]) => el('div', {
+              style: { display: 'flex', gap: '8px', padding: '4px 0', borderBottom: '1px solid var(--line)' },
+            },
+              el('div', { style: { color: 'var(--ink-3)', minWidth: '140px' } }, k),
+              el('div', {}, String(v)))),
+          );
+          const m = window.engine.modal({
+            title: svc.nome,
+            body,
+            footer: [el('button', { class: 'pe-btn pe-btn--primary', onclick: () => m.close() }, 'Fechar')],
+          });
+          m.open();
+        },
+      });
+    },
+
+    estoque(cont) {
+      const { el, fmt } = window.engine.utils;
+      const itens = (state.cache.estoque?.data || []).map(i => ({
+        ...i, _abaixo: (i.qtd_atual ?? 0) < (i.qtd_minima ?? 0),
+      }));
+      const wrap = el('div');
+      cont.replaceChildren(wrap);
+      window.engine.table(wrap, {
+        cols: [
+          { key: 'codigo',    label: 'Código' },
+          { key: 'nome',      label: 'Item' },
+          { key: 'unidade',   label: 'Un' },
+          { key: 'qtd_atual', label: 'Saldo', format: v => fmt.num(v, 2) },
+          { key: 'qtd_minima',label: 'Mín',   format: v => fmt.num(v, 2) },
+          { key: '_abaixo',   label: 'Status',
+            format: v => window.engine.badge(v ? 'Baixo' : 'OK', v ? 'red' : 'green') },
+        ],
+        rows: itens,
+      });
+    },
+  });
+
+  // ── Cal+Gantt e Config ───────────────────────────────────────────────────
+
+  Object.assign(RENDERERS, {
+
+    calgantt(cont) {
+      const { el, fmt } = window.engine.utils;
+      const view = state._calView || (state._calView = 'calendar');
+
+      const toggleWrap = el('div', { style: { marginBottom: '10px', display: 'flex', gap: '4px', alignItems: 'center' } },
+        el('button', {
+          class: 'pe-btn ' + (view === 'calendar' ? 'pe-btn--primary' : 'pe-btn--ghost'),
+          onclick: () => { state._calView = 'calendar'; RENDERERS.calgantt(cont); },
+        }, '📅 Calendário'),
+        el('button', {
+          class: 'pe-btn ' + (view === 'gantt' ? 'pe-btn--primary' : 'pe-btn--ghost'),
+          onclick: () => { state._calView = 'gantt'; RENDERERS.calgantt(cont); },
+        }, '📊 Gantt'),
+        el('div', { style: { flex: 1 } }),
+        el('span', { style: { fontSize: '12px', color: 'var(--ink-3)' } }, '60 dias'),
+      );
+
+      const body = el('div');
+      cont.replaceChildren(toggleWrap, body);
+
+      // Filtra planos com proxima_execucao nos próximos 60 dias (+ vencidos)
+      const allPlanos = _allPlanos();
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const horizon = new Date(today.getTime() + 60 * 86400000);
+
+      const visibles = (state.cats.size === 0 ? allPlanos : allPlanos.filter(p => {
+        if (p.ativo_id) {
+          const at = (state.cache.ativos?.data || []).find(a => a.id === p.ativo_id);
+          return at && state.cats.has(at.categoria);
+        }
+        return (state.cache.ativos?.data || []).some(a =>
+          state.cats.has(a.categoria) && a.tipo === p.tipo_codigo);
+      })).filter(p => {
+        if (!p.proxima_execucao) return false;
+        const d = new Date(p.proxima_execucao);
+        return d <= horizon;   // inclui vencidos (d < today também)
+      });
+
+      if (!visibles.length) {
+        body.replaceChildren(el('div', { style: { padding: '24px', color: 'var(--ink-3)' } },
+          'Nenhuma manutenção agendada nos próximos 60 dias.'));
+        return;
+      }
+
+      if (view === 'calendar') {
+        const events = visibles.map(p => {
+          const st = planStatus(p);
+          const svNome = servicoNome(p.servico_id);
+          const ativoNome = p.ativo_id
+            ? ((state.cache.ativos?.data || []).find(a => a.id === p.ativo_id)?.nome || p.ativo_id)
+            : (p.tipo_codigo || '—');
+          return {
+            id: p.id,
+            date: p.proxima_execucao,
+            title: `${svNome} · ${ativoNome}`,
+            color: st.color === 'red' ? 'var(--red)' : st.color === 'amber' ? 'var(--amber)' : 'var(--green)',
+            _plano: p,
+          };
+        });
+        window.engine.calendar(body, {
+          events,
+          onEventClick: ev => {
+            const at = ev._plano?.ativo_id
+              ? (state.cache.ativos?.data || []).find(a => a.id === ev._plano.ativo_id)
+              : null;
+            if (at) openAtivoDrawer(at);
+          },
+        });
+
+      } else {
+        // Gantt: range hoje até hoje+60d; cada plano é uma tarefa de 1 dia (proxima_execucao)
+        const startIso = fmt.iso ? fmt.iso(today) : today.toISOString().slice(0, 10);
+        const endIso   = fmt.iso ? fmt.iso(horizon) : horizon.toISOString().slice(0, 10);
+
+        const tasks = visibles.map(p => {
+          const st = planStatus(p);
+          const svNome = servicoNome(p.servico_id);
+          const ativoNome = p.ativo_id
+            ? ((state.cache.ativos?.data || []).find(a => a.id === p.ativo_id)?.nome || p.ativo_id)
+            : (p.tipo_codigo || '—');
+          // Duração estimada: 1 dia para periodica, duração do serviço se disponível
+          const svc = _allCatalogo().find(s => s.id === p.servico_id);
+          const durDays = svc?.tempo_estimado_min ? Math.max(1, Math.ceil(svc.tempo_estimado_min / 480)) : 1;
+          const taskStart = new Date(p.proxima_execucao); taskStart.setHours(0, 0, 0, 0);
+          const taskEnd   = new Date(taskStart.getTime() + durDays * 86400000);
+          return {
+            id: p.id,
+            label: `${svNome} · ${ativoNome}`,
+            start: taskStart.toISOString().slice(0, 10),
+            end:   taskEnd.toISOString().slice(0, 10),
+            color: st.color === 'red' ? 'var(--red)' : st.color === 'amber' ? 'var(--amber)' : 'var(--green)',
+            _plano: p,
+          };
+        }).sort((a, b) => a.start.localeCompare(b.start));
+
+        window.engine.gantt(body, {
+          range: { start: startIso, end: endIso },
+          tasks,
+          onTaskMove: (id, s, e) => {
+            const p = visibles.find(x => x.id === id);
+            if (!p) return;
+            p.proxima_execucao = s;
+            toast(`Plano reagendado para ${s} (apenas local — salve via API)`, 'amber');
+          },
+        });
+      }
+    },
+
+    config(cont) {
+      const { el } = window.engine.utils;
+
+      // ── Seção: Limiar do semáforo ─────────────────────────────────────
+      const LS_THRESHOLD = 'xerp_manut_threshold';
+      const currentThreshold = parseFloat(localStorage.getItem(LS_THRESHOLD) || '0.2');
+      const fThreshold = el('input', {
+        type: 'range', min: '0.05', max: '0.50', step: '0.05',
+        value: String(currentThreshold),
+        style: { width: '180px', accentColor: 'var(--acc)' },
+      });
+      const thresholdLabel = el('span', {
+        style: { fontFamily: 'var(--font-mono)', fontSize: '13px', minWidth: '36px', display: 'inline-block' },
+      }, `${Math.round(currentThreshold * 100)}%`);
+      fThreshold.addEventListener('input', () => {
+        const v = parseFloat(fThreshold.value);
+        thresholdLabel.textContent = `${Math.round(v * 100)}%`;
+      });
+      const btnSaveThreshold = el('button', { class: 'pe-btn pe-btn--primary', onclick: () => {
+        localStorage.setItem(LS_THRESHOLD, fThreshold.value);
+        toast('Limiar salvo. Recarregue para aplicar.', 'green');
+      } }, 'Salvar');
+
+      const secThreshold = _configSection('Limiar do semáforo (amber)',
+        el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px' } },
+          el('span', { style: { fontSize: '13px', color: 'var(--ink-2)' } }, 'Âmbar quando faltam ≤'),
+          fThreshold,
+          thresholdLabel,
+          el('span', { style: { fontSize: '13px', color: 'var(--ink-2)' } }, 'do intervalo'),
+          btnSaveThreshold,
+        ),
+        'Percentual do intervalo antes do vencimento em que o plano passa para âmbar (padrão: 20%).',
+      );
+
+      // ── Seção: Resumo de dados ─────────────────────────────────────────
+      const ativos   = state.cache.ativos?.data   || [];
+      const os       = state.cache.os?.data       || [];
+      const planos   = _allPlanos();
+      const catalogo = _allCatalogo();
+      const estoque  = state.cache.estoque?.data  || [];
+      const ts = state.cache.ativos?.ts ? new Date(state.cache.ativos.ts).toLocaleTimeString('pt-BR') : '—';
+
+      const rows = [
+        ['Ativos carregados', ativos.length],
+        ['OS carregadas',     os.length],
+        ['Planos de manutenção', planos.length],
+        ['Serviços no catálogo', catalogo.length],
+        ['Itens de estoque',     estoque.length],
+        ['Última sincronização', ts],
+        ['Categorias disponíveis', state.catsAvailable.join(', ') || '—'],
+      ];
+      const secDados = _configSection('Resumo de dados',
+        el('div', { style: { marginTop: '8px' } },
+          ...rows.map(([k, v]) => el('div', {
+            style: { display: 'flex', gap: '12px', padding: '4px 0', borderBottom: '1px solid var(--line)', fontSize: '13px' },
+          },
+            el('div', { style: { color: 'var(--ink-3)', minWidth: '220px' } }, k),
+            el('div', { style: { fontFamily: 'var(--font-mono)' } }, String(v)),
+          )),
+        ),
+      );
+
+      // ── Seção: Ações de cache ──────────────────────────────────────────
+      const secCache = _configSection('Cache e sincronização',
+        el('div', { style: { display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' } },
+          el('button', { class: 'pe-btn', onclick: () => {
+            fetchAll().then(() => { markAllDirty(); renderActiveTab(); toast('Dados recarregados.', 'green'); });
+          } }, '↻ Recarregar tudo'),
+          el('button', { class: 'pe-btn pe-btn--ghost', onclick: () => {
+            state.cache = { ativos: null, os: null, estoque: null, planos: null, catalogo: null };
+            markAllDirty();
+            toast('Cache limpo. Recarregue para buscar do núcleo.', 'amber');
+          } }, '🗑 Limpar cache'),
+        ),
+      );
+
+      cont.replaceChildren(
+        el('div', { style: { maxWidth: '720px', display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '4px' } },
+          secThreshold, secDados, secCache,
+        ),
+      );
+
+      function _configSection(title, ...children) {
+        return el('div', {
+          style: { background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '8px', padding: '14px 16px' },
+        },
+          el('div', { style: { fontWeight: '600', marginBottom: '2px' } }, title),
+          ...children,
+        );
+      }
+    },
+  });
+
   function renderOsLista(body) {
     const { el, fmt } = window.engine.utils;
     const os = filteredOS();
@@ -424,13 +798,14 @@
 
   function openAtivoDrawer(ativo) {
     const { el, fmt } = window.engine.utils;
-    const planos = (window.ERP_MANUT_MOCKS?.planos_manutencao || [])
-      .filter(p => p.ativo_id === ativo.id || (p.tipo_codigo && p.tipo_codigo === ativo.tipo));
+    const planos = planosDoAtivo(ativo);
     const osDoAtivo = (state.cache.os?.data || []).filter(o => o.ativo_id === ativo.id);
 
     function dadosView() {
       return el('div', {},
-        ...Object.entries(ativo).map(([k, v]) =>
+        ...Object.entries(ativo)
+          .filter(([k]) => !k.startsWith('_'))
+          .map(([k, v]) =>
           el('div', { style: { display: 'flex', gap: '8px', padding: '6px 0', borderBottom: '1px solid var(--line)' } },
             el('div', { style: { color: 'var(--ink-3)', minWidth: '160px' } }, k),
             el('div', {}, v == null ? '—' : String(v)),
@@ -439,13 +814,42 @@
     }
     function planosView() {
       if (!planos.length) return el('div', { style: { color: 'var(--ink-3)' } }, 'Sem planos vinculados.');
-      return el('ul', {}, ...planos.map(p =>
-        el('li', {}, `${p.servico_id} · ${JSON.stringify(p.frequencia)} · próx ${p.proxima_execucao}`)));
+      return el('div', {},
+        ...planos.map(p => {
+          const st    = planStatus(p);
+          const svNome = servicoNome(p.servico_id);
+          const badge = window.engine.badge(
+            st.label, st.color === 'red' ? 'red' : st.color === 'amber' ? 'amber' : 'green');
+          const btOS = (st.color !== 'green')
+            ? el('button', {
+                class: 'pe-btn pe-btn--primary',
+                style: { padding: '2px 8px', fontSize: '11px' },
+                onclick: () => openCriarOSModal(ativo, p),
+              }, '+ OS preventiva')
+            : null;
+          return el('div', {
+            style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderBottom: '1px solid var(--line)' },
+          },
+            badge,
+            el('span', { style: { flex: 1, fontSize: '13px' } }, svNome),
+            el('span', { style: { fontSize: '12px', color: 'var(--ink-3)' } },
+              p.proxima_execucao ? `próx: ${fmt.date(p.proxima_execucao)}` : '—'),
+            btOS,
+          );
+        }),
+      );
     }
     function osView() {
       if (!osDoAtivo.length) return el('div', { style: { color: 'var(--ink-3)' } }, 'Sem OS para este ativo.');
-      return el('ul', {}, ...osDoAtivo.map(o =>
-        el('li', {}, `[${o.status}] ${o.codigo || o.id} · ${o.titulo}`)));
+      return el('div', {},
+        ...osDoAtivo.map(o => el('div', {
+          style: { display: 'flex', gap: '8px', padding: '4px 0', borderBottom: '1px solid var(--line)', cursor: 'pointer' },
+          onclick: () => openOsDrawer(o),
+        },
+          window.engine.badge(o.status, o.status === 'concluida' ? 'green' : o.status === 'cancelada' ? 'red' : 'amber'),
+          el('span', { style: { flex: 1, fontSize: '13px' } }, o.titulo || o.codigo || o.id),
+          el('span', { style: { fontSize: '12px', color: 'var(--ink-3)' } }, fmt.date(o.data_abertura)),
+        )));
     }
 
     let activeSub = 'dados';
@@ -460,10 +864,16 @@
         onclick: () => { activeSub = id; renderSub(); refreshSubTabs(); },
       }, label);
     }
-    const subTabs = el('div', {}, tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', 'OS'));
+    const subTabs = el('div', {}, tabBtn('dados', 'Dados'), tabBtn('planos', `Planos (${planos.length})`), tabBtn('os', `OS (${osDoAtivo.length})`));
     function refreshSubTabs() {
-      subTabs.replaceChildren(tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', 'OS'));
+      subTabs.replaceChildren(tabBtn('dados', 'Dados'), tabBtn('planos', `Planos (${planos.length})`), tabBtn('os', `OS (${osDoAtivo.length})`));
     }
+
+    const worstSt = ativoWorstStatus(ativo);
+    const titleBadge = worstSt
+      ? window.engine.badge(worstSt.label, worstSt.color === 'red' ? 'red' : worstSt.color === 'amber' ? 'amber' : 'green')
+      : null;
+    const titleEl = el('span', {}, ativo.nome, ' ', titleBadge || '');
 
     const m = window.engine.modal({
       title: ativo.nome,
@@ -472,6 +882,71 @@
     });
     m.open();
     renderSub();
+  }
+
+  function openCriarOSModal(ativo, plano) {
+    const { el } = window.engine.utils;
+    const svNome = servicoNome(plano.servico_id);
+    const titulo = `Manutenção preventiva: ${svNome}`;
+    const fTitulo = el('input', { type: 'text', value: titulo, class: 'pe-input', style: { width: '100%' } });
+    const fTipo   = el('select', { class: 'pe-input', style: { width: '100%' } },
+      el('option', { value: 'preventiva', selected: true }, 'preventiva'),
+      el('option', { value: 'corretiva' }, 'corretiva'),
+    );
+    const fPrior  = el('select', { class: 'pe-input', style: { width: '100%' } },
+      el('option', { value: 'normal' }, 'normal'),
+      el('option', { value: 'alta' }, 'alta'),
+      el('option', { value: 'urgente' }, 'urgente'),
+    );
+    const fObs = el('textarea', { rows: 3, class: 'pe-input', style: { width: '100%' } },
+      `Gerada via painel Manutenção. Plano: ${plano.id}`);
+
+    const body = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' } },
+      el('div', {}, el('label', {}, 'Título'), fTitulo),
+      el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
+        el('div', {}, el('label', {}, 'Tipo'), fTipo),
+        el('div', {}, el('label', {}, 'Prioridade'), fPrior),
+      ),
+      el('div', {}, el('label', {}, 'Observações'), fObs),
+      el('div', { style: { fontSize: '12px', color: 'var(--ink-3)' } },
+        `Ativo: ${ativo.nome} · Serviço: ${svNome}`),
+    );
+
+    const m = window.engine.modal({
+      title: 'Criar OS Preventiva',
+      body,
+      footer: [
+        el('button', { class: 'pe-btn pe-btn--ghost', onclick: () => m.close() }, 'Cancelar'),
+        el('button', { class: 'pe-btn pe-btn--primary', onclick: async () => {
+          const payload = {
+            titulo: fTitulo.value.trim() || titulo,
+            tipo: fTipo.value,
+            prioridade: fPrior.value,
+            ativo_id: ativo.id,
+            servico_id: plano.servico_id,
+            servico_versao_snapshot: plano.servico_versao_pin || null,
+            obs: fObs.value,
+          };
+          try {
+            const r = await fetch('/api/os', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            toast('OS preventiva criada!', 'green');
+            m.close();
+            state.tabDirty.os = true;
+            fetchAll().then(() => {
+              if (state.activeTab === 'os') RENDERERS.os(document.getElementById('manut-tab-content'));
+            });
+          } catch (e) {
+            toast(`Falha ao criar OS: ${e.message}`, 'red');
+          }
+        }}, 'Criar OS'),
+      ],
+    });
+    m.open();
   }
 
   // ── data fetch ──────────────────────────────────────────────────────────
@@ -495,6 +970,13 @@
         console.warn('[manut] fetchAll falhou:', e);
         showErrorBanner(e.message, !!state.cache.ativos);
       }
+      // Catálogo e planos: GET não requer auth — falha silenciosa com fallback para mocks
+      const [planos, catalogo] = await Promise.all([
+        fetch('/api/catalogo/planos').then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/catalogo/servicos').then(r => r.ok ? r.json() : []).catch(() => []),
+      ]);
+      state.cache.planos   = { data: planos.length   ? planos   : (window.ERP_MANUT_MOCKS?.planos_manutencao || []),   ts: Date.now() };
+      state.cache.catalogo = { data: catalogo.length ? catalogo : (window.ERP_MANUT_MOCKS?.catalogo_servicos  || []), ts: Date.now() };
     })();
     state._fetching = work;
     try { return await work; }

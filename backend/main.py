@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from .catalogo import router as catalogo_router
 from .db_core import CoreDB
 from .grama import router as grama_router, init_grama
 from .sync import router as sync_router
@@ -46,6 +47,7 @@ app.add_middleware(
 db = CoreDB(DB_PATH)
 app.include_router(grama_router)
 app.include_router(sync_router)
+app.include_router(catalogo_router)
 
 # Serve xCore frontend files (HTMLs, JS, CSS, assets)
 _FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..")
