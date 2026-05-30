@@ -20,7 +20,7 @@ class CoreDB:
         async with aiosqlite.connect(self.db_path) as db:
             for schema_path in _SCHEMAS:
                 if os.path.exists(schema_path):
-                    with open(schema_path, encoding="utf-8") as f:
+                    with open(schema_path) as f:
                         await db.executescript(f.read())
             # Migrações aditivas — adiciona colunas se ainda não existirem
             existing = {row[1] async for row in await db.execute("PRAGMA table_info(ativos)")}

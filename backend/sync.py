@@ -7,13 +7,12 @@ Processamento de eventos: side-effects documentados em MODULOS_EXTERNOS.md §3.4
 from __future__ import annotations
 
 import json
-import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Awaitable, Callable
 
 import aiosqlite
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/sync", tags=["sync"])
@@ -57,65 +56,6 @@ async def _modulo_existe(nome: str) -> bool:
         "SELECT 1 FROM modulos_registrados WHERE nome=? AND ativo=1", (nome,)
     )
     return row is not None
-
-
-def _parse_since_param(raw_since: str | None) -> str | None:
-    if raw_since is None:
-        return None
-    normalized = raw_since.strip()
-    if not normalized:
-        raise HTTPException(status_code=422, detail="'since' não pode ser vazio")
-    if normalized.endswith("Z"):
-        normalized = f"{normalized[:-1]}+00:00"
-    try:
-        since_dt = datetime.fromisoformat(normalized)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail="'since' deve ser um timestamp ISO-8601 válido") from exc
-    if since_dt.tzinfo is not None:
-        since_dt = since_dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return since_dt.strftime("%Y-%m-%d %H:%M:%S")
-
-
-def _apply_since_filter(
-    sql: str,
-    params: tuple[Any, ...],
-    since_sql: str | None,
-    column_name: str,
-) -> tuple[str, tuple[Any, ...]]:
-    if since_sql is None:
-        return sql, params
-    return f"{sql} AND {column_name} > ?", (*params, since_sql)
-
-
-def _row_is_newer_than(row: dict[str, Any], column_name: str, since_sql: str | None) -> bool:
-    if since_sql is None:
-        return True
-    value = row.get(column_name)
-    return isinstance(value, str) and value > since_sql
-
-
-def _utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds")
-
-
-async def _require_sync_auth(authorization: str | None) -> dict | None:
-    """Valida Bearer token nos endpoints de sync.
-
-    Pode ser desabilitado via env SYNC_AUTH_BYPASS=1 (apenas para testes/dev).
-    """
-    if os.getenv("SYNC_AUTH_BYPASS", "0") == "1":
-        return None
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(401, "Token ausente")
-    token = authorization[7:]
-    row = await _db().fetch_one(
-        "SELECT s.usuario_id, u.nome, u.role FROM sessoes s JOIN usuarios u ON u.id = s.usuario_id "
-        "WHERE s.token = ? AND s.expira_em > datetime('now')",
-        (token,),
-    )
-    if not row:
-        raise HTTPException(401, "Token inválido ou expirado")
-    return row
 
 
 # ───────────────────────── Handlers de eventos ─────────────────────────
@@ -427,9 +367,7 @@ HANDLERS: dict[str, EventHandler] = {
 async def get_cursor(
     modulo: str = Query(..., min_length=1),
     device: str = Query(..., min_length=1),
-    authorization: str | None = Header(None),
 ):
-    await _require_sync_auth(authorization)
     if not await _modulo_existe(modulo):
         raise HTTPException(status_code=404, detail=f"Módulo desconhecido: {modulo}")
     row = await _db().fetch_one(
@@ -447,14 +385,13 @@ async def get_cursor(
 
 
 @router.post("/push")
-async def push(body: PushIn, authorization: str | None = Header(None)):
-    await _require_sync_auth(authorization)
+async def push(body: PushIn):
     if not await _modulo_existe(body.modulo):
         raise HTTPException(status_code=404, detail=f"Módulo desconhecido: {body.modulo}")
 
     aceitos: list[str] = []
     rejeitados: list[dict[str, str]] = []
-    agora = _utc_now_iso()
+    agora = datetime.utcnow().isoformat(timespec="seconds")
     ultimo_evento_id: str | None = None
 
     async with aiosqlite.connect(_db().db_path) as conn:
@@ -519,12 +456,9 @@ async def push(body: PushIn, authorization: str | None = Header(None)):
 async def manifest(
     modulo: str = Query(..., min_length=1),
     since: str | None = Query(default=None),
-    authorization: str | None = Header(None),
 ):
-    await _require_sync_auth(authorization)
     if not await _modulo_existe(modulo):
         raise HTTPException(status_code=404, detail=f"Módulo desconhecido: {modulo}")
-    since_sql = _parse_since_param(since)
 
     db = _db()
     mod = await db.fetch_one(
@@ -537,50 +471,28 @@ async def manifest(
     cat_ph = ",".join("?" for _ in categorias) if categorias else ""
 
     ativos: list[dict] = []
-    relevant_ativo_ids: list[str] = []
     if categorias:
-        relevant_ativos = await db.fetch_all(
-            f"SELECT id FROM ativos WHERE ativo=1 AND categoria IN ({cat_ph})",
-            tuple(categorias),
-        )
-        relevant_ativo_ids = [row["id"] for row in relevant_ativos]
-        ativos_sql, ativos_params = _apply_since_filter(
+        ativos = await db.fetch_all(
             f"SELECT * FROM ativos WHERE ativo=1 AND categoria IN ({cat_ph})",
             tuple(categorias),
-            since_sql,
-            "criado_em",
         )
-        ativos = await db.fetch_all(ativos_sql, ativos_params)
 
-    usuarios_sql, usuarios_params = _apply_since_filter(
-        "SELECT id, nome, posto, mat, tipo, role FROM usuarios WHERE ativo=1",
-        (),
-        since_sql,
-        "criado_em",
+    usuarios = await db.fetch_all(
+        "SELECT id, nome, posto, mat, tipo, role FROM usuarios WHERE ativo=1"
     )
-    usuarios = await db.fetch_all(usuarios_sql, usuarios_params)
 
-    locais_sql, locais_params = _apply_since_filter(
-        "SELECT id, codigo, nome, tipo, area, estrutura_id FROM locais WHERE ativo=1",
-        (),
-        since_sql,
-        "criado_em",
+    locais = await db.fetch_all(
+        "SELECT id, codigo, nome, tipo, area, estrutura_id FROM locais WHERE ativo=1"
     )
-    locais = await db.fetch_all(locais_sql, locais_params)
 
-    estoque_sql, estoque_params = _apply_since_filter(
-        "SELECT id, codigo, nome, categoria, unidade, qtd_minima FROM estoque WHERE ativo=1",
-        (),
-        since_sql,
-        "criado_em",
+    estoque_catalogo = await db.fetch_all(
+        "SELECT id, codigo, nome, categoria, unidade, qtd_minima FROM estoque WHERE ativo=1"
     )
-    estoque_catalogo = await db.fetch_all(estoque_sql, estoque_params)
 
     todos_servicos = await db.fetch_all(
         "SELECT * FROM catalogo_servicos WHERE escopo='central' AND ativo=1"
     )
     catalogo_servicos = []
-    relevant_servico_ids: list[str] = []
     for s in todos_servicos:
         try:
             aplic = json.loads(s.get("aplicavel_a") or "{}")
@@ -588,57 +500,44 @@ async def manifest(
             aplic = {}
         cats_serv = set(aplic.get("categorias") or [])
         if not cats_serv or cats_serv & set(categorias):
-            relevant_servico_ids.append(s["id"])
-            if _row_is_newer_than(s, "atualizado_em", since_sql):
-                s["aplicavel_a"] = aplic
-                catalogo_servicos.append(s)
+            s["aplicavel_a"] = aplic
+            catalogo_servicos.append(s)
 
     planos: list[dict] = []
-    if relevant_ativo_ids:
-        ph = ",".join("?" for _ in relevant_ativo_ids)
-        planos_sql, planos_params = _apply_since_filter(
+    if ativos:
+        ativo_ids = [a["id"] for a in ativos]
+        ph = ",".join("?" for _ in ativo_ids)
+        planos = await db.fetch_all(
             f"SELECT * FROM planos_manutencao WHERE ativo=1 AND ativo_id IN ({ph})",
-            tuple(relevant_ativo_ids),
-            since_sql,
-            "atualizado_em",
+            tuple(ativo_ids),
         )
-        planos = await db.fetch_all(planos_sql, planos_params)
-    if relevant_servico_ids:
-        ph = ",".join("?" for _ in relevant_servico_ids)
-        planos_tipo_sql, planos_tipo_params = _apply_since_filter(
+    if catalogo_servicos:
+        srv_ids = [s["id"] for s in catalogo_servicos]
+        ph = ",".join("?" for _ in srv_ids)
+        planos_tipo = await db.fetch_all(
             f"SELECT * FROM planos_manutencao WHERE ativo=1 AND tipo_codigo IS NOT NULL "
             f"AND servico_id IN ({ph})",
-            tuple(relevant_servico_ids),
-            since_sql,
-            "atualizado_em",
+            tuple(srv_ids),
         )
-        planos_tipo = await db.fetch_all(planos_tipo_sql, planos_tipo_params)
         existing = {p["id"] for p in planos}
         planos.extend(p for p in planos_tipo if p["id"] not in existing)
 
-    qualificacoes_sql, qualificacoes_params = _apply_since_filter(
-        "SELECT codigo, nome, descricao, requer_validade FROM qualificacoes_catalogo WHERE ativo=1",
-        (),
-        since_sql,
-        "criado_em",
+    qualificacoes = await db.fetch_all(
+        "SELECT codigo, nome, descricao, requer_validade FROM qualificacoes_catalogo WHERE ativo=1"
     )
-    qualificacoes = await db.fetch_all(qualificacoes_sql, qualificacoes_params)
 
     documentos_pop: list[dict] = []
     pop_ids = [s.get("pop_doc_id") for s in catalogo_servicos if s.get("pop_doc_id")]
     if pop_ids:
         ph = ",".join("?" for _ in pop_ids)
-        documentos_sql, documentos_params = _apply_since_filter(
+        documentos_pop = await db.fetch_all(
             f"SELECT id, nome, tipo, mime, sha256, versao FROM documentos "
             f"WHERE id IN ({ph}) AND ativo=1",
             tuple(pop_ids),
-            since_sql,
-            "criado_em",
         )
-        documentos_pop = await db.fetch_all(documentos_sql, documentos_params)
 
     return {
-        "updated_at": _utc_now_iso(),
+        "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
         "ativos": ativos,
         "usuarios": usuarios,
         "locais": locais,

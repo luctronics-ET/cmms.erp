@@ -6,7 +6,16 @@
 <link rel="stylesheet" href="assets/pmoc-engine.css">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CMASM · ERP</title>
-<link rel="canonical" href="cmasm_erp.html">
+<link rel="canonical" href="xCore/cmasm-erp.html">
+<meta http-equiv="refresh" content="0; url=xCore/cmasm-erp.html">
+<script>
+(() => {
+  const target = new URL('xCore/cmasm-erp.html', window.location.href);
+  target.search = window.location.search;
+  target.hash = window.location.hash;
+  window.location.replace(target.href);
+})();
+</script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    TOKENS
@@ -85,7 +94,7 @@ table{border-collapse:collapse;width:100%}
 .login-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(59,130,246,.12) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(6,182,212,.08) 0%,transparent 50%);pointer-events:none}
 .login-box{position:relative;width:380px;background:var(--navy-900);border:1px solid var(--border2);border-radius:16px;padding:40px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
 .login-logo{text-align:center;margin-bottom:32px}
-.login-emblem{width:56px;height:56px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px;color:#fff}
+.login-emblem{width:56px;height:56px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:18px;color:#fff;letter-spacing:-1px}
 .login-logo h1{font-size:22px;font-weight:700;letter-spacing:-.5px;color:var(--text1)}
 .login-logo p{font-size:12px;color:var(--text3);margin-top:4px;font-family:'IBM Plex Mono',monospace}
 .login-field{margin-bottom:16px}
@@ -105,14 +114,14 @@ table{border-collapse:collapse;width:100%}
 [data-visitante] .sb-actions .btn-ghost[onclick*="perfil"]{display:none;}
 
 /* ═══ APP SHELL ══════════════════════════════════════════════ */
-#app{height:100vh;display:none;grid-template-columns:220px 1fr;grid-template-rows:48px 1fr}
+#app{display:none;height:100vh;display:grid;grid-template-columns:220px 1fr;grid-template-rows:48px 1fr}
 #app.visible{display:grid}
 .hidden{display:none!important}
 
 /* ═══ TOPBAR ═════════════════════════════════════════════════ */
 .topbar{grid-column:1/-1;background:var(--topbar-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px 0 0;z-index:100}
 .topbar-logo{display:flex;align-items:center;gap:10px;padding:0 20px;width:220px;border-right:1px solid var(--border)}
-.topbar-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;flex-shrink:0}
+.topbar-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:11px;color:#fff;flex-shrink:0}
 .topbar-logo-text{font-size:14px;font-weight:700;letter-spacing:-.3px;color:var(--text1)}
 .topbar-module{padding:0 20px;font-size:12px;color:var(--text3);font-family:'IBM Plex Mono',monospace;flex:1}
 .topbar-actions{display:flex;align-items:center;gap:8px}
@@ -344,9 +353,9 @@ table{border-collapse:collapse;width:100%}
   <div class="login-bg"></div>
   <div class="login-box">
     <div class="login-logo">
-      <div class="login-emblem">⚓</div>
-      <h1>cmasm.erp</h1>
-      <p>Centro de Mísseis e Armas Submarinas · v5.0</p>
+      <div class="login-emblem">xC</div>
+      <h1>xCMASM · ERP</h1>
+      <p>Sistema de Gestão Integrada · v5.0</p>
     </div>
     <div class="login-field">
       <label>Identificação</label>
@@ -383,8 +392,8 @@ table{border-collapse:collapse;width:100%}
 <!-- TOPBAR -->
 <header class="topbar">
   <div class="topbar-logo">
-    <div class="topbar-logo-icon">⚓</div>
-    <span class="topbar-logo-text">cmasm.erp</span>
+    <div class="topbar-logo-icon">xC</div>
+    <span class="topbar-logo-text">xCMASM</span>
   </div>
   <div class="topbar-module" id="topbar-module">Sistema de Gestão Integrada</div>
   <div class="topbar-actions">
@@ -4208,7 +4217,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <body>
 <noscript>
   <div style="padding:24px;font-family:'IBM Plex Sans',sans-serif;background:#07111f;color:#f8fafc">
-    Abra o portal em <a href="cmasm_erp.html" style="color:#60a5fa">cmasm_erp.html</a>.
+    Portal movido para <a href="xCore/cmasm-erp.html" style="color:#60a5fa">xCore/cmasm-erp.html</a>.
   </div>
 </noscript>
 </html>
