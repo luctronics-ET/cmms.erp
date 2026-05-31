@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<!--
+  ╔══════════════════════════════════════════════════════════════════════════╗
+  ║  xcmasm-govbr-template.html  ·  Template de Layout xCMASM               ║
+  ║  Baseado no Padrão Digital de Governo (DSGOV v3.7)                       ║
+  ║                                                                          ║
+  ║  COMO USAR:                                                              ║
+  ║  1. Copie este arquivo para o nome do módulo (ex: estoque.html)          ║
+  ║  2. Altere <title>, .hdr-module-name, breadcrumb, sidebar .active        ║
+  ║  3. Substitua o conteúdo de #main-content pela lógica da página          ║
+  ║  4. Configure BASE_URL se necessário                                     ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
+-->
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>CMASM · [Nome do Módulo]</title>
+
+  <!-- ── FONTES ─────────────────────────────────────────────────────────── -->
+  <!-- Rawline (SERPRO — pode falhar em sandbox) -->
+  <link rel="stylesheet"
+    href="https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css" />
+  <!-- Raleway (Google Fonts — fallback) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700;800&display=swap" />
+
+  <!-- ── DSGOV Core CSS (jsDelivr — confiável em todos os ambientes) ────── -->
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/@govbr-ds/core@3.7.0/dist/core.min.css" />
+
+  <!-- ── Font Awesome 5 (ícones DSGOV) ─────────────────────────────────── -->
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" />
+
+  <!-- ── xCMASM sobre DSGOV ────────────────────────────────────────────── -->
+  <link rel="stylesheet" href="../assets/xcmasm-govbr.css" />
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     BARRA GOV.BR  (identidade institucional)
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="xcmasm-govbar" role="banner" aria-label="Identidade institucional">
+  <span>Marinha do Brasil</span>
+  <span class="govbar-dot" aria-hidden="true"></span>
+  <span class="govbar-label-secondary">CMASM · Centro de Mísseis e Armas Submarinas</span>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     HEADER PRINCIPAL
+════════════════════════════════════════════════════════════════════════════ -->
+<header class="xcmasm-header" role="banner">
+
+  <!-- Botão menu mobile -->
+  <button class="hdr-menu-btn" id="menuToggle" aria-label="Abrir menu de navegação" aria-expanded="false">
+    <i class="fas fa-bars" aria-hidden="true"></i>
+  </button>
+
+  <!-- Brand / logo -->
+  <a href="cmasm-erp.html" class="hdr-brand" title="Portal xCMASM">
+    <div class="hdr-emblem" aria-hidden="true">⚓</div>
+    <div class="hdr-titles">
+      <span class="hdr-sys">xCMASM</span>
+      <span class="hdr-name">CMASM · ERP</span>
+    </div>
+  </a>
+
+  <!-- Divisor -->
+  <span class="hdr-divider" aria-hidden="true"></span>
+
+  <!-- Nome do módulo atual — PERSONALIZAR -->
+  <span class="hdr-module-name">[Nome do Módulo]</span>
+
+  <div class="hdr-spacer"></div>
+
+  <!-- Sino de notificações -->
+  <button class="hdr-bell" aria-label="Notificações" id="bellBtn">
+    <i class="fas fa-bell" aria-hidden="true"></i>
+    <span class="hdr-bell-badge" id="bellBadge" style="display:none" aria-label="Notificações pendentes"></span>
+  </button>
+
+  <!-- Usuário logado -->
+  <a href="#" class="hdr-user" id="userPill" aria-label="Menu do usuário">
+    <div class="hdr-avatar" id="userAvatar" aria-hidden="true">?</div>
+    <span class="hdr-uname" id="userName">Carregando…</span>
+  </a>
+
+</header>
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     OVERLAY DE SIDEBAR (mobile)
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="xcmasm-sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     LAYOUT: SIDEBAR + CONTEÚDO
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="xcmasm-layout">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────────── -->
+  <nav class="xcmasm-sidebar" id="sidebar" aria-label="Navegação principal">
+
+    <!-- GRUPO: CORE -->
+    <div class="sb-group">
+      <div class="sb-group-label">Core</div>
+
+      <a href="cmasm-erp.html" class="sb-item" aria-label="Portal ERP">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-th-large"></i></span>
+        Portal ERP
+      </a>
+
+      <a href="servicos.html" class="sb-item" aria-label="Ordens de Serviço">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-tools"></i></span>
+        Ordens de Serviço
+      </a>
+
+      <a href="#" class="sb-item" aria-label="Ativos">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-cogs"></i></span>
+        Ativos
+      </a>
+
+      <a href="#" class="sb-item" aria-label="Estoque">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-boxes"></i></span>
+        Estoque
+        <span class="sb-badge">3</span>
+      </a>
+    </div>
+
+    <div class="sb-divider" role="separator"></div>
+
+    <!-- GRUPO: OPERACIONAL -->
+    <div class="sb-group">
+      <div class="sb-group-label">Operacional</div>
+
+      <a href="transportes.html" class="sb-item" aria-label="Transportes">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-truck"></i></span>
+        Transportes
+      </a>
+
+      <a href="xgrama.html" class="sb-item" aria-label="Controle Vegetal">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-leaf"></i></span>
+        Controle Vegetal
+      </a>
+
+      <a href="predial.html" class="sb-item" aria-label="Gestão Predial">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-building"></i></span>
+        Gestão Predial
+      </a>
+
+      <a href="paiol.html" class="sb-item" aria-label="Paiol">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-warehouse"></i></span>
+        Paiol
+      </a>
+    </div>
+
+    <div class="sb-divider" role="separator"></div>
+
+    <!-- GRUPO: SISTEMAS -->
+    <div class="sb-group">
+      <div class="sb-group-label">Sistemas</div>
+
+      <a href="seguranca.html" class="sb-item" aria-label="Segurança / CFTV">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-video"></i></span>
+        Segurança / CFTV
+      </a>
+
+      <a href="xmap.html" class="sb-item" aria-label="Mapa de Instalações">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-map-marked-alt"></i></span>
+        Mapa Instalações
+      </a>
+
+      <a href="calibracao.html" class="sb-item" aria-label="Calibração">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-ruler-combined"></i></span>
+        Calibração
+      </a>
+
+      <a href="fonoclama.html" class="sb-item" aria-label="Fonoclama">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-broadcast-tower"></i></span>
+        Fonoclama
+      </a>
+    </div>
+
+    <div class="sb-divider" role="separator"></div>
+
+    <!-- GRUPO: EXTERNOS -->
+    <div class="sb-group">
+      <div class="sb-group-label">Externos</div>
+
+      <a href="#" class="sb-item" id="lnkAguada" aria-label="Aguada" target="_blank" rel="noopener">
+        <span class="sb-ico" aria-hidden="true"><i class="fas fa-tint"></i></span>
+        Aguada
+      </a>
+    </div>
+
+  </nav>
+  <!-- /sidebar -->
+
+
+  <!-- ── CONTEÚDO PRINCIPAL ────────────────────────────────────────────── -->
+  <main class="xcmasm-content" id="main-content" aria-label="Conteúdo principal">
+
+    <!-- Breadcrumb — PERSONALIZAR -->
+    <nav class="xcmasm-breadcrumb" aria-label="Caminho de navegação">
+      <a href="cmasm-erp.html">
+        <i class="fas fa-home" aria-hidden="true"></i> Início
+      </a>
+      <span class="bc-sep" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+      <span class="bc-current">[Nome do Módulo]</span>
+    </nav>
+
+    <!-- Cabeçalho da página — PERSONALIZAR -->
+    <div class="xcmasm-page-header">
+      <div class="ph-title-group">
+        <h1>[Nome do Módulo]</h1>
+        <p class="ph-subtitle">Descrição breve do módulo e sua finalidade</p>
+      </div>
+      <div class="ph-actions">
+        <button class="br-button secondary xcmasm-secondary" type="button">
+          <i class="fas fa-download" aria-hidden="true"></i> Exportar
+        </button>
+        <button class="br-button primary xcmasm-primary" type="button" id="btnNovo">
+          <i class="fas fa-plus" aria-hidden="true"></i> Novo
+        </button>
+      </div>
+    </div>
+
+
+    <!-- ═══ INÍCIO DO CONTEÚDO DO MÓDULO ═══════════════════════════════
+         Substitua tudo abaixo por HTML do módulo específico.
+    ════════════════════════════════════════════════════════════════════ -->
+
+    <!-- KPIs de exemplo -->
+    <div class="xcmasm-kpi-row" role="region" aria-label="Indicadores">
+
+      <div class="xcmasm-kpi kpi-primary">
+        <div class="kpi-icon" aria-hidden="true">📋</div>
+        <div class="kpi-label">Total Registros</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-sub">Carregando…</div>
+      </div>
+
+      <div class="xcmasm-kpi kpi-success">
+        <div class="kpi-icon" aria-hidden="true">✅</div>
+        <div class="kpi-label">Ativos</div>
+        <div class="kpi-value" id="kpiAtivos">—</div>
+        <div class="kpi-sub">Em operação</div>
+      </div>
+
+      <div class="xcmasm-kpi kpi-warning">
+        <div class="kpi-icon" aria-hidden="true">⚠️</div>
+        <div class="kpi-label">Pendentes</div>
+        <div class="kpi-value" id="kpiPendentes">—</div>
+        <div class="kpi-sub">Aguardando ação</div>
+      </div>
+
+      <div class="xcmasm-kpi kpi-danger">
+        <div class="kpi-icon" aria-hidden="true">🔴</div>
+        <div class="kpi-label">Críticos</div>
+        <div class="kpi-value" id="kpiCriticos">—</div>
+        <div class="kpi-sub">Atenção imediata</div>
+      </div>
+
+    </div>
+
+
+    <!-- Card com tabela de exemplo -->
+    <div class="xcmasm-card" role="region" aria-label="Lista de registros">
+
+      <div class="xcmasm-card-header">
+        <h2>Registros</h2>
+        <div class="card-actions">
+          <button class="br-button secondary xcmasm-secondary" type="button" id="btnRefresh" aria-label="Atualizar lista">
+            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de filtros -->
+      <div class="xcmasm-card-body" style="padding-bottom:0">
+        <div class="xcmasm-filter-bar" role="search" aria-label="Filtros de busca">
+          <div class="fb-search">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="text" id="searchInput" placeholder="Buscar…" aria-label="Buscar registros" />
+          </div>
+          <select id="filterStatus" aria-label="Filtrar por status">
+            <option value="">Todos os status</option>
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+            <option value="pendente">Pendente</option>
+          </select>
+          <span class="fb-count" id="listCount" aria-live="polite">— registros</span>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="xcmasm-card-body" style="padding-top:0">
+        <div class="xcmasm-table-wrap" role="region" aria-label="Tabela de registros" tabindex="0">
+          <table class="xcmasm-table" aria-label="Registros do módulo">
+            <thead>
+              <tr>
+                <th scope="col">Código</th>
+                <th scope="col">Descrição</th>
+                <th scope="col">Status</th>
+                <th scope="col">Data</th>
+                <th scope="col">Responsável</th>
+                <th scope="col" style="width:80px">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Linhas geradas via JS -->
+              <tr>
+                <td colspan="6" style="text-align:center;padding:32px;color:var(--xcmasm-tx3)">
+                  <div class="xcmasm-spinner" style="margin:0 auto 8px" aria-label="Carregando"></div>
+                  Carregando dados…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="xcmasm-card-footer">
+        <span id="paginacao" style="font-size:11px;color:var(--xcmasm-tx3)">Página 1</span>
+        <div style="display:flex;gap:6px">
+          <button class="br-button secondary xcmasm-secondary" type="button" id="btnPrev" aria-label="Página anterior">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+          </button>
+          <button class="br-button secondary xcmasm-secondary" type="button" id="btnNext" aria-label="Próxima página">
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+    <!-- /xcmasm-card -->
+
+
+    <!-- ═══ FIM DO CONTEÚDO DO MÓDULO ════════════════════════════════ -->
+
+  </main>
+  <!-- /main-content -->
+
+</div>
+<!-- /xcmasm-layout -->
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════════════════════ -->
+<footer class="xcmasm-footer" role="contentinfo">
+  <span>xCMASM &copy; <span id="footerYear"></span> · Marinha do Brasil</span>
+  <span>
+    <a href="cmasm-erp.html">Portal ERP</a>
+    <span aria-hidden="true"> · </span>
+    <a href="#" id="footerDocs">Documentação</a>
+  </span>
+</footer>
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     MODAL (reutilizável — mostrar via JS)
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="xcmasm-modal-overlay hidden" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="xcmasm-modal">
+    <div class="xcmasm-modal-header">
+      <h3 id="modalTitle">Novo Registro</h3>
+      <button class="br-button circle" type="button" id="modalClose" aria-label="Fechar modal">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="xcmasm-modal-body" id="modalBody">
+      <!-- Formulário gerado por JS -->
+    </div>
+    <div class="xcmasm-modal-footer" id="modalFooter">
+      <button class="br-button secondary xcmasm-secondary" type="button" id="modalCancel">Cancelar</button>
+      <button class="br-button primary xcmasm-primary"    type="button" id="modalSave">Salvar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     CONTAINER DE TOASTS
+════════════════════════════════════════════════════════════════════════════ -->
+<div class="xcmasm-toast-container" id="toastContainer" role="region" aria-live="polite" aria-label="Notificações"></div>
+
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════════════════════════════ -->
+<!-- DSGOV JS (componentes interativos) -->
+<script src="https://cdn.jsdelivr.net/npm/@govbr-ds/core@3.7.0/dist/core.min.js"></script>
+
+<!-- SDK xCMASM -->
+<script src="../assets/xcmasm-sdk.js"></script>
+<script src="../assets/xcmasm-module-links.js"></script>
+
+<script>
+/* ── CONFIG ──────────────────────────────────────────────────────────────── */
+const BASE_URL   = 'http://localhost:8010';
+const MODULE_KEY = 'MODULO_ATUAL'; // identificador único para localStorage
+
+/* ── SDK ─────────────────────────────────────────────────────────────────── */
+const sdk = xcmasm({ baseURL: BASE_URL });
+
+/* ── SIDEBAR MOBILE ──────────────────────────────────────────────────────── */
+(function () {
+  const toggle  = document.getElementById('menuToggle');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('open');
+    toggle.setAttribute('aria-expanded', 'true');
+    overlay.removeAttribute('aria-hidden');
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+
+  toggle.addEventListener('click', () =>
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar()
+  );
+  overlay.addEventListener('click', closeSidebar);
+})();
+
+
+/* ── ACTIVE NAV ──────────────────────────────────────────────────────────── */
+(function () {
+  const current = location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('.sb-item').forEach(el => {
+    const href = (el.getAttribute('href') || '').split('/').pop();
+    if (href && href === current) el.classList.add('active');
+  });
+})();
+
+
+/* ── LINKS EXTERNOS (xcmasm-module-links) ────────────────────────────────── */
+(function () {
+  const aguadaAnchor = document.getElementById('lnkAguada');
+  if (aguadaAnchor && window.applyXCMASMModuleAnchor) {
+    applyXCMASMModuleAnchor(aguadaAnchor, 'aguada');
+  }
+})();
+
+
+/* ── FOOTER ANO ──────────────────────────────────────────────────────────── */
+document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+
+/* ── USUÁRIO LOGADO ──────────────────────────────────────────────────────── */
+(function () {
+  try {
+    const raw  = localStorage.getItem('xcmasm_user');
+    const user = raw ? JSON.parse(raw) : null;
+    if (!user) return;
+    const nome   = user.nome || user.mat || '?';
+    const initials = nome.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('userName').textContent    = nome.split(' ')[0];
+    document.getElementById('userAvatar').textContent  = initials;
+    document.getElementById('userAvatar').title        = nome;
+  } catch (e) { /* silencioso */ }
+})();
+
+
+/* ── TOAST ───────────────────────────────────────────────────────────────── */
+function showToast(title, msg = '', type = 'info', duration = 4000) {
+  const icons = { success: 'fas fa-check-circle', warning: 'fas fa-exclamation-triangle',
+                  danger: 'fas fa-times-circle',  info: 'fas fa-info-circle' };
+  const colors = { success: 'var(--xcmasm-success)', warning: 'var(--xcmasm-warning)',
+                   danger:  'var(--xcmasm-danger)',  info:    'var(--xcmasm-info)' };
+  const t = document.createElement('div');
+  t.className = `xcmasm-toast toast-${type}`;
+  t.innerHTML = `
+    <i class="${icons[type] || icons.info}" aria-hidden="true" style="color:${colors[type]}"></i>
+    <div class="t-body">
+      ${title ? `<div class="t-title">${title}</div>` : ''}
+      ${msg   ? `<div class="t-msg">${msg}</div>`     : ''}
+    </div>
+    <button class="t-close" aria-label="Fechar notificação">
+      <i class="fas fa-times" aria-hidden="true"></i>
+    </button>`;
+  t.querySelector('.t-close').addEventListener('click', () => t.remove());
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), duration);
+}
+
+
+/* ── MODAL ───────────────────────────────────────────────────────────────── */
+const modalOverlay = document.getElementById('modalOverlay');
+const modalClose   = document.getElementById('modalClose');
+const modalCancel  = document.getElementById('modalCancel');
+
+function openModal(title, bodyHTML, onSave) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML    = bodyHTML;
+  modalOverlay.classList.remove('hidden');
+  document.getElementById('modalSave').onclick      = onSave || null;
+  // Foco no modal para acessibilidade
+  modalOverlay.querySelector('.xcmasm-modal').focus?.();
+}
+
+function closeModal() {
+  modalOverlay.classList.add('hidden');
+}
+
+modalClose.addEventListener('click',  closeModal);
+modalCancel.addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LÓGICA DO MÓDULO — PERSONALIZAR A PARTIR DAQUI
+   Substitua as funções abaixo pela lógica real do módulo.
+═══════════════════════════════════════════════════════════════════════════ */
+
+let _allItems = [];
+
+async function loadData() {
+  try {
+    // Exemplo: const data = await sdk.ALGUM_RECURSO.list();
+    // Simulação de dados para o template:
+    await new Promise(r => setTimeout(r, 400)); // simula latência
+    _allItems = [
+      { id: 1, codigo: 'EX-001', descricao: 'Item de exemplo 1', status: 'ativo',   data: '2026-05-10', responsavel: 'Silva' },
+      { id: 2, codigo: 'EX-002', descricao: 'Item de exemplo 2', status: 'pendente',data: '2026-05-12', responsavel: 'Santos' },
+      { id: 3, codigo: 'EX-003', descricao: 'Item de exemplo 3', status: 'critica', data: '2026-05-14', responsavel: 'Ferreira' },
+    ];
+    renderTable(_allItems);
+    updateKPIs(_allItems);
+  } catch (err) {
+    console.error('Erro ao carregar dados:', err);
+    showToast('Erro', 'Não foi possível carregar os dados.', 'danger');
+  }
+}
+
+function updateKPIs(items) {
+  document.getElementById('kpiTotal').textContent    = items.length;
+  document.getElementById('kpiAtivos').textContent   = items.filter(i => i.status === 'ativo').length;
+  document.getElementById('kpiPendentes').textContent= items.filter(i => i.status === 'pendente').length;
+  document.getElementById('kpiCriticos').textContent = items.filter(i => i.status === 'critica').length;
+}
+
+const STATUS_BADGE = {
+  ativo:    '<span class="xbadge xbadge-ativa">Ativo</span>',
+  inativo:  '<span class="xbadge xbadge-inativa">Inativo</span>',
+  pendente: '<span class="xbadge xbadge-pendente">Pendente</span>',
+  critica:  '<span class="xbadge xbadge-critica">Crítico</span>',
+  execucao: '<span class="xbadge xbadge-execucao">Em execução</span>',
+};
+
+function renderTable(items) {
+  const tbody = document.getElementById('tableBody');
+  if (!items.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--xcmasm-tx3)">
+      <i class="fas fa-inbox" aria-hidden="true" style="font-size:24px;display:block;margin-bottom:8px"></i>
+      Nenhum registro encontrado.</td></tr>`;
+    document.getElementById('listCount').textContent = '0 registros';
+    return;
+  }
+  tbody.innerHTML = items.map(item => `
+    <tr data-id="${item.id}" role="row">
+      <td><code style="font-size:11px;color:var(--color-primary)">${item.codigo}</code></td>
+      <td>${item.descricao}</td>
+      <td>${STATUS_BADGE[item.status] || item.status}</td>
+      <td style="font-size:12px">${item.data}</td>
+      <td>${item.responsavel}</td>
+      <td>
+        <button class="br-button circle" type="button" onclick="editItem(${item.id})"
+          aria-label="Editar ${item.descricao}" style="width:28px;height:28px;font-size:12px">
+          <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+        </button>
+      </td>
+    </tr>`).join('');
+  document.getElementById('listCount').textContent = `${items.length} registro${items.length !== 1 ? 's' : ''}`;
+}
+
+function editItem(id) {
+  const item = _allItems.find(i => i.id === id);
+  if (!item) return;
+  openModal(`Editar: ${item.codigo}`, `
+    <div class="xcmasm-form-group">
+      <label for="mDescricao">Descrição <span class="req" aria-hidden="true">*</span></label>
+      <input class="xcmasm-input" id="mDescricao" type="text" value="${item.descricao}" />
+    </div>
+    <div class="xcmasm-form-group">
+      <label for="mStatus">Status</label>
+      <select class="xcmasm-select" id="mStatus">
+        <option value="ativo"    ${item.status === 'ativo'    ? 'selected' : ''}>Ativo</option>
+        <option value="inativo"  ${item.status === 'inativo'  ? 'selected' : ''}>Inativo</option>
+        <option value="pendente" ${item.status === 'pendente' ? 'selected' : ''}>Pendente</option>
+        <option value="critica"  ${item.status === 'critica'  ? 'selected' : ''}>Crítico</option>
+      </select>
+    </div>`, async () => {
+      item.descricao = document.getElementById('mDescricao').value;
+      item.status    = document.getElementById('mStatus').value;
+      renderTable(applyFilters());
+      updateKPIs(_allItems);
+      closeModal();
+      showToast('Salvo', 'Registro atualizado.', 'success');
+    });
+}
+
+function applyFilters() {
+  const q  = document.getElementById('searchInput').value.toLowerCase();
+  const st = document.getElementById('filterStatus').value;
+  return _allItems.filter(item =>
+    (!q  || item.codigo.toLowerCase().includes(q) || item.descricao.toLowerCase().includes(q)) &&
+    (!st || item.status === st)
+  );
+}
+
+document.getElementById('searchInput').addEventListener('input', () => renderTable(applyFilters()));
+document.getElementById('filterStatus').addEventListener('change', () => renderTable(applyFilters()));
+document.getElementById('btnRefresh').addEventListener('click', loadData);
+document.getElementById('btnNovo').addEventListener('click', () =>
+  openModal('Novo Registro', `
+    <div class="xcmasm-form-group">
+      <label for="nCodigo">Código <span class="req" aria-hidden="true">*</span></label>
+      <input class="xcmasm-input" id="nCodigo" type="text" placeholder="EX-000" />
+    </div>
+    <div class="xcmasm-form-group">
+      <label for="nDescricao">Descrição <span class="req" aria-hidden="true">*</span></label>
+      <input class="xcmasm-input" id="nDescricao" type="text" placeholder="Descrição do registro" />
+    </div>`, async () => {
+      const newItem = {
+        id: Date.now(), codigo: document.getElementById('nCodigo').value,
+        descricao: document.getElementById('nDescricao').value,
+        status: 'pendente', data: new Date().toISOString().split('T')[0],
+        responsavel: (JSON.parse(localStorage.getItem('xcmasm_user') || '{}').nome || '?').split(' ')[0],
+      };
+      _allItems.unshift(newItem);
+      renderTable(applyFilters());
+      updateKPIs(_allItems);
+      closeModal();
+      showToast('Criado', 'Novo registro adicionado.', 'success');
+    })
+);
+
+/* Inicialização */
+loadData();
+</script>
+
+</body>
+</html>
