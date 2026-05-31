@@ -6,7 +6,7 @@ Este estudo de aplicação para o **CMASM** visa otimizar a gestão administrati
 
 Para uma organização complexa como o CMASM, a integração dessas três ferramentas é essencial:
 
-* **ERP (Enterprise Resource Planning):** Funcionaria como o "cérebro" administrativo, gerenciando o **orçamento, recursos humanos, compras de suprimentos** (combustível para geradores, peças para viaturas) e a logística de transporte para a ilha.  
+* **ERP (Enterprise Resource Planning):** Funcionaria como o "cérebro" administrativo, gerenciando  **servicos, ativos, usuarios, materiais.  recursos humanos, maquinas, equipamentos; estoque materiais e sobressalentes** (combustível para geradores, peças para viaturas) e a logística de transporte para a ilha.  
 * **CMMS (Computerized Maintenance Management System):** Foca na **execução diária da manutenção**. A ferramenta dos técnicos para gerir Ordens de Serviço (OS):  limpeza de splits, revisão de máquinas de cortar grama, viaturas e embarcações,  lubrificação máquinas e motores, limpeza câmeras, troca de baterias.  
 * **EAM (Enterprise Asset Management):** Essencial para o CMASM por gerir o **ciclo de vida completo de ativos de alto valor**, como subestações elétricas, embarcações e guindastes, viaturas e embarcações, refrigeração. 
 
@@ -47,7 +47,7 @@ Baseando-se em práticas consolidadas (como a MISTRR), a implantação deve segu
 * **Controle Logístico na Ilha:** O ERP integrado permite prever a necessidade de peças e insumos antes que acabem, considerando o tempo de transporte logístico para a ilha.  
 * **Auditoria e Conformidade:** Geração imediata de relatórios para inspeções da Marinha ou órgãos reguladores, com assinaturas digitais e histórico imutável 
 
-## **Integração entre CMMS, ERP e EAS**
+## **Integração entre CMMS, ERP e EAM**
 
 A integração de um sistema **CMMS** (Sistema de Gestão de Manutenção Computadorizado) com sistemas **ERP** (Planejamento de Recursos Empresariais) e **EAM** (Gestao de Ativos) é fundamental para gerar e analisar informacao sobre os ativos e garantir que os dados de manutenção fluam por toda a organização.
 

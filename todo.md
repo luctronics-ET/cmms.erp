@@ -61,13 +61,13 @@ App de campo único em `cmasm.erp/pmoc/`, com categorias internas. Substitui o c
 - [x] `engine.bootstrap({ modulo, nucleo, cssPath })`
 - [x] Eventos via `CustomEvent`
 - [x] Demo standalone: `/assets/pmoc-engine-demo.html`
-- [ ] **Criar `cmasm.erp/pmoc/index.html`** — shell único com seletor de categoria
-- [ ] **Cliente sync embutido** (push/pull/cursor) — chama `/api/sync/*`
-- [ ] **Wrapper IndexedDB** (`idb.get`, `idb.put`, `idb.bulkPut`, `idb.getAll`, `idb.delete`)
-- [ ] **Auth helper** (login, refresh, cache de token)
-- [ ] **Motor de planos** embutido (`resolverFrequencia`, `calcularProxima`, `avaliarCondicionais`, `verificarRecursos`)
-- [ ] Servir `cmasm.erp/pmoc/` em `/pmoc/` via FastAPI (mount estático)
-- [ ] **Categoria piloto: refrigeração** — seeds prontos em `pmoc.refs/`
+- [x] **Criar `cmasm.erp/pmoc/index.html`** — shell único com seletor de categoria
+- [x] **Cliente sync embutido** (push/pull/cursor) — chama `/api/sync/*`
+- [x] **Wrapper IndexedDB** (`idb.get`, `idb.put`, `idb.bulkPut`, `idb.getAll`, `idb.delete`)
+- [x] **Auth helper** (login, refresh, cache de token)
+- [x] **Motor de planos** embutido (`resolverFrequencia`, `calcularProxima`, `avaliarCondicionais`, `verificarRecursos`)
+- [x] Servir `cmasm.erp/pmoc/` em `/pmoc/` via FastAPI (mount estático)
+- [x] **Categoria piloto: refrigeração** — seeds prontos em `pmoc.refs/`
 
 ---
 

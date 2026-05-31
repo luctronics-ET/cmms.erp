@@ -62,9 +62,19 @@ async def root():
     return FileResponse(os.path.join(_FRONTEND_DIR, "cmasm_erp.html"))
 
 
+@app.get("/xCore")
+@app.get("/xCore/")
+async def root_xcore():
+    return FileResponse(os.path.join(_FRONTEND_DIR, "cmasm_erp.html"))
+
+
 @app.get("/{filename:path}.html")
 async def serve_html(filename: str):
-    path = os.path.join(_FRONTEND_DIR, f"{filename}.html")
+    normalized = filename.removeprefix("xCore/")
+    # Compat with legacy URL that used hyphenated name.
+    if normalized == "cmasm-erp":
+        normalized = "cmasm_erp"
+    path = os.path.join(_FRONTEND_DIR, f"{normalized}.html")
     if os.path.isfile(path):
         return FileResponse(path)
     raise HTTPException(404, "Página não encontrada")
@@ -575,8 +585,8 @@ async def sync_ativos(body: AtivosIn):
     CAT_MAP = {
         "FS220":"maquinas_corte","GAR":"maquinas_corte","MS650":"maquinas_corte",
         "TS114":"maquinas_corte","SOL":"maquinas_corte",
-        "VTR_PICKUP":"viaturas","VTR_CARGA":"viaturas",
-        "EMB_LANCHA":"embarcacoes","EMB_BOTE":"embarcacoes",
+        "VTR_PICKUP":"frota_terrestre","VTR_CARGA":"frota_terrestre",
+        "EMB_LANCHA":"frota_naval","EMB_BOTE":"frota_naval",
         "AC_SPLIT":"climatizacao","AC_CENTRAL":"climatizacao",
         "GERADOR":"eletrica",
     }

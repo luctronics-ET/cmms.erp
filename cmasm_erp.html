@@ -2,20 +2,10 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<link rel="stylesheet" href="assets/fonts.css">
-<link rel="stylesheet" href="assets/pmoc-engine.css">
+<link rel="stylesheet" href="/assets/fonts.css">
+<link rel="stylesheet" href="/assets/pmoc-engine.css">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CMASM · ERP</title>
-<link rel="canonical" href="xCore/cmasm-erp.html">
-<meta http-equiv="refresh" content="0; url=xCore/cmasm-erp.html">
-<script>
-(() => {
-  const target = new URL('xCore/cmasm-erp.html', window.location.href);
-  target.search = window.location.search;
-  target.hash = window.location.hash;
-  window.location.replace(target.href);
-})();
-</script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    TOKENS
@@ -239,8 +229,8 @@ table{border-collapse:collapse;width:100%}
 .form-group textarea{resize:vertical;min-height:80px}
 
 /* ═══ MODAL ══════════════════════════════════════════════════ */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .2s}
-.modal-backdrop.open{opacity:1}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-backdrop.open{opacity:1;pointer-events:auto}
 .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;transform:translateY(8px);transition:transform .2s;box-shadow:0 24px 80px rgba(0,0,0,.5)}
 .modal-backdrop.open .modal{transform:translateY(0)}
 .modal-lg{max-width:720px}
@@ -340,9 +330,9 @@ table{border-collapse:collapse;width:100%}
 .empty-state svg{margin:0 auto 12px;opacity:.4;display:block}
 .empty-state p{font-size:13px}
 </style>
-<script src="assets/pmoc-engine.js" defer></script>
-<script src="assets/erp-manutencao-mocks.js" defer></script>
-<script src="assets/erp-manutencao.js" defer></script>
+<script src="/assets/pmoc-engine.js" defer></script>
+<script src="/assets/erp-manutencao-mocks.js" defer></script>
+<script src="/assets/erp-manutencao.js" defer></script>
 </head>
 <body>
 
@@ -4217,7 +4207,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <body>
 <noscript>
   <div style="padding:24px;font-family:'IBM Plex Sans',sans-serif;background:#07111f;color:#f8fafc">
-    Portal movido para <a href="xCore/cmasm-erp.html" style="color:#60a5fa">xCore/cmasm-erp.html</a>.
+    JavaScript é necessário para usar o CMASM ERP.
   </div>
 </noscript>
 </html>

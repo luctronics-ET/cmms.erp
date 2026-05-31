@@ -29,7 +29,7 @@ def _exec(main, sql, params=()):
         conn.close()
 
 
-def _push(client, eventos, modulo="pmoc_refrigeracao", device="dev-A"):
+def _push(client, eventos, modulo="refrigeracao", device="dev-A"):
     return client.post("/api/sync/push", json={
         "modulo": modulo, "device_id": device, "eventos": eventos,
     })
@@ -219,7 +219,7 @@ def test_os_criada_insere_ordem_servico(app_client):
     rows = _query(main, "SELECT titulo, tipo, status, modulo_origem FROM ordens_servico WHERE id=?", (os_id,))
     assert rows == [{
         "titulo": "Limpeza AC sala 201", "tipo": "preventiva",
-        "status": "aberta", "modulo_origem": "pmoc_refrigeracao",
+        "status": "aberta", "modulo_origem": "refrigeracao",
     }]
     # Histórico inicial registrado
     hist = _query(main, "SELECT status_de, status_para FROM os_historico WHERE os_id=?", (os_id,))
@@ -353,7 +353,7 @@ def test_ps_criada_rejeita_sem_servico_nem_snapshot(app_client):
 def test_os_executada_move_status_para_pronto(app_client):
     client, main = app_client
     _exec(main, "INSERT INTO ordens_servico (id, codigo, titulo, status, tipo, modulo_origem) "
-                "VALUES ('os-exec', 'OS-X', 'T', 'em_execucao', 'preventiva', 'pmoc_refrigeracao')")
+                "VALUES ('os-exec', 'OS-X', 'T', 'em_execucao', 'preventiva', 'refrigeracao')")
     r = _push(client, [_ev("os_executada", {
         "os_id": "os-exec",
         "hora_inicio": "08:00",
@@ -368,7 +368,7 @@ def test_os_executada_move_status_para_pronto(app_client):
 def test_os_executada_baixa_materiais_usados(app_client):
     client, main = app_client
     _exec(main, "INSERT INTO ordens_servico (id, codigo, titulo, status, tipo, modulo_origem) "
-                "VALUES ('os-mat', 'OS-Y', 'T', 'em_execucao', 'preventiva', 'pmoc_refrigeracao')")
+                "VALUES ('os-mat', 'OS-Y', 'T', 'em_execucao', 'preventiva', 'refrigeracao')")
     _seed_item(main, item_id=20, qtd=10)
     _seed_item(main, item_id=21, qtd=5)
     r = _push(client, [_ev("os_executada", {
@@ -391,7 +391,7 @@ def test_os_executada_baixa_materiais_usados(app_client):
 def test_os_executada_rejeita_material_insuficiente_sem_efeito(app_client):
     client, main = app_client
     _exec(main, "INSERT INTO ordens_servico (id, codigo, titulo, status, tipo, modulo_origem) "
-                "VALUES ('os-fail', 'OS-Z', 'T', 'em_execucao', 'preventiva', 'pmoc_refrigeracao')")
+                "VALUES ('os-fail', 'OS-Z', 'T', 'em_execucao', 'preventiva', 'refrigeracao')")
     _seed_item(main, item_id=30, qtd=2)
     r = _push(client, [_ev("os_executada", {
         "os_id": "os-fail",
@@ -414,7 +414,7 @@ def test_os_executada_agrega_consumo_repetido_do_mesmo_item(app_client):
     """Dois lançamentos do mesmo item_id devem ser somados na checagem de saldo."""
     client, main = app_client
     _exec(main, "INSERT INTO ordens_servico (id, codigo, titulo, status, tipo, modulo_origem) "
-                "VALUES ('os-agg', 'O-A', 'T', 'em_execucao', 'preventiva', 'pmoc_refrigeracao')")
+                "VALUES ('os-agg', 'O-A', 'T', 'em_execucao', 'preventiva', 'refrigeracao')")
     _seed_item(main, item_id=40, qtd=3)
     # Duas entradas de 2 cada → total 4 > saldo 3 → rejeita ANTES de aplicar nada
     r = _push(client, [_ev("os_executada", {
@@ -432,7 +432,7 @@ def test_os_executada_agrega_consumo_repetido_do_mesmo_item(app_client):
 def test_inspecao_concluida_marca_os_como_concluida(app_client):
     client, main = app_client
     _exec(main, "INSERT INTO ordens_servico (id, codigo, titulo, status, tipo, modulo_origem) "
-                "VALUES ('insp-1', 'INS-1', 'Inspeção mensal', 'em_execucao', 'inspecao', 'pmoc_refrigeracao')")
+                "VALUES ('insp-1', 'INS-1', 'Inspeção mensal', 'em_execucao', 'inspecao', 'refrigeracao')")
     r = _push(client, [_ev("inspecao_concluida", {
         "os_id": "insp-1", "observacoes": "tudo conforme"
     })])

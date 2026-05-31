@@ -40,33 +40,20 @@ const CATEGORIAS = {
     ],
     modulo_sync: 'maq_corte',
   },
-  viaturas: {
-    label: 'Viaturas', emoji: '🚗', cor: '#22c55e',
-    categoria_db: 'viaturas',
-    unidade_uso: 'km',
+  transportes: {
+    label: 'Transportes', emoji: '🚗', cor: '#22c55e',
+    categoria_db: ['frota_terrestre', 'frota_naval'],
+    unidade_uso: 'km/h',
     colunas: [
       { k: 'nome',  label: 'Nome' },
-      { k: 'placa', label: 'Placa', mono: true },
+      { k: 'tipo',  label: 'Tipo', mono: true },
+      { k: 'placa', label: 'Placa/Indic.', mono: true },
       { k: 'subtipo', label: 'Subtipo' },
       { k: 'loc',   label: 'Local' },
       { k: 'uso_atual', label: 'Uso', mono: true, useUnidade: true },
       { k: 'status', label: 'Status', isStatus: true },
     ],
-    modulo_sync: 'viaturas',
-  },
-  embarcacoes: {
-    label: 'Embarcações', emoji: '⛵', cor: '#3b82f6',
-    categoria_db: 'embarcacoes',
-    unidade_uso: 'h',
-    colunas: [
-      { k: 'nome',  label: 'Nome' },
-      { k: 'placa', label: 'Indicativo', mono: true },
-      { k: 'subtipo', label: 'Subtipo' },
-      { k: 'loc',   label: 'Local' },
-      { k: 'uso_atual', label: 'Uso', mono: true, suffix: ' h' },
-      { k: 'status', label: 'Status', isStatus: true },
-    ],
-    modulo_sync: 'embarcacoes',
+    modulo_sync: 'transportes',
   },
 };
 
@@ -353,7 +340,7 @@ function renderCatNav() {
   const nav = el('#cat-nav');
   nav.innerHTML = '';
   for (const [key, cat] of Object.entries(CATEGORIAS)) {
-    const count = state.ativos.filter(a => a.categoria === cat.categoria_db).length;
+    const count = state.ativos.filter(a => Array.isArray(cat.categoria_db) ? cat.categoria_db.includes(a.categoria) : a.categoria === cat.categoria_db).length;
     const btn = document.createElement('button');
     btn.className = 'cat-btn' + (key === state.categoria ? ' active' : '');
     btn.innerHTML = `<span class="emoji">${cat.emoji}</span><span class="label">${cat.label}</span><span class="count">${count}</span>`;
@@ -385,7 +372,7 @@ function renderThead() {
 
 function populateFiltroLocal() {
   const cat = CATEGORIAS[state.categoria];
-  const ativosCat = state.ativos.filter(a => a.categoria === cat.categoria_db);
+  const ativosCat = state.ativos.filter(a => Array.isArray(cat.categoria_db) ? cat.categoria_db.includes(a.categoria) : a.categoria === cat.categoria_db);
   const locais = [...new Set(ativosCat.map(a => a.loc).filter(Boolean))].sort();
   el('#f-local').innerHTML = '<option value="">Todos</option>' +
     locais.map(l => `<option value="${l}">${l}</option>`).join('');
@@ -407,7 +394,7 @@ function calcStatus(ativo) {
 
 function renderLista() {
   const cat = CATEGORIAS[state.categoria];
-  let ativos = state.ativos.filter(a => a.categoria === cat.categoria_db);
+  let ativos = state.ativos.filter(a => Array.isArray(cat.categoria_db) ? cat.categoria_db.includes(a.categoria) : a.categoria === cat.categoria_db);
 
   // filtros
   if (state.filtros.local) ativos = ativos.filter(a => a.loc === state.filtros.local);

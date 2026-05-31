@@ -362,7 +362,7 @@
     "unidade": "L",
     "preco_unit": 180.0,
     "categoria": "lubrificante",
-    "aplicavel_a": "viaturas"
+    "aplicavel_a": "frota_terrestre"
   },
   {
     "id": "mat_filtro_oleo_vtr",
@@ -370,7 +370,7 @@
     "unidade": "un",
     "preco_unit": 35.0,
     "categoria": "filtro",
-    "aplicavel_a": "viaturas"
+    "aplicavel_a": "frota_terrestre"
   },
   {
     "id": "mat_pastilha_freio",
@@ -378,7 +378,7 @@
     "unidade": "jg",
     "preco_unit": 120.0,
     "categoria": "freio",
-    "aplicavel_a": "viaturas"
+    "aplicavel_a": "frota_terrestre"
   },
   {
     "id": "mat_oleo_nautico_2t",
@@ -386,7 +386,7 @@
     "unidade": "L",
     "preco_unit": 75.0,
     "categoria": "lubrificante",
-    "aplicavel_a": "embarcacoes"
+    "aplicavel_a": "frota_naval"
   },
   {
     "id": "mat_anodo_zinco",
@@ -394,7 +394,7 @@
     "unidade": "un",
     "preco_unit": 60.0,
     "categoria": "nautico",
-    "aplicavel_a": "embarcacoes"
+    "aplicavel_a": "frota_naval"
   },
   {
     "id": "mat_tinta_anti_incrust",
@@ -402,6 +402,6 @@
     "unidade": "L",
     "preco_unit": 220.0,
     "categoria": "nautico",
-    "aplicavel_a": "embarcacoes"
+    "aplicavel_a": "frota_naval"
   }
 ]

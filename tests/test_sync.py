@@ -21,22 +21,22 @@ def test_list_modulos_returns_seeded_pmocs(app_client):
     data = r.json()
     nomes = sorted(m["nome"] for m in data)
     assert nomes == [
-        "pmoc_calibracao",
-        "pmoc_eletrica",
-        "pmoc_grama",
-        "pmoc_paiois",
-        "pmoc_predial",
-        "pmoc_refrigeracao",
-        "pmoc_transportes",
+        "calibracao",
+        "eletrica",
+        "maq_corte",
+        "paiois",
+        "predial",
+        "refrigeracao",
+        "transportes",
     ]
 
 
 def test_list_modulos_parses_categorias_atend_as_list(app_client):
     client, _ = app_client
     r = client.get("/api/modulos")
-    refrig = next(m for m in r.json() if m["nome"] == "pmoc_refrigeracao")
+    refrig = next(m for m in r.json() if m["nome"] == "refrigeracao")
     assert refrig["categorias_atend"] == ["climatizacao"]
-    transp = next(m for m in r.json() if m["nome"] == "pmoc_transportes")
+    transp = next(m for m in r.json() if m["nome"] == "transportes")
     assert set(transp["categorias_atend"]) == {"frota_terrestre", "frota_naval"}
 
 
@@ -45,10 +45,10 @@ def test_list_modulos_parses_categorias_atend_as_list(app_client):
 
 def test_cursor_returns_null_when_no_record(app_client):
     client, _ = app_client
-    r = client.get("/api/sync/cursor", params={"modulo": "pmoc_refrigeracao", "device": "dev-A"})
+    r = client.get("/api/sync/cursor", params={"modulo": "refrigeracao", "device": "dev-A"})
     assert r.status_code == 200
     assert r.json() == {
-        "modulo": "pmoc_refrigeracao",
+        "modulo": "refrigeracao",
         "device_id": "dev-A",
         "ultimo_evento_id": None,
         "ultimo_push_em": None,
@@ -58,7 +58,7 @@ def test_cursor_returns_null_when_no_record(app_client):
 
 def test_cursor_requires_modulo_and_device(app_client):
     client, _ = app_client
-    r = client.get("/api/sync/cursor", params={"modulo": "pmoc_refrigeracao"})
+    r = client.get("/api/sync/cursor", params={"modulo": "refrigeracao"})
     assert r.status_code == 422  # FastAPI validation
 
 
@@ -71,7 +71,7 @@ def test_cursor_rejects_unknown_modulo(app_client):
 # ────────────────────────── /api/sync/push ──────────────────────────
 
 
-def _push_body(eventos, modulo="pmoc_refrigeracao", device="dev-A"):
+def _push_body(eventos, modulo="refrigeracao", device="dev-A"):
     return {"modulo": modulo, "device_id": device, "eventos": eventos}
 
 
@@ -132,7 +132,7 @@ def test_push_updates_sync_cursor(app_client):
     client, _ = app_client
     eid = "00000000-0000-0000-0000-000000000004"
     client.post("/api/sync/push", json=_push_body([_evento(eid)]))
-    r = client.get("/api/sync/cursor", params={"modulo": "pmoc_refrigeracao", "device": "dev-A"})
+    r = client.get("/api/sync/cursor", params={"modulo": "refrigeracao", "device": "dev-A"})
     body = r.json()
     assert body["ultimo_evento_id"] == eid
     assert body["ultimo_push_em"] is not None
@@ -166,7 +166,7 @@ def test_manifest_rejects_unknown_modulo(app_client):
 
 def test_manifest_returns_required_keys(app_client):
     client, _ = app_client
-    r = client.get("/api/sync/manifest", params={"modulo": "pmoc_refrigeracao"})
+    r = client.get("/api/sync/manifest", params={"modulo": "refrigeracao"})
     assert r.status_code == 200
     body = r.json()
     for key in [
@@ -188,12 +188,12 @@ def test_manifest_returns_required_keys(app_client):
 
 def test_manifest_filters_ativos_by_modulo_categorias(app_client):
     client, main = app_client
-    # Seed: 2 ativos, um de climatização (relevante p/ pmoc_refrigeracao), outro não
+    # Seed: 2 ativos, um de climatização (relevante p/ refrigeracao), outro não
     _exec(main, "INSERT INTO ativos (id, tipo, categoria, nome, ativo) VALUES (?, ?, ?, ?, 1)",
           ("a-clim-1", "AC_SPLIT", "climatizacao", "AC Sala 1"))
     _exec(main, "INSERT INTO ativos (id, tipo, categoria, nome, ativo) VALUES (?, ?, ?, ?, 1)",
           ("a-vtr-1", "VTR_PICKUP", "frota_terrestre", "S-10"))
-    r = client.get("/api/sync/manifest", params={"modulo": "pmoc_refrigeracao"})
+    r = client.get("/api/sync/manifest", params={"modulo": "refrigeracao"})
     ativos_ids = {a["id"] for a in r.json()["ativos"]}
     assert "a-clim-1" in ativos_ids
     assert "a-vtr-1" not in ativos_ids
@@ -211,7 +211,7 @@ def test_manifest_filters_catalogo_servicos_by_aplicavel_a(app_client):
         "INSERT INTO catalogo_servicos (id, codigo, nome, escopo, versao, aplicavel_a) "
         "VALUES (?, ?, ?, 'central', 1, ?)",
         ("s2", "TROCA_OLEO", "Troca de óleo", '{"categorias":["frota_terrestre"]}'))
-    r = client.get("/api/sync/manifest", params={"modulo": "pmoc_refrigeracao"})
+    r = client.get("/api/sync/manifest", params={"modulo": "refrigeracao"})
     cods = {s["codigo"] for s in r.json()["catalogo_servicos"]}
     assert "LIMP_SPLIT" in cods
     assert "TROCA_OLEO" not in cods
@@ -224,7 +224,7 @@ def test_manifest_excludes_local_scope_servicos(app_client):
         "INSERT INTO catalogo_servicos (id, codigo, nome, escopo, versao, aplicavel_a) "
         "VALUES (?, ?, ?, 'local', 1, ?)",
         ("s-local", "LIMP_LOCAL", "Local", '{"categorias":["climatizacao"]}'))
-    r = client.get("/api/sync/manifest", params={"modulo": "pmoc_refrigeracao"})
+    r = client.get("/api/sync/manifest", params={"modulo": "refrigeracao"})
     cods = {s["codigo"] for s in r.json()["catalogo_servicos"]}
     assert "LIMP_LOCAL" not in cods
 
@@ -241,6 +241,6 @@ def test_manifest_includes_planos_for_module_ativos(app_client):
         "INSERT INTO planos_manutencao (id, servico_id, ativo_id, frequencia) "
         "VALUES (?, ?, ?, ?)",
         ("p1", "s-clim", "a-clim-2", '{"tipo":"periodica","valor":"P1M"}'))
-    r = client.get("/api/sync/manifest", params={"modulo": "pmoc_refrigeracao"})
+    r = client.get("/api/sync/manifest", params={"modulo": "refrigeracao"})
     plano_ids = {p["id"] for p in r.json()["planos_manutencao"]}
     assert "p1" in plano_ids

@@ -36,21 +36,21 @@ ATIVOS = [
     ("u12","SOL",  "maquinas_corte","Trator Solis 90",None,None,"Galpão Manutenção",None,"Trator Agrícola Solis 90",0,"h"),
 
     # ── VIATURAS INTERNAS (Ilha do Engenho) ────────────────────────────────────
-    ("vtr01","VTR_CARGA",  "viaturas","MUNK (Basculante)",  "KPJ-8385",None,"Garagem CMASM","vtr_int","Recolhimento de lixo / transporte interno",0,"km"),
-    ("vtr02","VTR_PICKUP", "viaturas","S-10 Picape",        "LRZ-5099",None,"Garagem CMASM","vtr_int",None,0,"km"),
-    ("vtr03","VTR_PICKUP", "viaturas","Ambulância",         None,      None,"Garagem CMASM","vtr_int","Viatura de saúde",0,"km"),
-    ("vtr04","VTR_CARGA",  "viaturas","Caminhão Constellation",None,   None,"Garagem CMASM","vtr_int","Transporte de material pesado",0,"km"),
-    ("vtr05","VTR_CARGA",  "viaturas","XCMG (Guindaste)",   None,      None,"Garagem CMASM","vtr_int","Guindaste / faina de armamento",0,"h"),
+    ("vtr01","VTR_CARGA",  "frota_terrestre","MUNK (Basculante)",  "KPJ-8385",None,"Garagem CMASM","vtr_int","Recolhimento de lixo / transporte interno",0,"km"),
+    ("vtr02","VTR_PICKUP", "frota_terrestre","S-10 Picape",        "LRZ-5099",None,"Garagem CMASM","vtr_int",None,0,"km"),
+    ("vtr03","VTR_PICKUP", "frota_terrestre","Ambulância",         None,      None,"Garagem CMASM","vtr_int","Viatura de saúde",0,"km"),
+    ("vtr04","VTR_CARGA",  "frota_terrestre","Caminhão Constellation",None,   None,"Garagem CMASM","vtr_int","Transporte de material pesado",0,"km"),
+    ("vtr05","VTR_CARGA",  "frota_terrestre","XCMG (Guindaste)",   None,      None,"Garagem CMASM","vtr_int","Guindaste / faina de armamento",0,"h"),
 
     # ── VIATURAS EXTERNAS (Ilha das Flores — uso fora do CMASM) ───────────────
-    ("vtr10","VTR_PICKUP", "viaturas","Doblô 1.4",          None,      None,"Ilha das Flores","vtr_ext","Transporte de pessoal externo",0,"km"),
+    ("vtr10","VTR_PICKUP", "frota_terrestre","Doblô 1.4",          None,      None,"Ilha das Flores","vtr_ext","Transporte de pessoal externo",0,"km"),
 
     # ── EMBARCAÇÕES DE ROTINA ──────────────────────────────────────────────────
-    ("emb01","EMB_LANCHA","embarcacoes","ETPM Fátima",      "CMASM-08",None,"Cais CMASM","emb_rot","Translado Ilha do Engenho ↔ Ilha das Flores (~12 viagens/dia)",0,"h"),
+    ("emb01","EMB_LANCHA","frota_naval","ETPM Fátima",      "CMASM-08",None,"Cais CMASM","emb_rot","Translado Ilha do Engenho ↔ Ilha das Flores (~12 viagens/dia)",0,"h"),
 
     # ── EMBARCAÇÕES DE PATRULHA / SOBREAVISO ──────────────────────────────────
-    ("emb02","EMB_LANCHA","embarcacoes","Lancha Natal",     "CMASM-05",None,"Cais CMASM","emb_pat","Sobreaviso 18h–06h",0,"h"),
-    ("emb03","EMB_LANCHA","embarcacoes","Sargento Freitas", "CMASM-10",None,"Cais CMASM","emb_pat","Embarcação de apoio a fainas",0,"h"),
+    ("emb02","EMB_LANCHA","frota_naval","Lancha Natal",     "CMASM-05",None,"Cais CMASM","emb_pat","Sobreaviso 18h–06h",0,"h"),
+    ("emb03","EMB_LANCHA","frota_naval","Sargento Freitas", "CMASM-10",None,"Cais CMASM","emb_pat","Embarcação de apoio a fainas",0,"h"),
 
     # ── CLIMATIZAÇÃO ───────────────────────────────────────────────────────────
     ("u40","AC_SPLIT",  "climatizacao","AC Sala Comando",     None,"",      "Bloco Admin",      None,"24.000 BTU",0,"meses"),

@@ -26,14 +26,14 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PMOC_REFS = ROOT.parent / "pmoc.refs"
+PMOC_REFS = ROOT.parent / "arquivo_cmms_25mai2026" / "referencias" / "pmoc"
 SEEDS_DIR = ROOT / "pmoc" / "seeds"
 
 # Importa ATIVOS de tools/seed_ativos.py sem rodar o seed
 sys.path.insert(0, str(ROOT))
 from tools.seed_ativos import ATIVOS  # noqa: E402
 
-CATEGORIAS_ENTREGA = {"climatizacao", "maquinas_corte", "viaturas", "embarcacoes"}
+CATEGORIAS_ENTREGA = {"climatizacao", "maquinas_corte", "frota_terrestre", "frota_naval"}
 
 
 def gen_ativos():
@@ -152,25 +152,25 @@ def gen_estoque_catalogo():
     vtr = [
         {"id": "mat_oleo_5w30_4l", "descricao": "Óleo 5W-30 sintético 4L",
          "unidade": "L", "preco_unit": 180.0, "categoria": "lubrificante",
-         "aplicavel_a": "viaturas"},
+         "aplicavel_a": "frota_terrestre"},
         {"id": "mat_filtro_oleo_vtr", "descricao": "Filtro de óleo (genérico viatura)",
          "unidade": "un", "preco_unit": 35.0, "categoria": "filtro",
-         "aplicavel_a": "viaturas"},
+         "aplicavel_a": "frota_terrestre"},
         {"id": "mat_pastilha_freio", "descricao": "Pastilha de freio (jogo)",
          "unidade": "jg", "preco_unit": 120.0, "categoria": "freio",
-         "aplicavel_a": "viaturas"},
+         "aplicavel_a": "frota_terrestre"},
     ]
     # Materiais básicos de embarcações
     emb = [
         {"id": "mat_oleo_nautico_2t", "descricao": "Óleo náutico 2T 1L",
          "unidade": "L", "preco_unit": 75.0, "categoria": "lubrificante",
-         "aplicavel_a": "embarcacoes"},
+         "aplicavel_a": "frota_naval"},
         {"id": "mat_anodo_zinco", "descricao": "Ânodo de zinco",
          "unidade": "un", "preco_unit": 60.0, "categoria": "nautico",
-         "aplicavel_a": "embarcacoes"},
+         "aplicavel_a": "frota_naval"},
         {"id": "mat_tinta_anti_incrust", "descricao": "Tinta anti-incrustante 1L",
          "unidade": "L", "preco_unit": 220.0, "categoria": "nautico",
-         "aplicavel_a": "embarcacoes"},
+         "aplicavel_a": "frota_naval"},
     ]
     return pecas_corte + refrig + vtr + emb
 

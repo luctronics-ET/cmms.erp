@@ -211,13 +211,13 @@ CREATE TABLE IF NOT EXISTS sync_cursor (
 -- ========================================================
 
 INSERT OR IGNORE INTO modulos_registrados (nome, descricao, categorias_atend) VALUES
-  ('pmoc_refrigeracao', 'Climatização (splits, central)',         '["climatizacao"]'),
-  ('pmoc_eletrica',     'Elétrica e geradores',                   '["eletrica"]'),
-  ('pmoc_predial',      'Locais e inspeção predial',              '["predial"]'),
-  ('pmoc_paiois',       'Paiois e inventário militar',            '["paiois_item"]'),
-  ('pmoc_transportes',  'Viaturas e embarcações',                 '["frota_terrestre","frota_naval"]'),
-  ('pmoc_grama',        'Controle vegetal / máquinas de corte',   '["maquinas_corte"]'),
-  ('pmoc_calibracao',   'Instrumentos calibrados',                '["instrumentos"]');
+  ('refrigeracao', 'Climatização (splits, central)',         '["climatizacao"]'),
+  ('eletrica',     'Elétrica e geradores',                   '["eletrica"]'),
+  ('predial',      'Locais e inspeção predial',              '["predial"]'),
+  ('paiois',       'Paiois e inventário militar',            '["paiois_item"]'),
+  ('transportes',  'Viaturas e embarcações',                 '["frota_terrestre","frota_naval"]'),
+  ('maq_corte',    'Controle vegetal / máquinas de corte',   '["maquinas_corte"]'),
+  ('calibracao',   'Instrumentos calibrados',                '["instrumentos"]');
 
 INSERT OR IGNORE INTO qualificacoes_catalogo (codigo, nome, descricao, requer_validade) VALUES
   ('tec_refrig',        'Técnico em Refrigeração',           'NR-34 + curso técnico em refrigeração',         1),

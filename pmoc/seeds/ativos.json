@@ -182,7 +182,7 @@
   {
     "id": "vtr01",
     "tipo": "VTR_CARGA",
-    "categoria": "viaturas",
+    "categoria": "frota_terrestre",
     "nome": "MUNK (Basculante)",
     "placa": "KPJ-8385",
     "pat": null,
@@ -197,7 +197,7 @@
   {
     "id": "vtr02",
     "tipo": "VTR_PICKUP",
-    "categoria": "viaturas",
+    "categoria": "frota_terrestre",
     "nome": "S-10 Picape",
     "placa": "LRZ-5099",
     "pat": null,
@@ -212,7 +212,7 @@
   {
     "id": "vtr03",
     "tipo": "VTR_PICKUP",
-    "categoria": "viaturas",
+    "categoria": "frota_terrestre",
     "nome": "Ambulância",
     "placa": null,
     "pat": null,
@@ -227,7 +227,7 @@
   {
     "id": "vtr04",
     "tipo": "VTR_CARGA",
-    "categoria": "viaturas",
+    "categoria": "frota_terrestre",
     "nome": "Caminhão Constellation",
     "placa": null,
     "pat": null,
@@ -242,7 +242,7 @@
   {
     "id": "vtr05",
     "tipo": "VTR_CARGA",
-    "categoria": "viaturas",
+    "categoria": "frota_terrestre",
     "nome": "XCMG (Guindaste)",
     "placa": null,
     "pat": null,
@@ -257,7 +257,7 @@
   {
     "id": "vtr10",
     "tipo": "VTR_PICKUP",
-    "categoria": "viaturas",
+    "categoria": "frota_terrestre",
     "nome": "Doblô 1.4",
     "placa": null,
     "pat": null,
@@ -272,7 +272,7 @@
   {
     "id": "emb01",
     "tipo": "EMB_LANCHA",
-    "categoria": "embarcacoes",
+    "categoria": "frota_naval",
     "nome": "ETPM Fátima",
     "placa": "CMASM-08",
     "pat": null,
@@ -287,7 +287,7 @@
   {
     "id": "emb02",
     "tipo": "EMB_LANCHA",
-    "categoria": "embarcacoes",
+    "categoria": "frota_naval",
     "nome": "Lancha Natal",
     "placa": "CMASM-05",
     "pat": null,
@@ -302,7 +302,7 @@
   {
     "id": "emb03",
     "tipo": "EMB_LANCHA",
-    "categoria": "embarcacoes",
+    "categoria": "frota_naval",
     "nome": "Sargento Freitas",
     "placa": "CMASM-10",
     "pat": null,

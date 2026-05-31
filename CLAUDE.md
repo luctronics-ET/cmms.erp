@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**xCMASM** (Centro de Mísseis e Armas Submarinas) is a **modular integrated platform** for asset and service management at a Brazilian naval facility.
+**cmasm.erp** is a **integrated management platform** for assets, service and manintenance at a Brazilian naval facility, **Centro de Mísseis e Armas Submarinas da Marinha (CMASM)**.
 
 **Arquitetura: núcleo + PMOC único categorizado.** O sistema é composto por (1) o **núcleo** (`cmasm.erp`) — backend FastAPI + ERP web (`cmasm_erp.html`) com módulo Manutenção categorizado por `tipo` de ativo; e (2) um **PMOC único offline-first** (`cmasm.erp/pmoc/`), app HTML de campo com categorias internas (refrigeração, predial, paióis, transportes, grama, elétrica, calibração) que sincroniza com o núcleo via API.
 
