@@ -4,18 +4,9 @@
 <meta charset="UTF-8">
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/pmoc-engine.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CMASM · ERP</title>
-<link rel="canonical" href="xCore/cmasm-erp.html">
-<meta http-equiv="refresh" content="0; url=xCore/cmasm-erp.html">
-<script>
-(() => {
-  const target = new URL('xCore/cmasm-erp.html', window.location.href);
-  target.search = window.location.search;
-  target.hash = window.location.hash;
-  window.location.replace(target.href);
-})();
-</script>
+<title>cmasm.erp</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    TOKENS
@@ -75,7 +66,7 @@
   --ok: var(--green-500);
   --warn: var(--yellow-500);
   --danger: var(--red-500);
-  --sidebar-bg: #1a2b4a;
+  --sidebar-bg: #e6edf5;
   --topbar-bg: rgba(240,244,248,.95);
 }
 
@@ -94,7 +85,7 @@ table{border-collapse:collapse;width:100%}
 .login-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(59,130,246,.12) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(6,182,212,.08) 0%,transparent 50%);pointer-events:none}
 .login-box{position:relative;width:380px;background:var(--navy-900);border:1px solid var(--border2);border-radius:16px;padding:40px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
 .login-logo{text-align:center;margin-bottom:32px}
-.login-emblem{width:56px;height:56px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:18px;color:#fff;letter-spacing:-1px}
+.login-emblem{width:56px;height:56px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:22px;font-weight:700;color:#fff;letter-spacing:-1px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .login-logo h1{font-size:22px;font-weight:700;letter-spacing:-.5px;color:var(--text1)}
 .login-logo p{font-size:12px;color:var(--text3);margin-top:4px;font-family:'IBM Plex Mono',monospace}
 .login-field{margin-bottom:16px}
@@ -121,7 +112,7 @@ table{border-collapse:collapse;width:100%}
 /* ═══ TOPBAR ═════════════════════════════════════════════════ */
 .topbar{grid-column:1/-1;background:var(--topbar-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px 0 0;z-index:100}
 .topbar-logo{display:flex;align-items:center;gap:10px;padding:0 20px;width:220px;border-right:1px solid var(--border)}
-.topbar-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:11px;color:#fff;flex-shrink:0}
+.topbar-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(59,130,246,.25)}
 .topbar-logo-text{font-size:14px;font-weight:700;letter-spacing:-.3px;color:var(--text1)}
 .topbar-module{padding:0 20px;font-size:12px;color:var(--text3);font-family:'IBM Plex Mono',monospace;flex:1}
 .topbar-actions{display:flex;align-items:center;gap:8px}
@@ -159,6 +150,16 @@ table{border-collapse:collapse;width:100%}
 .main{overflow-y:auto;background:var(--bg)}
 .page{display:none;padding:24px;min-height:100%}
 .page.active{display:block}
+
+#page-dashboard{padding:12px 14px 16px}
+#page-dashboard .page-hdr{margin-bottom:10px;align-items:center}
+#page-dashboard .page-hdr-left h1{font-size:18px}
+#page-dashboard .page-hdr-left p{font-size:12px}
+#page-dashboard .kpi-grid{gap:8px;margin-bottom:10px}
+#page-dashboard .kpi{padding:10px 11px;border-radius:10px}
+#page-dashboard .kpi-label{font-size:10px;margin-bottom:5px}
+#page-dashboard .kpi-value{font-size:19px}
+#page-dashboard .kpi-sub{font-size:10px;margin-top:2px}
 
 /* ═══ PAGE HEADER ════════════════════════════════════════════ */
 .page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px}
@@ -239,8 +240,8 @@ table{border-collapse:collapse;width:100%}
 .form-group textarea{resize:vertical;min-height:80px}
 
 /* ═══ MODAL ══════════════════════════════════════════════════ */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .2s}
-.modal-backdrop.open{opacity:1}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s, visibility 0s linear .2s}
+.modal-backdrop.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s}
 .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;transform:translateY(8px);transition:transform .2s;box-shadow:0 24px 80px rgba(0,0,0,.5)}
 .modal-backdrop.open .modal{transform:translateY(0)}
 .modal-lg{max-width:720px}
@@ -275,6 +276,12 @@ table{border-collapse:collapse;width:100%}
 .status-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .status-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;transition:border-color .2s}
 .status-card:hover{border-color:var(--border2)}
+.status-grid.portal-mod-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.status-card.module-tile{min-height:152px;padding:12px;display:flex;flex-direction:column;justify-content:space-between}
+.status-card.module-tile .sc-header{margin-bottom:8px}
+.status-card.module-tile .sc-name{font-size:12px}
+.status-card.module-tile .sc-code{font-size:10px}
+.status-card.module-tile .sc-row{font-size:11px}
 .sc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sc-name{font-size:13px;font-weight:600;color:var(--text1)}
 .sc-code{font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace}
@@ -301,6 +308,24 @@ table{border-collapse:collapse;width:100%}
 .qa-btn:hover{border-color:var(--acc);background:rgba(59,130,246,.05)}
 .qa-btn svg{display:block;margin:0 auto 8px;color:var(--acc2)}
 .qa-btn-label{font-size:12px;font-weight:500;color:var(--text2)}
+
+.portal-main-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:start;margin-bottom:12px}
+.portal-col3{display:grid;gap:12px}
+#page-dashboard .portal-main-grid .qa-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#page-dashboard .portal-main-grid .qa-btn{aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:center;padding:10px}
+#page-dashboard .portal-main-grid .card-header{padding:10px 12px}
+#page-dashboard .portal-main-grid .card-body{padding:10px 12px}
+#page-dashboard .portal-main-grid .tbl th{padding:7px 8px}
+#page-dashboard .portal-main-grid .tbl td{padding:7px 8px}
+
+@media (max-width: 1180px){
+  .portal-main-grid{grid-template-columns:1fr 1fr}
+  .portal-col3{grid-column:1 / -1;grid-template-columns:1fr 1fr}
+}
+@media (max-width: 860px){
+  .portal-main-grid{grid-template-columns:1fr}
+  .portal-col3{grid-template-columns:1fr}
+}
 
 /* ═══ FLEET CARDS ════════════════════════════════════════════ */
 .fleet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
@@ -339,10 +364,55 @@ table{border-collapse:collapse;width:100%}
 .empty-state{text-align:center;padding:48px 24px;color:var(--text3)}
 .empty-state svg{margin:0 auto 12px;opacity:.4;display:block}
 .empty-state p{font-size:13px}
+
+/* ═══ COLABORADOR HUB ══════════════════════════════════════ */
+.ch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.ch-item{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;transition:border-color .2s}
+.ch-item:hover{border-color:var(--border2)}
+.ch-meta{font-size:11px;color:var(--text3);margin-top:4px}
+.ch-title{font-size:14px;font-weight:700;color:var(--text1);margin-bottom:4px}
+.ch-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.ch-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:16px}
+.ch-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.ch-stat .v{font-size:24px;font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--text1);line-height:1}
+.ch-stat .l{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.ch-form{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+
+/* ═══ LEAFLET ═══════════════════════════════════════════════ */
+.veg-map-card .card-body{padding:12px}
+.veg-map-shell{padding:12px}
+.veg-map-host{position:relative;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,rgba(34,197,94,.08),rgba(13,30,51,.25));height:clamp(540px,72vh,920px)}
+.veg-map-hero{min-height:clamp(540px,72vh,920px)}
+#veg-map-canvas{width:100%;height:100%;display:block}
+.veg-map-tools{position:absolute;top:12px;right:12px;z-index:450;display:flex;gap:8px;align-items:flex-start;pointer-events:none}
+.veg-map-tools-card{pointer-events:auto;max-width:260px;background:rgba(5,13,26,.88);backdrop-filter:blur(10px);border:1px solid var(--border2);border-radius:12px;padding:10px 12px;box-shadow:0 12px 28px rgba(0,0,0,.32)}
+.veg-map-tools-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:4px}
+.veg-map-tools-text{font-size:12px;line-height:1.45;color:var(--text2)}
+.veg-map-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--text3)}
+.veg-map-legend .status-dot{margin-right:4px}
+.veg-style-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.veg-style-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.veg-style-preview{width:100%;height:14px;border-radius:999px;border:1px solid var(--border2);background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
+.veg-style-preview span{display:block;width:100%;height:100%;border-radius:999px}
+.veg-group-card .card-body{padding:12px}
+.veg-group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.veg-group-item{width:100%;text-align:left;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .2s}
+.veg-group-item:hover{border-color:var(--acc);box-shadow:0 10px 22px rgba(0,0,0,.22);transform:translateY(-1px)}
+.veg-group-name{font-size:13px;font-weight:700;color:var(--text1);margin-bottom:4px}
+.veg-group-meta{font-size:11px;color:var(--text3);line-height:1.45}
+.veg-group-compact{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.veg-hidden-row{opacity:.58}
+.modal-veg-area{max-width:840px}
+.leaflet-container{background:var(--bg3);font:12px 'IBM Plex Sans',sans-serif}
+.leaflet-control-zoom a{background:var(--bg2);color:var(--text1);border-bottom-color:var(--border)!important}
+.leaflet-control-zoom a:hover{background:var(--bg3);color:var(--acc)}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--bg2);color:var(--text1)}
+.leaflet-popup-content{margin:10px 12px;line-height:1.5}
 </style>
 <script src="assets/pmoc-engine.js" defer></script>
 <script src="assets/erp-manutencao-mocks.js" defer></script>
 <script src="assets/erp-manutencao.js" defer></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
 </head>
 <body>
 
@@ -353,9 +423,9 @@ table{border-collapse:collapse;width:100%}
   <div class="login-bg"></div>
   <div class="login-box">
     <div class="login-logo">
-      <div class="login-emblem">xC</div>
-      <h1>xCMASM · ERP</h1>
-      <p>Sistema de Gestão Integrada · v5.0</p>
+      <div class="login-emblem">⚓</div>
+      <h1>cmasm.erp</h1>
+      <p>Portal integrado · v5.0</p>
     </div>
     <div class="login-field">
       <label>Identificação</label>
@@ -392,10 +462,10 @@ table{border-collapse:collapse;width:100%}
 <!-- TOPBAR -->
 <header class="topbar">
   <div class="topbar-logo">
-    <div class="topbar-logo-icon">xC</div>
-    <span class="topbar-logo-text">xCMASM</span>
+    <div class="topbar-logo-icon">⚓</div>
+    <span class="topbar-logo-text">cmasm.erp</span>
   </div>
-  <div class="topbar-module" id="topbar-module">Sistema de Gestão Integrada</div>
+  <div class="topbar-module" id="topbar-module">Portal integrado</div>
   <div class="topbar-actions">
     <span id="topbar-badge" class="topbar-badge ok">● Sistema OK</span>
     <button class="btn-icon" title="Alternar tema" onclick="toggleTheme()">
@@ -414,24 +484,10 @@ table{border-collapse:collapse;width:100%}
     <div class="sb-section">Principal</div>
     <div class="ni active" data-page="dashboard" onclick="showPage('dashboard',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      Dashboard
+      Portal
     </div>
 
-    <div class="sb-section">Organização</div>
-    <div class="ni" data-page="organizacao" onclick="showPage('organizacao',this)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      Pessoal (TMFT)
-    </div>
-    <div class="ni" data-page="cargos" onclick="showPage('cargos',this)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-      Cargos
-    </div>
-    <div class="ni" data-page="organograma" onclick="showPage('organograma',this)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><rect x="1" y="18" width="6" height="4" rx="1"/><rect x="9" y="18" width="6" height="4" rx="1"/><rect x="17" y="18" width="6" height="4" rx="1"/><path d="M12 6v4M4 18v-4h16v4M12 10h-8v4M12 10h8v4"/></svg>
-      Organograma
-    </div>
-
-    <div class="sb-section">Operações</div>
+    <div class="sb-section">Infraestrutura (CMASM-10)</div>
     <div class="ni" data-page="servicos" onclick="showPage('servicos',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Serviços (OS)
@@ -442,17 +498,11 @@ table{border-collapse:collapse;width:100%}
     </div>
     <div class="ni" data-page="manutencao" onclick="showPage('manutencao',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-      Manutenção
+      Manutenção PMOC
     </div>
     <div class="ni" data-page="calibracao" onclick="showPage('calibracao',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       Calibração
-    </div>
-
-    <div class="sb-section">Instalações &amp; Logística</div>
-    <div class="ni" data-page="estoque" onclick="showPage('estoque',this)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-      Estoque
     </div>
     <div class="ni" data-page="vegetal" onclick="showPage('vegetal',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V12M12 12C12 7 7 3 2 3c0 5 4 9 10 9zM12 12C12 7 17 3 22 3c0 5-4 9-10 9z"/></svg>
@@ -460,57 +510,106 @@ table{border-collapse:collapse;width:100%}
     </div>
     <div class="ni" data-page="predial" onclick="showPage('predial',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="1"/><path d="M9 3v18M15 9h4M15 12h4M15 15h4M5 9h2M5 12h2M5 15h2"/></svg>
-      Locais &amp; Predial
+      Predial
     </div>
-    <div class="ni" data-page="paiois" onclick="showPage('paiois',this)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Paiois
+    <div class="ni" data-page="estoque" onclick="showPage('estoque',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Estoque MRP
     </div>
 
-
-    <div class="sb-section">Módulos Externos</div>
-    <div class="ni ni-ext" onclick="openModulo('xpredial')" title="xPredial — Gestão Predial (porta 8002)">
-      <span class="ni-ext-ico">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="1"/><path d="M9 3v18M15 9h4M15 12h4M15 15h4M5 9h2M5 12h2M5 15h2"/></svg>
-        xPredial
-      </span>
-      <span class="ni-ext-tag">↗ ext</span>
-    </div>
-    <div class="ni ni-ext" onclick="openModulo('xseguranca')" title="xSegurança — CCTV e Segurança (porta 8000)">
-      <span class="ni-ext-ico">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        xSegurança
-      </span>
-      <span class="ni-ext-tag">↗ ext</span>
-    </div>
-    <div class="ni ni-ext" onclick="openModulo('xpaiol')" title="xPaiol — Controle de Paiois (porta 8003)">
-      <span class="ni-ext-ico">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        xPaiol
-      </span>
-      <span class="ni-ext-tag">↗ ext</span>
-    </div>
+    <div class="sb-section">Sistemas BMS e IOT</div>
     <div class="ni ni-ext" onclick="openModulo('xaguada')" title="xAguada — Sistema Hídrico (porta 8001)">
       <span class="ni-ext-ico">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10C22 6 17 2 12 2z"/><path d="M12 8v8M8 12h8"/></svg>
-        xAguada
+        Aguada
       </span>
       <span class="ni-ext-tag">↗ ext</span>
     </div>
-    <div class="ni ni-ext" onclick="openModulo('xcalibracao')" title="xCalibracao — Calibração Metrológica (porta 8004)">
+    <div class="ni ni-ext" onclick="toast('Módulo Elétrica em integração','warning')" title="xElétrica — Em integração">
       <span class="ni-ext-ico">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        xCalibracao
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Elétrica
+      </span>
+      <span class="ni-ext-tag">integração</span>
+    </div>
+    <div class="ni ni-ext" onclick="openModulo('xpaiol')" title="xPaiol — Controle de Paióis (porta 8003)">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Paióis
       </span>
       <span class="ni-ext-tag">↗ ext</span>
+    </div>
+    <div class="ni ni-ext" onclick="openModulo('xseguranca')" title="xSegurança — Segurança Integrada (porta 8000)">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Segurança
+      </span>
+      <span class="ni-ext-tag">↗ ext</span>
+    </div>
+    <div class="ni ni-ext" onclick="toast('Módulo CFTV em integração','warning')" title="xCFTV — Em integração">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="14" height="10" rx="2"/><path d="M17 10l4-2v8l-4-2"/></svg>
+        CFTV
+      </span>
+      <span class="ni-ext-tag">integração</span>
     </div>
 
-    <div class="sb-section" id="sb-admin-section">Administração</div>
-    <div class="ni" data-page="usuarios" id="ni-usuarios" onclick="showPage('usuarios',this)">
+    <div class="sb-section">Usuário</div>
+    <div class="ni" data-page="colab-timeoff" onclick="showPage('colab-timeoff',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>
+      Folgas
+    </div>
+    <div class="ni" data-page="colab-tickets" onclick="showPage('colab-tickets',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"/></svg>
+      CP - Comunicação padronizada
+    </div>
+    <div class="ni" data-page="perfil" onclick="showPage('perfil',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Configuração
+    </div>
+
+    <div class="sb-section admin-only" id="sb-admin-section">Administração (CMASM-30)</div>
+    <div class="ni admin-only" data-page="organizacao" onclick="showPage('organizacao',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Pessoal (TMFT)
+    </div>
+    <div class="ni admin-only" data-page="cargos" onclick="showPage('cargos',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Cargos
+    </div>
+    <div class="ni admin-only" data-page="organograma" onclick="showPage('organograma',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><rect x="1" y="18" width="6" height="4" rx="1"/><rect x="9" y="18" width="6" height="4" rx="1"/><rect x="17" y="18" width="6" height="4" rx="1"/><path d="M12 6v4M4 18v-4h16v4M12 10h-8v4M12 10h8v4"/></svg>
+      Organograma
+    </div>
+    <div class="ni admin-only" data-page="colab-executives" onclick="showPage('colab-executives',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Executivos
+    </div>
+    <div class="ni admin-only" data-page="usuarios" id="ni-usuarios" onclick="showPage('usuarios',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       Usuários
     </div>
-    <div class="ni" data-page="admin" id="ni-admin" onclick="showPage('admin',this)">
+    <div class="ni admin-only" data-page="colab-calendar" onclick="showPage('colab-calendar',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendário
+    </div>
+    <div class="ni admin-only" data-page="colab-policies" onclick="showPage('colab-policies',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Normas &amp; Regulamento
+    </div>
+    <div class="ni admin-only" data-page="colab-home" onclick="showPage('colab-home',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 10v10h14V10"/></svg>
+      Início do Colaborador
+    </div>
+    <div class="ni admin-only" data-page="colab-announcements" onclick="showPage('colab-announcements',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a2 2 0 0 0 2 2h1l3 4V5L6 9H5a2 2 0 0 0-2 2z"/><path d="M14 7a5 5 0 0 1 0 10"/></svg>
+      Comunicados
+    </div>
+    <div class="ni admin-only" data-page="colab-admin" onclick="showPage('colab-admin',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 10.9 3.1V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Admin Colaborador
+    </div>
+    <div class="ni admin-only" data-page="admin" id="ni-admin" onclick="showPage('admin',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
       Configurações
     </div>
@@ -541,14 +640,15 @@ table{border-collapse:collapse;width:100%}
 <div id="page-dashboard" class="page active">
   <div class="page-hdr">
     <div class="page-hdr-left">
-      <h1>Dashboard</h1>
-      <p>Visão geral do CMASM — UASG 744030</p>
+      <h1>Portal</h1>
+      <p>Visão geral integrada do cmasm.erp — indicadores, agenda, ações e módulos</p>
     </div>
     <div class="page-hdr-right">
       <span id="dash-datetime" class="text-mono text-sm text-muted"></span>
     </div>
   </div>
 
+  <div class="section-title">Indicadores</div>
   <!-- KPIs -->
   <div class="kpi-grid" id="dash-kpis">
     <div class="kpi kpi-accent"><div class="kpi-label">Pessoal TMFT</div><div class="kpi-value" id="kpi-pessoal">0</div><div class="kpi-sub">militares e civis</div></div>
@@ -559,8 +659,7 @@ table{border-collapse:collapse;width:100%}
     <div class="kpi kpi-ok"><div class="kpi-label">Calibrações</div><div class="kpi-value" id="kpi-calib">0</div><div class="kpi-sub">equipamentos</div></div>
   </div>
 
-  <div class="grid-2" style="gap:16px">
-    <!-- Ações Rápidas -->
+  <div class="portal-main-grid">
     <div class="card">
       <div class="card-header"><span class="card-title">Ações Rápidas</span></div>
       <div class="card-body">
@@ -571,23 +670,22 @@ table{border-collapse:collapse;width:100%}
           </div>
           <div class="qa-btn" onclick="showPage('transportes');openModal('modal-agendar')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-            <div class="qa-btn-label">Agendar Veículo</div>
+            <div class="qa-btn-label">Agendar VTR</div>
           </div>
           <div class="qa-btn" onclick="showPage('manutencao');openModal('modal-nova-os-manut')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-            <div class="qa-btn-label">OS Manutenção</div>
+            <div class="qa-btn-label">OS PMOC</div>
           </div>
           <div class="qa-btn" onclick="showPage('calibracao');openModal('modal-nova-calib')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <div class="qa-btn-label">Registro Calibração</div>
+            <div class="qa-btn-label">Calibração</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Últimas OS -->
     <div class="card">
-      <div class="card-header"><span class="card-title">Últimas OS</span><button class="btn btn-ghost btn-sm" onclick="showPage('servicos')">Ver todas →</button></div>
+      <div class="card-header"><span class="card-title">OS Recentes (envolvendo usuário)</span><button class="btn btn-ghost btn-sm" onclick="showPage('servicos')">Ver todas →</button></div>
       <div class="card-body" style="padding:0">
         <table class="tbl" id="dash-os-table">
           <thead><tr><th>OS</th><th>Assunto</th><th>Status</th></tr></thead>
@@ -595,67 +693,268 @@ table{border-collapse:collapse;width:100%}
         </table>
       </div>
     </div>
+
+    <div class="portal-col3">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Comunicados</span><button class="btn btn-ghost btn-sm" onclick="showPage('colab-announcements')">Ver todos</button></div>
+        <div class="card-body" id="dash-comunicados-body"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Calendário</span><button class="btn btn-ghost btn-sm" onclick="showPage('colab-calendar')">Abrir</button></div>
+        <div class="card-body" id="dash-calendario-body"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Módulos Status -->
   <div class="section-title" style="margin-top:20px">Módulos Internos</div>
-  <div class="status-grid" id="dash-modulos">
-    <div class="status-card" onclick="showPage('servicos')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Serviços (OS/PS)</div><div class="sc-code">CMASM-ERP/SVC</div></div><span class="badge badge-ok">● Ativo</span></div>
+  <div class="status-grid portal-mod-grid" id="dash-modulos">
+    <div class="status-card module-tile" onclick="showPage('servicos')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Serviços OS</div><div class="sc-code">CMASM-ERP/SVC</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Workflow</span><span class="sc-row-value">PS → OS → SR</span></div></div>
     </div>
-    <div class="status-card" onclick="showPage('transportes')" style="cursor:pointer">
+    <div class="status-card module-tile" onclick="showPage('transportes')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Transportes</div><div class="sc-code">CMASM-11.2/TRP</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Frota</span><span id="mod-frota-count">0 ativos</span></div></div>
     </div>
-    <div class="status-card" onclick="showPage('manutencao')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Manutenção (CMMS)</div><div class="sc-code">CMASM-ERP/MANUT</div></div><span class="badge badge-ok">● Ativo</span></div>
+    <div class="status-card module-tile" onclick="showPage('manutencao')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Manutenção (PMOC)</div><div class="sc-code">CMASM-ERP/MANUT</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Ativos gerenciados</span><span id="mod-manut-count">0</span></div></div>
     </div>
-    <div class="status-card" onclick="showPage('estoque')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Estoque</div><div class="sc-code">CMASM-ERP/STQ</div></div><span class="badge badge-ok">● Ativo</span></div>
+    <div class="status-card module-tile" onclick="showPage('estoque')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Estoque (MRP)</div><div class="sc-code">CMASM-ERP/STQ</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Almoxarifado</span><span id="mod-estoque-count">0 itens</span></div></div>
     </div>
-    <div class="status-card" onclick="showPage('vegetal')" style="cursor:pointer">
+    <div class="status-card module-tile" onclick="showPage('vegetal')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Controle Vegetal</div><div class="sc-code">CMASM-ERP/VEG</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">xGrama</span><span class="sc-row-value">Maquinário de corte</span></div></div>
     </div>
-    <div class="status-card" onclick="showPage('predial')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Locais &amp; Predial</div><div class="sc-code">CMASM-ERP/PRD</div></div><span class="badge badge-ok">● Ativo</span></div>
+    <div class="status-card module-tile" onclick="showPage('predial')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Predial</div><div class="sc-code">CMASM-ERP/PRD</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">NBR 5674</span><span class="sc-row-value">Edificações</span></div></div>
     </div>
-    <div class="status-card" onclick="showPage('paiois')" style="cursor:pointer">
+    <div class="status-card module-tile" onclick="showPage('paiois')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Paiois</div><div class="sc-code">CMASM-ERP/PAI</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Controle</span><span class="sc-row-value">Material e munições</span></div></div>
     </div>
-    <div class="status-card" onclick="showPage('calibracao')" style="cursor:pointer">
+    <div class="status-card module-tile" onclick="showPage('calibracao')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Calibração</div><div class="sc-code">CMASM-ERP/CAL</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Equipamentos</span><span id="mod-calib-count">0 cadastrados</span></div></div>
+    </div>
+    <div class="status-card module-tile" onclick="showPage('colab-home')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Portal do Colaborador</div><div class="sc-code">CMASM-ERP/COLAB</div></div><span class="badge badge-ok">● Ativo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">CPs abertas</span><span id="mod-colab-tickets">0</span></div></div>
     </div>
   </div>
 
   <!-- Módulos Externos -->
-  <div class="section-title" style="margin-top:24px">Módulos Externos</div>
-  <div class="status-grid" id="dash-modulos-ext">
-    <div class="status-card" onclick="openModulo('xpredial')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">xPredial</div><div class="sc-code">:8002 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xpredial">○ Externo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Gestão predial · inspeções · NBR 5674</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xpredial')">Abrir ↗</button></div></div>
-    </div>
-    <div class="status-card" onclick="openModulo('xseguranca')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">xSegurança</div><div class="sc-code">:8000 · React + FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xseguranca">○ Externo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">CCTV · câmeras IP · detecção</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xseguranca')">Abrir ↗</button></div></div>
-    </div>
-    <div class="status-card" onclick="openModulo('xpaiol')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">xPaiol</div><div class="sc-code">:8003 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xpaiol">○ Externo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Monitoramento de paiois</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xpaiol')">Abrir ↗</button></div></div>
-    </div>
-    <div class="status-card" onclick="openModulo('xaguada')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">xAguada</div><div class="sc-code">:8001 · FastAPI + MQTT</div></div><span class="badge badge-cyan" id="ext-badge-xaguada">○ Externo</span></div>
+  <div class="section-title" style="margin-top:24px">Sistemas BMS e IoT</div>
+  <div class="status-grid portal-mod-grid" id="dash-modulos-ext">
+    <div class="status-card module-tile" onclick="openModulo('xaguada')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">Aguada</div><div class="sc-code">:8001 · FastAPI + MQTT</div></div><span class="badge badge-cyan" id="ext-badge-xaguada">○ Externo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Sistema hídrico · ETE · SCADA</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xaguada')">Abrir ↗</button></div></div>
     </div>
-    <div class="status-card" onclick="openModulo('xcalibracao')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">xCalibracao</div><div class="sc-code">:8004 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xcalibracao">○ Externo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Calibração metrológica · certificados</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xcalibracao')">Abrir ↗</button></div></div>
+    <div class="status-card module-tile" onclick="toast('Módulo Elétrica em integração','warning')" style="cursor:pointer;border-color:rgba(245,158,11,.25)">
+      <div class="sc-header"><div><div class="sc-name">Elétrica</div><div class="sc-code">Integração em progresso</div></div><span class="badge badge-warn">◐ Integração</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">BMS elétrico · subestações · painéis</span></div></div>
+    </div>
+    <div class="status-card module-tile" onclick="openModulo('xseguranca')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">Segurança</div><div class="sc-code">:8000 · React + FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xseguranca">○ Externo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">CCTV · câmeras IP · detecção</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xseguranca')">Abrir ↗</button></div></div>
+    </div>
+    <div class="status-card module-tile" onclick="openModulo('xpaiol')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">Paiois</div><div class="sc-code">:8003 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xpaiol">○ Externo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Monitoramento de paiois</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xpaiol')">Abrir ↗</button></div></div>
+    </div>
+    <div class="status-card module-tile" onclick="toast('Módulo CFTV em integração','warning')" style="cursor:pointer;border-color:rgba(245,158,11,.25)">
+      <div class="sc-header"><div><div class="sc-name">CFTV</div><div class="sc-code">Integração em progresso</div></div><span class="badge badge-warn">◐ Integração</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Videomonitoramento corporativo</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PORTAL COLABORADOR · INÍCIO ═════════════════════════ -->
+<div id="page-colab-home" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Portal do Colaborador</h1><p>Painel de comunicação interna, agenda e solicitações</p></div>
+    <div class="page-hdr-right">
+      <button class="btn btn-secondary" onclick="showPage('colab-announcements')">Comunicados</button>
+      <button class="btn btn-primary" onclick="showPage('colab-tickets')">+ Abrir CP</button>
+    </div>
+  </div>
+  <div class="ch-stats" id="colab-home-stats"></div>
+  <div class="grid-2" style="gap:16px">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Próximos Eventos</span></div>
+      <div class="card-body" id="colab-home-events"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Comunicados Recentes</span></div>
+      <div class="card-body" id="colab-home-announcements"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PORTAL COLABORADOR · CALENDÁRIO ═════════════════════ -->
+<div id="page-colab-calendar" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Calendário da Empresa</h1><p>Treinamentos, reuniões e eventos corporativos</p></div>
+    <div class="page-hdr-right">
+      <button class="btn btn-primary" onclick="criarEventoColab()">+ Novo Evento</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <div class="search-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="colab-event-search" placeholder="Buscar evento, local..." oninput="renderColaboradorCalendario()">
+      </div>
+      <select id="colab-event-type" onchange="renderColaboradorCalendario()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
+        <option value="">Todos os tipos</option>
+        <option value="meeting">Reunião</option>
+        <option value="training">Treinamento</option>
+        <option value="company_event">Evento corporativo</option>
+        <option value="shift">Turno</option>
+      </select>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Data</th><th>Título</th><th>Tipo</th><th>Local</th><th>Participantes</th><th>Ações</th></tr></thead>
+      <tbody id="colab-events-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ PORTAL COLABORADOR · POLÍTICAS ══════════════════════ -->
+<div id="page-colab-policies" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Políticas da Empresa</h1><p>Diretrizes de RH, segurança, TI e governança</p></div>
+    <div class="page-hdr-right">
+      <button class="btn btn-primary" onclick="criarPoliticaColab()">+ Nova Política</button>
+    </div>
+  </div>
+  <div class="ch-grid" id="colab-policies-grid"></div>
+</div>
+
+<!-- ════ PORTAL COLABORADOR · EXECUTIVOS ═════════════════════ -->
+<div id="page-colab-executives" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Executivos</h1><p>Equipe de liderança e contatos estratégicos</p></div>
+    <div class="page-hdr-right">
+      <button class="btn btn-primary" onclick="criarExecutivoColab()">+ Novo Executivo</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <div class="search-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="colab-exec-search" placeholder="Buscar nome, cargo..." oninput="renderColaboradorExecutivos()">
+      </div>
+      <select id="colab-exec-dept" onchange="renderColaboradorExecutivos()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
+        <option value="">Todos os departamentos</option>
+      </select>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Nome</th><th>Cargo</th><th>Departamento</th><th>Contato</th><th>Tempo de casa</th><th>Ações</th></tr></thead>
+      <tbody id="colab-executives-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ PORTAL COLABORADOR · COMUNICADOS ════════════════════ -->
+<div id="page-colab-announcements" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Comunicados</h1><p>Atualizações oficiais para todos os colaboradores</p></div>
+    <div class="page-hdr-right">
+      <button class="btn btn-primary" onclick="criarComunicadoColab()">+ Novo Comunicado</button>
+    </div>
+  </div>
+  <div class="ch-grid" id="colab-announcements-grid"></div>
+</div>
+
+<!-- ════ PORTAL COLABORADOR · CP - COMUNICAÇÃO PADRONIZADA ═══ -->
+<div id="page-colab-tickets" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>CP - Comunicação padronizada</h1><p>Registro e acompanhamento de comunicações internas, RH e administrativas</p></div>
+  </div>
+  <div class="ch-form">
+    <div class="form-grid cols3">
+      <div class="form-group"><label>Assunto</label><input type="text" id="colab-ticket-subject" placeholder="Assunto da comunicação padronizada" /></div>
+      <div class="form-group"><label>Categoria</label>
+        <select id="colab-ticket-category">
+          <option value="technical">Técnico</option>
+          <option value="hr">RH</option>
+          <option value="facilities">Instalações</option>
+          <option value="policy">Política</option>
+          <option value="training">Treinamento</option>
+          <option value="other">Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Prioridade</label>
+        <select id="colab-ticket-priority">
+          <option value="low">Baixa</option>
+          <option value="medium" selected>Média</option>
+          <option value="high">Alta</option>
+          <option value="urgent">Urgente</option>
+        </select>
+      </div>
+      <div class="form-group form-full"><label>Descrição</label><textarea id="colab-ticket-description" rows="3" placeholder="Detalhe a comunicação..."></textarea></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn btn-primary" onclick="criarChamadoColaborador()">Abrir CP</button></div>
+  </div>
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead><tr><th>ID</th><th>Assunto</th><th>Categoria</th><th>Prioridade</th><th>Status</th><th>Solicitante</th><th>Criado em</th><th>Ações</th></tr></thead>
+      <tbody id="colab-tickets-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ PORTAL COLABORADOR · FOLGAS ═════════════════════════ -->
+<div id="page-colab-timeoff" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Solicitações de Folga</h1><p>Férias, licença médica e afastamentos</p></div>
+  </div>
+  <div class="ch-form">
+    <div class="form-grid cols3">
+      <div class="form-group"><label>Tipo</label>
+        <select id="colab-timeoff-type">
+          <option value="vacation">Férias</option>
+          <option value="sick">Licença médica</option>
+          <option value="personal">Dia pessoal</option>
+          <option value="bereavement">Luto</option>
+          <option value="maternity">Licença maternidade</option>
+          <option value="paternity">Licença paternidade</option>
+          <option value="other">Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Data início</label><input type="date" id="colab-timeoff-start" /></div>
+      <div class="form-group"><label>Data fim</label><input type="date" id="colab-timeoff-end" /></div>
+      <div class="form-group form-full"><label>Motivo</label><textarea id="colab-timeoff-reason" rows="3" placeholder="Informe o motivo da solicitação"></textarea></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn btn-primary" onclick="criarFolgaColaborador()">Enviar Solicitação</button></div>
+  </div>
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead><tr><th>ID</th><th>Tipo</th><th>Período</th><th>Dias</th><th>Status</th><th>Solicitante</th><th>Criado em</th><th>Ações</th></tr></thead>
+      <tbody id="colab-timeoff-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════ PORTAL COLABORADOR · ADMIN ══════════════════════════ -->
+<div id="page-colab-admin" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Painel Administrativo do Colaborador</h1><p>Resumo operacional e ações de gestão do portal</p></div>
+  </div>
+  <div class="ch-stats" id="colab-admin-stats"></div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Ações Rápidas</span></div>
+    <div class="card-body" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="showPage('colab-calendar')">Eventos</button>
+      <button class="btn btn-secondary" onclick="showPage('colab-policies')">Políticas</button>
+      <button class="btn btn-secondary" onclick="showPage('colab-announcements')">Comunicados</button>
+      <button class="btn btn-secondary" onclick="showPage('colab-tickets')">CP - Comunicação padronizada</button>
+      <button class="btn btn-secondary" onclick="showPage('colab-timeoff')">Folgas</button>
     </div>
   </div>
 </div>
@@ -842,55 +1141,89 @@ table{border-collapse:collapse;width:100%}
 <!-- ════ TRANSPORTES ══════════════════════════════════════════ -->
 <div id="page-transportes" class="page">
   <div class="page-hdr">
-    <div class="page-hdr-left"><h1>Transportes</h1><p>Frota · Agendamentos · Seção de Transportes CMASM-11.2</p></div>
+    <div class="page-hdr-left"><h1>Transportes</h1><p>Frota · Agendamentos · CMASM-11.2</p></div>
     <div class="page-hdr-right">
       <button class="btn btn-primary" onclick="openModal('modal-agendar')">+ Agendar</button>
     </div>
   </div>
 
+  <!-- KPIs frota -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+    <div class="kpi kpi-ok"><div class="kpi-label">Prontos</div><div class="kpi-value" id="kpi-trp-p">0</div></div>
+    <div class="kpi kpi-accent"><div class="kpi-label">Em Uso (OR)</div><div class="kpi-value" id="kpi-trp-or">0</div></div>
+    <div class="kpi kpi-danger"><div class="kpi-label">Inoperante</div><div class="kpi-value" id="kpi-trp-inop">0</div></div>
+    <div class="kpi kpi-warn"><div class="kpi-label">Em Manutenção</div><div class="kpi-value" id="kpi-trp-manut">0</div></div>
+  </div>
+
   <div class="tabs">
-    <div class="tab active" onclick="showTrpTab('frota',this)">Frota</div>
-    <div class="tab" onclick="showTrpTab('agenda',this)">Agendamentos</div>
+    <div class="tab active" onclick="showTrpTab('hoje',this)">Hoje</div>
+    <div class="tab" onclick="showTrpTab('semana',this)">Semana</div>
+    <div class="tab" onclick="showTrpTab('frota',this)">Frota</div>
+    <div class="tab" onclick="showTrpTab('condicao',this)">Condição</div>
     <div class="tab" onclick="showTrpTab('servico',this)">Serviço do Dia</div>
+    <div class="tab" onclick="showTrpTab('gps',this)">GPS / Rastreio</div>
   </div>
 
-  <!-- Frota -->
-  <div class="tab-panel active" id="trp-tab-frota">
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-      <button class="btn btn-secondary" onclick="filterFrota('')" id="fbtn-all">Todos</button>
-      <button class="btn btn-secondary" onclick="filterFrota('viatura')" id="fbtn-viatura">Viaturas</button>
-      <button class="btn btn-secondary" onclick="filterFrota('embarcacao')" id="fbtn-embarcacao">Embarcações</button>
-      <button class="btn btn-secondary" onclick="filterFrota('maquina')" id="fbtn-maquina">Máquinas de Peso</button>
-      <div class="flex-1"></div>
-      <button class="btn btn-secondary btn-sm" onclick="openModal('modal-novo-veiculo')">+ Cadastrar</button>
-    </div>
-    <div class="fleet-grid" id="frota-grid"></div>
-  </div>
-
-  <!-- Agendamentos -->
-  <div class="tab-panel" id="trp-tab-agenda">
+  <!-- ── Hoje ────────────────────────────────────────── -->
+  <div class="tab-panel active" id="trp-tab-hoje">
     <div class="table-wrap">
       <div class="table-toolbar">
-        <div class="search-box">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="agenda-search" placeholder="Buscar agendamentos..." oninput="renderAgenda()">
-        </div>
-        <select id="agenda-filter" onchange="renderAgenda()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
-          <option value="">Todos</option>
-          <option value="pendente">Pendente</option>
-          <option value="confirmado">Confirmado</option>
-          <option value="concluido">Concluído</option>
-        </select>
-        <button class="btn btn-secondary" onclick="exportarEscalaCSV()">↓ CSV</button>
+        <span id="hoje-label" style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Agendamentos de hoje</span>
+        <div class="flex-1"></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-agendar')">+ Agendar</button>
       </div>
       <table class="tbl">
-        <thead><tr><th>Nº</th><th>Solicitante</th><th>Destino</th><th>Data</th><th>Veículo</th><th>Motorista</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="agenda-body"></tbody>
+        <thead><tr><th>Nº</th><th>Solicitante</th><th>Destino</th><th>Hora</th><th>Veículo</th><th>Motorista</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="agenda-hoje-body"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- Serviço do Dia -->
+  <!-- ── Semana ──────────────────────────────────────── -->
+  <div class="tab-panel" id="trp-tab-semana">
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span id="semana-label" style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Agendamentos da semana</span>
+        <div class="flex-1"></div>
+        <select id="semana-filter" onchange="renderAgendaSemana()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="confirmado">Confirmado</option>
+          <option value="concluido">Concluído</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="exportarEscalaCSV()">↓ CSV</button>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>Data</th><th>Nº</th><th>Solicitante</th><th>Destino</th><th>Hora</th><th>Veículo</th><th>Motorista</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="agenda-semana-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Frota (Tabela) ─────────────────────────────── -->
+  <div class="tab-panel" id="trp-tab-frota">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-secondary btn-sm" onclick="filterFrota('')" id="fbtn-all">Todos</button>
+      <button class="btn btn-secondary btn-sm" onclick="filterFrota('viatura')" id="fbtn-viatura">Viaturas</button>
+      <button class="btn btn-secondary btn-sm" onclick="filterFrota('embarcacao')" id="fbtn-embarcacao">Embarcações</button>
+      <button class="btn btn-secondary btn-sm" onclick="filterFrota('maquina')" id="fbtn-maquina">Máquinas de Peso</button>
+      <div class="flex-1"></div>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modal-novo-veiculo')">+ Cadastrar</button>
+    </div>
+    <div class="table-wrap">
+      <table class="tbl" id="frota-table">
+        <thead><tr><th>Denominação</th><th>Tipo</th><th>Placa / ID</th><th>Modelo · Ano</th><th>Km / Hr</th><th>Status</th><th>Observação</th><th>Ações</th></tr></thead>
+        <tbody id="frota-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Condição da Frota ──────────────────────────── -->
+  <div class="tab-panel" id="trp-tab-condicao">
+    <div id="condicao-frota-body"></div>
+  </div>
+
+  <!-- ── Serviço do Dia ────────────────────────────── -->
   <div class="tab-panel" id="trp-tab-servico">
     <div class="grid-2" style="gap:16px;max-width:800px">
       <div class="card">
@@ -928,6 +1261,36 @@ table{border-collapse:collapse;width:100%}
         <thead><tr><th>Data</th><th>Motorista Diretor</th><th>MS do Dia</th><th>Roteiro</th></tr></thead>
         <tbody id="ms-historico-body"><tr><td colspan="4" class="tbl-empty">Sem histórico</td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ── GPS / Rastreio ────────────────────────────── -->
+  <div class="tab-panel" id="trp-tab-gps">
+    <div class="card" style="max-width:900px">
+      <div class="card-header">
+        <span class="card-title">Rastreamento GPS da Frota</span>
+        <span class="badge badge-warn">⏳ Integração Futura</span>
+      </div>
+      <div class="card-body">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;margin-bottom:16px">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <div style="text-align:center">
+            <div style="font-size:14px;font-weight:600;color:var(--text1);margin-bottom:8px">Mapa OSM · Rastreio em Tempo Real</div>
+            <div style="font-size:12px;color:var(--text3);max-width:480px;line-height:1.7">
+              Preparado para integração com <strong style="color:var(--acc2)">ESP32 + GPS (NMEA)</strong> via MQTT / WebSocket.<br>
+              Os veículos transmitirão posição, velocidade e ignição em tempo real.<br>
+              Mapa base: <em>OpenStreetMap via Leaflet.js</em>.
+            </div>
+          </div>
+        </div>
+        <div class="section-title">Veículos rastreáveis</div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>Denominação</th><th>Placa / ID</th><th>Tipo</th><th>Status Atual</th><th>Sinal GPS</th><th>Última Posição</th></tr></thead>
+            <tbody id="gps-frota-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1213,35 +1576,173 @@ table{border-collapse:collapse;width:100%}
   <div class="page-hdr">
     <div class="page-hdr-left"><h1>Controle Vegetal</h1><p>Maquinário de corte · Roçadeiras · Serviços de grama</p></div>
     <div class="page-hdr-right">
-      <button class="btn btn-secondary" onclick="openModal('modal-novo-maq-vegetal')">+ Maquinário</button>
-      <button class="btn btn-primary" onclick="openModal('modal-nova-ativ-vegetal')">+ Atividade</button>
+      <button class="btn btn-secondary" onclick="openVegetalAreaPlanner()">+ Criar área</button>
+      <button class="btn btn-primary" onclick="syncVegetalData(true)">Sincronizar dados</button>
     </div>
   </div>
   <div class="tabs">
-    <div class="tab active" onclick="showVegetalTab('maquinario',this)">Maquinário</div>
-    <div class="tab" onclick="showVegetalTab('atividades',this)">Atividades de Corte</div>
-    <div class="tab" onclick="showVegetalTab('os-vegetal',this)">OS Manutenção</div>
+    <div class="tab active" data-vegtab="areas" onclick="showVegetalTab('areas',this)">Áreas &amp; Mapa</div>
+    <div class="tab" data-vegtab="maquinario" onclick="showVegetalTab('maquinario',this)">Maquinário</div>
+    <div class="tab" data-vegtab="atividades" onclick="showVegetalTab('atividades',this)">Atividades de Corte</div>
+    <div class="tab" data-vegtab="os-vegetal" onclick="showVegetalTab('os-vegetal',this)">OS Manutenção</div>
   </div>
-  <div class="tab-panel active" id="veg-tab-maquinario">
+  <div class="tab-panel active" id="veg-tab-areas">
+    <div class="card veg-map-card">
+      <div class="card-header" style="display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
+        <div>
+          <span class="card-title">Mapa Multiuso de Áreas</span>
+          <div class="text-xs text-muted" id="veg-map-status">Carregando áreas...</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <div class="form-group" style="min-width:220px;margin:0">
+            <select id="veg-group-filter" onchange="setVegetalGroupFilter(this.value)" style="padding:7px 10px">
+              <option value="">Todos os grupos</option>
+            </select>
+          </div>
+          <span class="badge badge-info" id="veg-source-badge">local</span>
+          <button class="btn btn-secondary btn-sm" onclick="startVegetalAreaDraft()">Criar área</button>
+          <button class="btn btn-secondary btn-sm" onclick="undoVegetalDraftPoint()">Desfazer</button>
+          <button class="btn btn-primary btn-sm" onclick="finalizeVegetalDraft()">Fechar área</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearVegetalDraft()">Limpar</button>
+        </div>
+      </div>
+      <div class="card-body veg-map-shell">
+        <div class="veg-map-host veg-map-hero">
+          <div id="veg-map-canvas"></div>
+          <div class="veg-map-tools">
+            <div class="veg-map-tools-card">
+              <div class="veg-map-tools-title">Croqui rápido</div>
+              <div class="veg-map-tools-text">Clique para marcar vértices. Use “Fechar área” para abrir o modal dos dados.</div>
+            </div>
+          </div>
+        </div>
+        <div class="veg-map-legend">
+          <span><span class="status-dot" style="background:#22c55e"></span>Gramado</span>
+          <span><span class="status-dot" style="background:#f59e0b"></span>Capim colonial</span>
+          <span><span class="status-dot" style="background:#ef4444"></span>Mata fechada</span>
+          <span><span class="status-dot" style="background:var(--acc)"></span>Croqui em edição</span>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-top:14px">
+      <div class="table-toolbar">
+        <span style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Áreas cadastradas</span>
+      </div>
+      <table class="tbl">
+        <thead><tr><th>Área</th><th>Grupo</th><th>Vegetação</th><th>Compatibilidade</th><th>m²</th><th>Ações</th></tr></thead>
+        <tbody id="veg-area-body"><tr><td colspan="6" class="tbl-empty">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="card veg-group-card mt-16">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <span class="card-title">Grupos de áreas</span>
+          <div class="text-xs text-muted">Agrupe áreas para somar custo, horas e ciclos em uma única leitura.</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearVegetalGroupFocus()">Limpar filtro</button>
+      </div>
+      <div class="card-body">
+        <div id="veg-group-body" class="veg-group-grid"><div class="tbl-empty">Carregando grupos...</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="tab-panel" id="veg-tab-maquinario">
     <div class="fleet-grid" id="veg-maq-grid"></div>
   </div>
   <div class="tab-panel" id="veg-tab-atividades">
     <div class="table-wrap">
       <table class="tbl">
-        <thead><tr><th>Data</th><th>Área</th><th>Maquinário</th><th>Operador</th><th>Horas</th><th>Obs.</th><th>Ações</th></tr></thead>
-        <tbody id="veg-ativ-body"><tr><td colspan="7" class="tbl-empty">Nenhuma atividade</td></tr></tbody>
+        <thead><tr><th>Data</th><th>Área</th><th>Maquinário</th><th>Pacote de Serviços</th><th>Operador</th><th>Horas</th><th>Custo Est.</th><th>Obs.</th><th>Ações</th></tr></thead>
+        <tbody id="veg-ativ-body"><tr><td colspan="9" class="tbl-empty">Nenhuma atividade</td></tr></tbody>
       </table>
     </div>
   </div>
   <div class="tab-panel" id="veg-tab-os-vegetal">
     <div class="table-wrap">
       <table class="tbl">
-        <thead><tr><th>OS</th><th>Maquinário</th><th>Tipo</th><th>Descrição</th><th>Abertura</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="veg-os-body"><tr><td colspan="7" class="tbl-empty">Nenhuma OS</td></tr></tbody>
+        <thead><tr><th>OS</th><th>Maquinário</th><th>Tipo</th><th>Descrição</th><th>Abertura</th><th>Status</th><th>Materiais / Baixa</th><th>Ações</th></tr></thead>
+        <tbody id="veg-os-body"><tr><td colspan="8" class="tbl-empty">Nenhuma OS</td></tr></tbody>
       </table>
     </div>
   </div>
 </div>
+
+<!-- ════ CONTROLE VEGETAL · DADOS DA ÁREA ═════════════════════ -->
+<div id="modal-veg-area" class="modal-backdrop" onclick="if(event.target===this)cancelVegetalAreaDraft()">
+  <div class="modal modal-lg modal-veg-area">
+    <div class="modal-header">
+      <h2>Dados da Área</h2>
+      <button class="modal-close" onclick="cancelVegetalAreaDraft()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="veg-area-edit-id">
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Nome da área</label><input type="text" id="veg-area-nome" placeholder="Ex: Entorno dos Paióis"></div>
+        <div class="form-group form-full"><label>Grupo de áreas</label><input type="text" id="veg-area-grupo" list="veg-grupos-list" placeholder="Ex: Base operacional"></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="veg-area-tipo">
+            <option value="corte_grama">Corte de grama</option>
+            <option value="poda_arvore">Poda</option>
+            <option value="corte_localizado">Corte localizado</option>
+            <option value="limpeza">Limpeza</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Área (m²)</label><input type="number" id="veg-area-m2" min="0" step="0.01" value="0"></div>
+        <div class="form-group"><label>Vegetação</label>
+          <select id="veg-area-flora" onchange="previewVegetalCompat();previewVegetalStyle()">
+            <option value="gramado">Gramado</option>
+            <option value="capim_colonial">Capim colonial</option>
+            <option value="mata_fechada">Mata fechada</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Inclinação</label>
+          <select id="veg-area-inclinacao" onchange="previewVegetalCompat()">
+            <option value="plano">Plano</option>
+            <option value="moderado">Moderado</option>
+            <option value="acentuado">Acentuado</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Limpeza</label>
+          <select id="veg-area-limpeza" onchange="previewVegetalCompat()">
+            <option value="limpa">Limpa</option>
+            <option value="media">Média</option>
+            <option value="densa">Densa</option>
+          </select>
+        </div>
+        <div class="form-group form-full">
+          <label>Estilo do croqui</label>
+          <div class="veg-style-grid">
+            <div class="form-group">
+              <label>Cor</label>
+              <input type="color" id="veg-area-cor" value="#22c55e" onchange="previewVegetalStyle()" style="height:42px;padding:4px 6px;min-width:100%">
+            </div>
+            <div class="form-group">
+              <label>Transparência</label>
+              <input type="range" id="veg-area-opacidade" min="0.08" max="0.82" step="0.02" value="0.24" oninput="previewVegetalStyle()">
+            </div>
+            <div class="form-group">
+              <label>Visibilidade</label>
+              <label style="display:flex;align-items:center;gap:8px;padding:10px 0 2px;color:var(--text1);text-transform:none;letter-spacing:0;font-size:13px">
+                <input type="checkbox" id="veg-area-visivel" checked onchange="previewVegetalStyle()">
+                Exibir no mapa
+              </label>
+            </div>
+          </div>
+          <div class="veg-style-preview mt-8"><span id="veg-area-style-preview"></span></div>
+        </div>
+        <div class="form-group"><label>Localização / referência</label><input type="text" id="veg-area-gps" placeholder="Ex: Setor norte / cais oeste"></div>
+        <div class="form-group form-full"><label>Descrição</label><textarea id="veg-area-desc" rows="3" placeholder="Observações, restrições, acesso"></textarea></div>
+      </div>
+      <div class="text-xs text-muted" style="margin-top:10px">Feche a área para abrir este modal. O backend recebe `coords_json` e recalcula a compatibilidade de máquinas.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cancelVegetalAreaDraft()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveVegetalArea()">Salvar área</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="veg-grupos-list"></datalist>
 
 <!-- ════ LOCAIS & PREDIAL ══════════════════════════════════════ -->
 <div id="page-predial" class="page">
@@ -1863,6 +2364,31 @@ const SEED_CALIB = [
   {id:'cal4',tag:'GER-001',instrumento:'Gerador de Sinais',fabricante:'Agilent',serie:'AG-33220A-05',ultimo:'2023-03-01',proximo:'2024-03-01',lab:'LAMEPE',cert:'LAMEPE-23-0112',secao:'CMASM-23',local:'Lab. GM',obs:'VENCIDO - aguarda recalibração'}
 ];
 
+const SEED_COLAB_EVENTS = [
+  {id:'ev1',title:'Treinamento NR-10',type:'training',event_date:'2026-06-03',location:'Auditório Principal',attendees:25,description:'Reciclagem obrigatória para equipes técnicas.'},
+  {id:'ev2',title:'Reunião de Alinhamento Operacional',type:'meeting',event_date:'2026-06-05',location:'Sala CMASM-01',attendees:14,description:'Alinhamento semanal de metas entre divisões.'},
+  {id:'ev3',title:'Palestra de Segurança da Informação',type:'company_event',event_date:'2026-06-10',location:'Auditório Principal',attendees:80,description:'Boas práticas e requisitos de proteção de dados.'},
+  {id:'ev4',title:'Escala Especial de Fim de Semana',type:'shift',event_date:'2026-06-14',location:'Base Operacional',attendees:12,description:'Cobertura operacional programada.'}
+];
+
+const SEED_COLAB_POLICIES = [
+  {id:'po1',title:'Política de Trabalho Presencial',category:'hr',version:'2.1',description:'Define jornadas, controle de presença e regras de justificativa para ausências.',owner:'Divisão de Pessoal',created_date:'2026-02-02',updated_date:'2026-04-10'},
+  {id:'po2',title:'Política de Segurança da Informação',category:'security',version:'3.0',description:'Classificação da informação, uso de credenciais e resposta a incidentes cibernéticos.',owner:'Seção de Segurança',created_date:'2025-11-01',updated_date:'2026-03-25'},
+  {id:'po3',title:'Política de Uso de Recursos de TI',category:'it',version:'1.4',description:'Uso aceitável de equipamentos, redes e serviços corporativos.',owner:'Divisão de Comunicações',created_date:'2026-01-18',updated_date:'2026-05-02'}
+];
+
+const SEED_COLAB_EXECUTIVES = [
+  {id:'ex1',full_name:'Ana Valéria Greco de Sousa',position:'Diretora',department:'Direção',email:'ana.valeria@marinha.mil.br',phone:'(21) 99999-0101',office_location:'Gabinete CMASM-01',years_with_company:11,bio:'Responsável pela direção estratégica e governança do CMASM.'},
+  {id:'ex2',full_name:'Luciana Santana Pires',position:'Vice-Diretora',department:'Vice-Direção',email:'luciana.pires@marinha.mil.br',phone:'(21) 99999-0202',office_location:'Gabinete CMASM-02',years_with_company:9,bio:'Coordena integração operacional entre departamentos e projetos críticos.'},
+  {id:'ex3',full_name:'Marcos Paulo Ferreira',position:'Chefe de Infraestrutura',department:'Infraestrutura',email:'marcos.ferreira@marinha.mil.br',phone:'(21) 99999-0303',office_location:'CMASM-10',years_with_company:8,bio:'Lidera serviços de manutenção, logística e instalações.'}
+];
+
+const SEED_COLAB_ANNOUNCEMENTS = [
+  {id:'an1',title:'Atualização de Procedimentos de Acesso',content:'A partir de 03/06, todos os acessos administrativos exigirão autenticação multifator no primeiro login do dia.',priority:'high',author:'Seção de Segurança',created_date:'2026-05-28T08:30:00Z'},
+  {id:'an2',title:'Revisão do Cronograma de Treinamentos',content:'O calendário do 2º semestre foi atualizado com novas turmas para NR-10 e combate a incêndio.',priority:'medium',author:'Divisão de Pessoal',created_date:'2026-05-25T13:10:00Z'},
+  {id:'an3',title:'Manutenção Preventiva da Rede',content:'Janela de manutenção prevista para sábado, das 22h às 23h30, com indisponibilidade intermitente.',priority:'low',author:'Divisão de Comunicações',created_date:'2026-05-22T10:00:00Z'}
+];
+
 const ESTRUTURA_ORG = [
   {id:'cmasm',label:'CMASM',code:'CMASM',nivel:'root',parentId:null},
   {id:'dir',label:'Direção',code:'CMASM-01',nivel:'depto',parentId:'cmasm'},
@@ -1960,6 +2486,7 @@ function initApp(){
   app.style.display='grid';
   updateUserUI();
   initAdminVisibility();
+  colabHydrateFromBackend();
   // Lazy rendering: only the active page renders on boot.
   // All other pages render on first navigation via showPage().
   initDashboard();
@@ -1992,9 +2519,8 @@ function avatarColor(name){
 
 function initAdminVisibility(){
   const isAdmin = SESSION && SESSION.role==='admin' && !SESSION._visitante;
-  ['sb-admin-section','ni-usuarios','ni-admin'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el)el.style.display=isAdmin?'':'none';
+  document.querySelectorAll('.admin-only').forEach(el=>{
+    el.style.display = isAdmin ? '' : 'none';
   });
   // Visitante: disable action buttons visually
   if(SESSION && SESSION._visitante){
@@ -2042,19 +2568,27 @@ async function checkModulosExternos(){
 }
 
 const PAGE_TITLES = {
-  dashboard:'Sistema de Gestão Integrada · CMASM',
-  organizacao:'Pessoal (TMFT) · CMASM-ERP',
+  dashboard:'Portal · cmasm.erp',
+  'colab-home':'Portal do Colaborador · Início',
+  'colab-calendar':'Portal do Colaborador · Calendário',
+  'colab-policies':'Portal do Colaborador · Políticas',
+  'colab-executives':'Portal do Colaborador · Executivos',
+  'colab-announcements':'Portal do Colaborador · Comunicados',
+  'colab-tickets':'Portal do Colaborador · CP - Comunicação padronizada',
+  'colab-timeoff':'Portal do Colaborador · Folgas',
+  'colab-admin':'Portal do Colaborador · Administração',
+  organizacao:'Pessoal (TMFT) · cmasm.erp',
   cargos:'Cargos · Organização',
   organograma:'Organograma · Regimento Interno',
-  servicos:'Serviços · PS/OS/SR',
-  transportes:'Transportes · CMASM-11.2',
-  manutencao:'Manutenção · CMMS',
-  calibracao:'Calibração · Instrumentos',
-  estoque:'Estoque · Almoxarifado',
-  vegetal:'Controle Vegetal · Maquinário de Corte',
-  predial:'Locais & Predial · Edificações',
-  paiois:'Paiois · Controle de Munições e Material',
-  usuarios:'Usuários · Admin',
+  servicos:'Serviços · cmasm.erp',
+  transportes:'Transportes · cmasm.erp',
+  manutencao:'Manutenção · cmasm.erp',
+  calibracao:'Calibração · cmasm.erp',
+  estoque:'Estoque · cmasm.erp',
+  vegetal:'Controle Vegetal · cmasm.erp',
+  predial:'Predial · cmasm.erp',
+  paiois:'Paiois · cmasm.erp',
+  usuarios:'Usuários · cmasm.erp',
   perfil:'Meu Perfil',
   admin:'Configurações · Admin'
 };
@@ -2074,14 +2608,22 @@ function showPage(page, el){
   // Re-render page content on navigation to keep data fresh
   const renders = {
     dashboard: ()=>initDashboard(),
+    'colab-home': ()=>renderColaboradorInicio(),
+    'colab-calendar': ()=>renderColaboradorCalendario(),
+    'colab-policies': ()=>renderColaboradorPoliticas(),
+    'colab-executives': ()=>renderColaboradorExecutivos(),
+    'colab-announcements': ()=>renderColaboradorComunicados(),
+    'colab-tickets': ()=>renderColaboradorChamados(),
+    'colab-timeoff': ()=>renderColaboradorFolgas(),
+    'colab-admin': ()=>renderColaboradorAdmin(),
     organizacao: ()=>renderTMFT(),
     cargos: ()=>renderCargos(),
     organograma: ()=>renderOrgTree(),
     servicos: ()=>{renderPS();renderOS();renderKanban();renderSR();},
-    transportes: ()=>{renderFrota(_frotaFilter);renderAgenda();},
+    transportes: ()=>{renderFrotaKPIs();renderAgendaHoje();renderFrota(_frotaFilter);},
     calibracao: ()=>{renderCalib();renderCalibKPIs();},
     estoque: ()=>{renderEstoque();renderEstoqueKPIs();renderMovimentacoes();renderEstoqueAlertas();renderEstoqueValidades();},
-    vegetal: ()=>{renderVegetalMaq();renderVegetalAtiv();renderVegetalOS();},
+    vegetal: ()=>{renderVegetalAreas();renderVegetalMaq();renderVegetalAtiv();renderVegetalOS();loadVegetalData();},
     predial: ()=>{renderEdificacoes();renderReservas();renderOcorrencias();},
     paiois: ()=>{renderPaiois();renderInventarioPaiois();renderMovPaiois();renderPaiolKPIs();},
     usuarios: ()=>renderUsuarios(),
@@ -2195,6 +2737,7 @@ function initDashboard(){
   const calib=DB.get('calib',SEED_CALIB);
   const agenda=DB.get('agenda',[]);
   const osManut=DB.get('os_manut',[]);
+  const colabTickets=getColabTickets();
   const now=new Date();
   // Calibrações vencidas
   const calibVencidas=calib.filter(c=>{if(!c.proximo)return false;return new Date(c.proximo)<now;}).length;
@@ -2213,6 +2756,21 @@ function initDashboard(){
   setText('mod-frota-count',`${frotaPronta} prontos / ${frota.length} total`);
   setText('mod-manut-count',`${ativos.length} ativos · ${osManut.filter(o=>o.status!=='concluida').length} OS ativas`);
   setText('mod-calib-count',`${calibVencidas} vencidas · ${calibAVencer} a vencer`);
+  setText('mod-colab-tickets',colabTickets.filter(t=>!['resolved','closed'].includes(t.status)).length);
+  const announcements = getColabAnnouncements().slice().sort((a,b)=>String(b.created_date).localeCompare(String(a.created_date))).slice(0,4);
+  const calendar = getColabEvents().slice().sort((a,b)=>String(a.event_date).localeCompare(String(b.event_date))).slice(0,7);
+  const dashAn = document.getElementById('dash-comunicados-body');
+  if(dashAn){
+    dashAn.innerHTML = announcements.length===0
+      ? '<div class="tbl-empty" style="padding:16px 0">Nenhum comunicado</div>'
+      : announcements.map(a=>`<div class="ch-item" style="margin-bottom:10px"><div class="ch-title">${a.title}</div><div class="ch-meta">${fmtDate(a.created_date)} · ${a.author||'Sistema'}</div><div class="ch-desc">${String(a.content||'').slice(0,120)}${String(a.content||'').length>120?'...':''}</div></div>`).join('');
+  }
+  const dashCal = document.getElementById('dash-calendario-body');
+  if(dashCal){
+    dashCal.innerHTML = calendar.length===0
+      ? '<div class="tbl-empty" style="padding:16px 0">Calendário vazio</div>'
+      : `<table class="tbl"><thead><tr><th>Data</th><th>Agenda</th></tr></thead><tbody>${calendar.map(ev=>`<tr><td class="text-mono text-xs">${fmtDateSimple(ev.event_date)||ev.event_date}</td><td><div style="font-weight:600">${ev.title}</div><div class="text-xs text-muted">${colabTypeLabel(ev.type)} · ${ev.location||'Local a definir'}</div></td></tr>`).join('')}</tbody></table>`;
+  }
   // Estoque count
   const estoque=DB.get('estoque',[]);
   setText('mod-estoque-count',`${estoque.length} itens`);
@@ -2235,13 +2793,558 @@ function initDashboard(){
   // Últimas OS (serviços)
   const tbody=document.getElementById('dash-os-body');
   if(tbody){
-    if(os.length===0){tbody.innerHTML='<tr><td colspan="3" class="tbl-empty">Sem OS registradas</td></tr>';}
-    else tbody.innerHTML=os.slice(-5).reverse().map(o=>`<tr>
+    const osDoUsuario = (SESSION && !SESSION._visitante)
+      ? os.filter(o=>{
+          const solicitante = String(o.solicitante||'').toLowerCase();
+          const executor = String(o.executor||'').toLowerCase();
+          const responsavel = String(o.responsavel||'').toLowerCase();
+          const criadoPor = String(o.criado_por||o.criadoPor||'').toLowerCase();
+          const nomeUsuario = String(SESSION.nome||'').toLowerCase();
+          return solicitante===nomeUsuario || executor===nomeUsuario || responsavel===nomeUsuario || criadoPor===nomeUsuario;
+        })
+      : os;
+    const feed = (osDoUsuario.length>0 ? osDoUsuario : os).slice(-6).reverse();
+    if(feed.length===0){tbody.innerHTML='<tr><td colspan="3" class="tbl-empty">Sem OS registradas</td></tr>';}
+    else tbody.innerHTML=feed.map(o=>`<tr>
       <td class="text-mono text-xs">${o.id}</td>
       <td>${o.assunto||o.descricao||'-'}</td>
       <td>${statusBadge(o.status)}</td>
     </tr>`).join('');
   }
+}
+
+/* ════ PORTAL DO COLABORADOR ═════════════════════════════ */
+
+async function colabFetchJSON(path, opts={}){
+  try{
+    const res = await fetch(path, opts);
+    if(!res.ok) return null;
+    return await res.json();
+  }catch(_err){
+    return null;
+  }
+}
+
+function colabPushDataset(name, data){
+  // fire-and-forget para não bloquear UX; fallback permanece no localStorage
+  colabFetchJSON(`/api/colab/${name}`, {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  });
+}
+
+async function colabCreateItem(dataset, item){
+  return await colabFetchJSON(`/api/colab/${dataset}`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(item)
+  });
+}
+
+async function colabDeleteItem(dataset, id){
+  const res = await colabFetchJSON(`/api/colab/${dataset}/${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  });
+  return !!(res && res.ok);
+}
+
+async function colabPatchItem(dataset, id, patch){
+  return await colabFetchJSON(`/api/colab/${dataset}/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(patch)
+  });
+}
+
+function colabBulkFallback(dataset, data){
+  colabPushDataset(dataset, data);
+}
+
+let _colabHydrated = false;
+async function colabHydrateFromBackend(){
+  if(_colabHydrated) return;
+  if(SESSION && SESSION._visitante) return;
+  const payload = await colabFetchJSON('/api/colab/bootstrap');
+  if(!payload) return;
+  if(Array.isArray(payload.events)) DB.set('ch_events', payload.events);
+  if(Array.isArray(payload.policies)) DB.set('ch_policies', payload.policies);
+  if(Array.isArray(payload.executives)) DB.set('ch_executives', payload.executives);
+  if(Array.isArray(payload.announcements)) DB.set('ch_announcements', payload.announcements);
+  if(Array.isArray(payload.tickets)) DB.set('ch_tickets', payload.tickets);
+  if(Array.isArray(payload.timeoff)) DB.set('ch_timeoff', payload.timeoff);
+  _colabHydrated = true;
+  initDashboard();
+  const active = document.querySelector('.page.active');
+  if(active?.id==='page-colab-home') renderColaboradorInicio();
+  if(active?.id==='page-colab-calendar') renderColaboradorCalendario();
+  if(active?.id==='page-colab-policies') renderColaboradorPoliticas();
+  if(active?.id==='page-colab-executives') renderColaboradorExecutivos();
+  if(active?.id==='page-colab-announcements') renderColaboradorComunicados();
+  if(active?.id==='page-colab-tickets') renderColaboradorChamados();
+  if(active?.id==='page-colab-timeoff') renderColaboradorFolgas();
+  if(active?.id==='page-colab-admin') renderColaboradorAdmin();
+}
+
+function getColabEvents(){ return DB.get('ch_events', SEED_COLAB_EVENTS.map(e=>({...e}))); }
+function saveColabEvents(d, persist=true){ DB.set('ch_events', d); if(persist) colabPushDataset('events', d); }
+function getColabPolicies(){ return DB.get('ch_policies', SEED_COLAB_POLICIES.map(p=>({...p}))); }
+function saveColabPolicies(d, persist=true){ DB.set('ch_policies', d); if(persist) colabPushDataset('policies', d); }
+function getColabExecutives(){ return DB.get('ch_executives', SEED_COLAB_EXECUTIVES.map(e=>({...e}))); }
+function saveColabExecutives(d, persist=true){ DB.set('ch_executives', d); if(persist) colabPushDataset('executives', d); }
+function getColabAnnouncements(){ return DB.get('ch_announcements', SEED_COLAB_ANNOUNCEMENTS.map(a=>({...a}))); }
+function saveColabAnnouncements(d, persist=true){ DB.set('ch_announcements', d); if(persist) colabPushDataset('announcements', d); }
+function getColabTickets(){ return DB.get('ch_tickets', []); }
+function saveColabTickets(d, persist=true){ DB.set('ch_tickets', d); if(persist) colabPushDataset('tickets', d); }
+function getColabTimeOff(){ return DB.get('ch_timeoff', []); }
+function saveColabTimeOff(d, persist=true){ DB.set('ch_timeoff', d); if(persist) colabPushDataset('timeoff', d); }
+
+function getColabUserEmail(){
+  if(SESSION && SESSION.email) return SESSION.email;
+  if(SESSION && SESSION.id) return `${SESSION.id}@cmasm.local`;
+  return 'colaborador@cmasm.local';
+}
+
+function colabCategoryLabel(cat){
+  return {
+    hr:'Recursos Humanos', finance:'Financeiro', security:'Segurança', it:'TI', general:'Geral',
+    technical:'Técnico', facilities:'Instalações', policy:'Política', training:'Treinamento', other:'Outro'
+  }[cat]||cat||'-';
+}
+
+function colabTypeLabel(type){
+  return {meeting:'Reunião',holiday:'Feriado',training:'Treinamento',event:'Evento',deadline:'Prazo',company_event:'Evento corporativo',shift:'Turno'}[type]||type||'-';
+}
+
+function colabTicketStatusLabel(st){
+  return {open:'Aberto',in_progress:'Em andamento',waiting_response:'Aguardando resposta',resolved:'Resolvido',closed:'Fechado'}[st]||st||'-';
+}
+
+function colabTimeOffTypeLabel(type){
+  return {vacation:'Férias',sick:'Licença médica',personal:'Dia pessoal',bereavement:'Luto',maternity:'Licença maternidade',paternity:'Licença paternidade',other:'Outro'}[type]||type||'-';
+}
+
+function colabTimeOffStatusLabel(st){
+  return {pending:'Pendente',approved:'Aprovado',denied:'Negado',cancelled:'Cancelado'}[st]||st||'-';
+}
+
+function colabPriorityBadge(priority){
+  const cls = {low:'ok',medium:'warn',high:'danger',urgent:'danger'}[priority]||'neutral';
+  const label = {low:'Baixa',medium:'Média',high:'Alta',urgent:'Urgente'}[priority]||priority;
+  return `<span class="badge badge-${cls}">${label}</span>`;
+}
+
+function diffDaysInclusive(start,end){
+  const s = new Date(start); const e = new Date(end);
+  if(Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
+  const ms = e.getTime() - s.getTime();
+  return Math.floor(ms/86400000)+1;
+}
+
+let _colabPolicyExpandedId = null;
+
+function renderColaboradorInicio(){
+  const events = getColabEvents().slice().sort((a,b)=>String(a.event_date).localeCompare(String(b.event_date)));
+  const announcements = getColabAnnouncements().slice().sort((a,b)=>String(b.created_date).localeCompare(String(a.created_date)));
+  const userEmail = getColabUserEmail();
+  const tickets = getColabTickets().filter(t=>t.requester_email===userEmail);
+  const pendingTimeOff = getColabTimeOff().filter(r=>r.employee_email===userEmail && r.status==='pending');
+  const stats = document.getElementById('colab-home-stats');
+  if(stats){
+    stats.innerHTML = `
+      <div class="ch-stat"><div class="l">Próximos eventos</div><div class="v">${events.length}</div></div>
+      <div class="ch-stat"><div class="l">Comunicados</div><div class="v">${announcements.length}</div></div>
+      <div class="ch-stat"><div class="l">Minhas CPs</div><div class="v">${tickets.length}</div></div>
+      <div class="ch-stat"><div class="l">Folgas pendentes</div><div class="v">${pendingTimeOff.length}</div></div>
+    `;
+  }
+  const evBox = document.getElementById('colab-home-events');
+  if(evBox){
+    evBox.innerHTML = events.slice(0,4).map(ev=>`<div class="ch-item" style="margin-bottom:10px"><div class="ch-title">${ev.title}</div><div class="ch-meta">${fmtDateSimple(ev.event_date)||ev.event_date} · ${colabTypeLabel(ev.type)}</div><div class="ch-desc">${ev.location||'Local a definir'}</div></div>`).join('') || '<div class="empty-state"><p>Nenhum evento cadastrado.</p></div>';
+  }
+  const anBox = document.getElementById('colab-home-announcements');
+  if(anBox){
+    anBox.innerHTML = announcements.slice(0,4).map(an=>`<div class="ch-item" style="margin-bottom:10px"><div class="ch-title">${an.title}</div><div class="ch-meta">${fmtDate(an.created_date)} · ${an.author||'Sistema'}</div><div class="ch-desc">${an.content||''}</div></div>`).join('') || '<div class="empty-state"><p>Nenhum comunicado publicado.</p></div>';
+  }
+}
+
+function renderColaboradorCalendario(){
+  const q=(document.getElementById('colab-event-search')||{}).value?.toLowerCase()||'';
+  const t=(document.getElementById('colab-event-type')||{}).value||'';
+  const data = getColabEvents().filter(ev=>{
+    if(q && !String(ev.title||'').toLowerCase().includes(q) && !String(ev.location||'').toLowerCase().includes(q)) return false;
+    if(t && ev.type!==t) return false;
+    return true;
+  }).slice().sort((a,b)=>String(a.event_date).localeCompare(String(b.event_date)));
+  const tbody=document.getElementById('colab-events-body'); if(!tbody) return;
+  tbody.innerHTML = data.length===0?'<tr><td colspan="6" class="tbl-empty">Nenhum evento encontrado</td></tr>':
+    data.map(ev=>`<tr>
+      <td class="text-mono text-xs">${fmtDateSimple(ev.event_date)||ev.event_date}</td>
+      <td style="font-weight:500">${ev.title}</td>
+      <td><span class="badge badge-info">${colabTypeLabel(ev.type)}</span></td>
+      <td class="text-xs">${ev.location||'—'}</td>
+      <td class="text-xs text-mono">${ev.attendees||0}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteEventoColab('${ev.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+async function criarEventoColab(){
+  if(soLeitura()) return;
+  const title = prompt('Título do evento:'); if(!title) return;
+  const event_date = prompt('Data (AAAA-MM-DD):', new Date().toISOString().split('T')[0]); if(!event_date) return;
+  const type = prompt('Tipo (meeting/training/company_event/shift):','meeting') || 'meeting';
+  const location = prompt('Local do evento:','Sala Principal') || '';
+  const attendees = parseInt(prompt('Participantes previstos:','10')||'0')||0;
+  const description = prompt('Descrição:','') || '';
+  const data=getColabEvents();
+  const item = {id:'ev'+Date.now(),title,event_date,type,location,attendees,description};
+  data.push(item);
+  saveColabEvents(data, false); renderColaboradorCalendario(); renderColaboradorInicio();
+  const saved = await colabCreateItem('events', item);
+  if(saved){
+    const synced = getColabEvents();
+    const idx = synced.findIndex(e=>e.id===item.id);
+    if(idx>=0){ synced[idx] = saved; saveColabEvents(synced, false); }
+  }else{
+    colabBulkFallback('events', getColabEvents());
+  }
+  toast('Evento cadastrado');
+}
+
+async function deleteEventoColab(id){
+  if(soLeitura()||!confirm('Remover evento?')) return;
+  saveColabEvents(getColabEvents().filter(e=>e.id!==id), false);
+  renderColaboradorCalendario(); renderColaboradorInicio();
+  const ok = await colabDeleteItem('events', id);
+  if(!ok) colabBulkFallback('events', getColabEvents());
+  toast('Evento removido');
+}
+
+function renderColaboradorPoliticas(){
+  const data=getColabPolicies().slice().sort((a,b)=>String(b.updated_date).localeCompare(String(a.updated_date)));
+  const grid=document.getElementById('colab-policies-grid'); if(!grid) return;
+  grid.innerHTML = data.length===0?'<div class="empty-state"><p>Nenhuma política disponível.</p></div>':
+    data.map(p=>`<div class="ch-item">
+      <div class="ch-title">${p.title}</div>
+      <div class="ch-meta">${colabCategoryLabel(p.category)} · v${p.version||'1.0'} · Atualizada em ${fmtDateSimple(p.updated_date)||p.updated_date}</div>
+      <div class="ch-desc" style="margin-top:8px">${_colabPolicyExpandedId===p.id?(p.description||'Sem descrição'):(`${String(p.description||'').substring(0,130)}${String(p.description||'').length>130?'...':''}`)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <span class="text-xs text-muted">Responsável: ${p.owner||'N/D'}</span>
+        <button class="btn btn-ghost btn-sm" onclick="togglePoliticaColab('${p.id}')">${_colabPolicyExpandedId===p.id?'Recolher':'Expandir'}</button>
+      </div>
+    </div>`).join('');
+}
+
+function togglePoliticaColab(id){
+  _colabPolicyExpandedId = _colabPolicyExpandedId===id ? null : id;
+  renderColaboradorPoliticas();
+}
+
+async function criarPoliticaColab(){
+  if(soLeitura()) return;
+  const title = prompt('Título da política:'); if(!title) return;
+  const category = prompt('Categoria (hr/finance/security/it/general):','general') || 'general';
+  const description = prompt('Conteúdo da política:'); if(!description) return;
+  const owner = prompt('Responsável:','Administração') || 'Administração';
+  const now = new Date().toISOString().split('T')[0];
+  const data = getColabPolicies();
+  const item = {id:'po'+Date.now(),title,category,version:'1.0',description,owner,created_date:now,updated_date:now};
+  data.push(item);
+  saveColabPolicies(data, false); renderColaboradorPoliticas();
+  const saved = await colabCreateItem('policies', item);
+  if(saved){
+    const synced = getColabPolicies();
+    const idx = synced.findIndex(p=>p.id===item.id);
+    if(idx>=0){ synced[idx] = saved; saveColabPolicies(synced, false); }
+  }else{
+    colabBulkFallback('policies', getColabPolicies());
+  }
+  toast('Política adicionada');
+}
+
+function renderColaboradorExecutivos(){
+  const data=getColabExecutives();
+  const q=(document.getElementById('colab-exec-search')||{}).value?.toLowerCase()||'';
+  const dep=(document.getElementById('colab-exec-dept')||{}).value||'';
+  const depts=Array.from(new Set(data.map(e=>e.department).filter(Boolean))).sort();
+  const sel=document.getElementById('colab-exec-dept');
+  if(sel && sel.options.length<=1){
+    sel.innerHTML='<option value="">Todos os departamentos</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+    if(dep) sel.value=dep;
+  }
+  const filtered=data.filter(e=>{
+    if(q && !String(e.full_name||'').toLowerCase().includes(q) && !String(e.position||'').toLowerCase().includes(q) && !String(e.department||'').toLowerCase().includes(q)) return false;
+    if(dep && e.department!==dep) return false;
+    return true;
+  });
+  const tbody=document.getElementById('colab-executives-body'); if(!tbody) return;
+  tbody.innerHTML=filtered.length===0?'<tr><td colspan="6" class="tbl-empty">Nenhum executivo encontrado</td></tr>':
+    filtered.map(e=>`<tr>
+      <td style="font-weight:500">${e.full_name}</td>
+      <td class="text-xs">${e.position||'-'}</td>
+      <td><span class="badge badge-neutral">${e.department||'-'}</span></td>
+      <td class="text-xs"><div>${e.email||'-'}</div><div class="text-muted">${e.phone||''}</div></td>
+      <td class="text-xs text-mono">${e.years_with_company||0} ano(s)</td>
+      <td><button class="btn btn-danger btn-sm" onclick="deleteExecutivoColab('${e.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+async function criarExecutivoColab(){
+  if(soLeitura()) return;
+  const full_name = prompt('Nome completo do executivo:'); if(!full_name) return;
+  const position = prompt('Cargo:'); if(!position) return;
+  const department = prompt('Departamento:'); if(!department) return;
+  const email = prompt('E-mail:','') || '';
+  const phone = prompt('Telefone:','') || '';
+  const office_location = prompt('Local de trabalho:','') || '';
+  const years_with_company = parseInt(prompt('Tempo de casa (anos):','1')||'1')||1;
+  const bio = prompt('Mini bio:','') || '';
+  const data=getColabExecutives();
+  const item = {id:'ex'+Date.now(),full_name,position,department,email,phone,office_location,years_with_company,bio};
+  data.push(item);
+  saveColabExecutives(data, false); renderColaboradorExecutivos();
+  const saved = await colabCreateItem('executives', item);
+  if(saved){
+    const synced = getColabExecutives();
+    const idx = synced.findIndex(e=>e.id===item.id);
+    if(idx>=0){ synced[idx] = saved; saveColabExecutives(synced, false); }
+  }else{
+    colabBulkFallback('executives', getColabExecutives());
+  }
+  toast('Executivo cadastrado');
+}
+
+async function deleteExecutivoColab(id){
+  if(soLeitura()||!confirm('Remover executivo?')) return;
+  saveColabExecutives(getColabExecutives().filter(e=>e.id!==id), false);
+  renderColaboradorExecutivos();
+  const ok = await colabDeleteItem('executives', id);
+  if(!ok) colabBulkFallback('executives', getColabExecutives());
+  toast('Executivo removido');
+}
+
+function renderColaboradorComunicados(){
+  const data=getColabAnnouncements().slice().sort((a,b)=>String(b.created_date).localeCompare(String(a.created_date)));
+  const grid=document.getElementById('colab-announcements-grid'); if(!grid) return;
+  grid.innerHTML = data.length===0?'<div class="empty-state"><p>Nenhum comunicado no momento.</p></div>':
+    data.map(a=>`<div class="ch-item">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+        <div class="ch-title">${a.title}</div>
+        ${colabPriorityBadge(a.priority)}
+      </div>
+      <div class="ch-meta">${fmtDate(a.created_date)} · ${a.author||'Sistema'}</div>
+      <div class="ch-desc" style="margin-top:8px">${a.content||''}</div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn btn-danger btn-sm" onclick="deleteComunicadoColab('${a.id}')">Remover</button></div>
+    </div>`).join('');
+}
+
+async function criarComunicadoColab(){
+  if(soLeitura()) return;
+  const title = prompt('Título do comunicado:'); if(!title) return;
+  const content = prompt('Conteúdo:'); if(!content) return;
+  const priority = prompt('Prioridade (low/medium/high):','medium') || 'medium';
+  const data=getColabAnnouncements();
+  const item = {id:'an'+Date.now(),title,content,priority,author:SESSION?.nome||'Sistema',created_date:new Date().toISOString()};
+  data.push(item);
+  saveColabAnnouncements(data, false); renderColaboradorComunicados(); renderColaboradorInicio();
+  const saved = await colabCreateItem('announcements', item);
+  if(saved){
+    const synced = getColabAnnouncements();
+    const idx = synced.findIndex(a=>a.id===item.id);
+    if(idx>=0){ synced[idx] = saved; saveColabAnnouncements(synced, false); }
+  }else{
+    colabBulkFallback('announcements', getColabAnnouncements());
+  }
+  toast('Comunicado publicado');
+}
+
+async function deleteComunicadoColab(id){
+  if(soLeitura()||!confirm('Remover comunicado?')) return;
+  saveColabAnnouncements(getColabAnnouncements().filter(a=>a.id!==id), false);
+  renderColaboradorComunicados(); renderColaboradorInicio();
+  const ok = await colabDeleteItem('announcements', id);
+  if(!ok) colabBulkFallback('announcements', getColabAnnouncements());
+  toast('Comunicado removido');
+}
+
+function renderColaboradorChamados(){
+  const userEmail = getColabUserEmail();
+  const isAdmin = SESSION && SESSION.role==='admin';
+  const data = getColabTickets().filter(t=>isAdmin || t.requester_email===userEmail).slice().sort((a,b)=>String(b.created_date).localeCompare(String(a.created_date)));
+  const tbody=document.getElementById('colab-tickets-body'); if(!tbody) return;
+  tbody.innerHTML = data.length===0?'<tr><td colspan="8" class="tbl-empty">Nenhuma CP registrada</td></tr>':
+    data.map(t=>`<tr>
+      <td class="text-mono text-xs">${t.id}</td>
+      <td style="font-weight:500">${t.subject}</td>
+      <td><span class="badge badge-neutral">${colabCategoryLabel(t.category)}</span></td>
+      <td>${colabPriorityBadge(t.priority)}</td>
+      <td>${statusBadge(t.status)}</td>
+      <td class="text-xs">${t.requester_name||'-'}</td>
+      <td class="text-xs text-mono">${fmtDate(t.created_date)}</td>
+      <td>
+        ${t.status==='open'?`<button class="btn btn-secondary btn-sm" onclick="atualizarStatusChamadoColab('${t.id}','in_progress')">→</button>`:''}
+        ${t.status==='in_progress'?`<button class="btn btn-primary btn-sm" onclick="atualizarStatusChamadoColab('${t.id}','resolved')">✓</button>`:''}
+        ${!['closed'].includes(t.status)?`<button class="btn btn-danger btn-sm" onclick="atualizarStatusChamadoColab('${t.id}','closed')">✕</button>`:''}
+      </td>
+    </tr>`).join('');
+  renderColaboradorInicio();
+  initDashboard();
+}
+
+async function criarChamadoColaborador(){
+  if(soLeitura()) return;
+  const subject=document.getElementById('colab-ticket-subject').value.trim();
+  const description=document.getElementById('colab-ticket-description').value.trim();
+  if(!subject || !description){ toast('Informe assunto e descrição','warning'); return; }
+  const category=document.getElementById('colab-ticket-category').value;
+  const priority=document.getElementById('colab-ticket-priority').value;
+  const data=getColabTickets();
+  const item = {
+    id:'TCK-'+padZero(data.length+1,4),
+    subject,description,category,priority,
+    requester_name:SESSION?.nome||'Colaborador',
+    requester_email:getColabUserEmail(),
+    department:SESSION?.lotacao||'',
+    status:'open',created_date:new Date().toISOString(),
+    assigned_to:''
+  };
+  data.push(item);
+  saveColabTickets(data, false);
+  const saved = await colabCreateItem('tickets', item);
+  if(saved){
+    const synced = getColabTickets();
+    const idx = synced.findIndex(t=>t.id===item.id);
+    if(idx>=0){ synced[idx] = saved; saveColabTickets(synced, false); }
+  }else{
+    colabBulkFallback('tickets', getColabTickets());
+  }
+  ['colab-ticket-subject','colab-ticket-description'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('colab-ticket-priority').value='medium';
+  document.getElementById('colab-ticket-category').value='technical';
+  renderColaboradorChamados();
+  toast('CP aberta com sucesso');
+}
+
+async function atualizarStatusChamadoColab(id,status){
+  if(soLeitura()) return;
+  const data=getColabTickets(); const idx=data.findIndex(t=>t.id===id); if(idx<0) return;
+  data[idx].status=status;
+  if(status==='resolved') data[idx].resolution_notes='Resolvido pela equipe de suporte.';
+  saveColabTickets(data, false);
+  const saved = await colabPatchItem('tickets', id, {
+    status,
+    assigned_to: data[idx].assigned_to || '',
+    resolution_notes: data[idx].resolution_notes || '',
+    due_date: data[idx].due_date || null
+  });
+  if(saved){
+    const synced = getColabTickets();
+    const refreshIdx = synced.findIndex(t=>t.id===id);
+    if(refreshIdx>=0){ synced[refreshIdx] = saved; saveColabTickets(synced, false); }
+  }else{
+    colabBulkFallback('tickets', getColabTickets());
+  }
+  renderColaboradorChamados();
+  toast(`CP ${id} atualizada para ${colabTicketStatusLabel(status)}`);
+}
+
+function renderColaboradorFolgas(){
+  const userEmail=getColabUserEmail();
+  const isAdmin = SESSION && SESSION.role==='admin';
+  const data=getColabTimeOff().filter(r=>isAdmin || r.employee_email===userEmail).slice().sort((a,b)=>String(b.created_date).localeCompare(String(a.created_date)));
+  const tbody=document.getElementById('colab-timeoff-body'); if(!tbody) return;
+  tbody.innerHTML = data.length===0?'<tr><td colspan="8" class="tbl-empty">Nenhuma solicitação de folga</td></tr>':
+    data.map(r=>`<tr>
+      <td class="text-mono text-xs">${r.id}</td>
+      <td><span class="badge badge-neutral">${colabTimeOffTypeLabel(r.type)}</span></td>
+      <td class="text-xs">${fmtDateSimple(r.start_date)||r.start_date} - ${fmtDateSimple(r.end_date)||r.end_date}</td>
+      <td class="text-mono text-xs">${r.total_days}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td class="text-xs">${r.employee_name||'-'}</td>
+      <td class="text-xs text-mono">${fmtDate(r.created_date)}</td>
+      <td>
+        ${r.status==='pending'?`<button class="btn btn-primary btn-sm" onclick="atualizarFolgaColab('${r.id}','approved')">✓</button> <button class="btn btn-danger btn-sm" onclick="atualizarFolgaColab('${r.id}','denied')">✕</button>`:''}
+      </td>
+    </tr>`).join('');
+  renderColaboradorInicio();
+}
+
+async function criarFolgaColaborador(){
+  if(soLeitura()) return;
+  const type=document.getElementById('colab-timeoff-type').value;
+  const start_date=document.getElementById('colab-timeoff-start').value;
+  const end_date=document.getElementById('colab-timeoff-end').value;
+  const reason=document.getElementById('colab-timeoff-reason').value.trim();
+  if(!start_date || !end_date || !reason){ toast('Preencha os campos obrigatórios','warning'); return; }
+  const total_days=diffDaysInclusive(start_date,end_date);
+  if(total_days<=0){ toast('Período inválido','warning'); return; }
+  const data=getColabTimeOff();
+  const item = {
+    id:'OFF-'+padZero(data.length+1,4),
+    type,start_date,end_date,reason,total_days,
+    employee_name:SESSION?.nome||'Colaborador',
+    employee_email:getColabUserEmail(),
+    department:SESSION?.lotacao||'',
+    status:'pending',
+    created_date:new Date().toISOString(),
+    approval_date:null,
+    manager_notes:''
+  };
+  data.push(item);
+  saveColabTimeOff(data, false);
+  const saved = await colabCreateItem('timeoff', item);
+  if(saved){
+    const synced = getColabTimeOff();
+    const idx = synced.findIndex(r=>r.id===item.id);
+    if(idx>=0){ synced[idx] = saved; saveColabTimeOff(synced, false); }
+  }else{
+    colabBulkFallback('timeoff', getColabTimeOff());
+  }
+  ['colab-timeoff-start','colab-timeoff-end','colab-timeoff-reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('colab-timeoff-type').value='vacation';
+  renderColaboradorFolgas();
+  toast('Solicitação de folga enviada');
+}
+
+async function atualizarFolgaColab(id,status){
+  if(soLeitura()) return;
+  const data=getColabTimeOff(); const idx=data.findIndex(r=>r.id===id); if(idx<0) return;
+  data[idx].status=status;
+  data[idx].approval_date=new Date().toISOString();
+  saveColabTimeOff(data, false);
+  const saved = await colabPatchItem('timeoff', id, {
+    status,
+    manager_notes: data[idx].manager_notes || '',
+    manager_email: SESSION?.email || '',
+    approval_date: data[idx].approval_date
+  });
+  if(saved){
+    const synced = getColabTimeOff();
+    const refreshIdx = synced.findIndex(r=>r.id===id);
+    if(refreshIdx>=0){ synced[refreshIdx] = saved; saveColabTimeOff(synced, false); }
+  }else{
+    colabBulkFallback('timeoff', getColabTimeOff());
+  }
+  renderColaboradorFolgas();
+  toast(`Solicitação ${id} ${colabTimeOffStatusLabel(status).toLowerCase()}`);
+}
+
+function renderColaboradorAdmin(){
+  const stats=document.getElementById('colab-admin-stats'); if(!stats) return;
+  const events=getColabEvents();
+  const policies=getColabPolicies();
+  const execs=getColabExecutives();
+  const announcements=getColabAnnouncements();
+  const tickets=getColabTickets();
+  const timeoff=getColabTimeOff();
+  stats.innerHTML=`
+    <div class="ch-stat"><div class="l">Eventos</div><div class="v">${events.length}</div></div>
+    <div class="ch-stat"><div class="l">Políticas</div><div class="v">${policies.length}</div></div>
+    <div class="ch-stat"><div class="l">Executivos</div><div class="v">${execs.length}</div></div>
+    <div class="ch-stat"><div class="l">Comunicados</div><div class="v">${announcements.length}</div></div>
+    <div class="ch-stat"><div class="l">CPs abertas</div><div class="v">${tickets.filter(t=>!['resolved','closed'].includes(t.status)).length}</div></div>
+    <div class="ch-stat"><div class="l">Folgas pendentes</div><div class="v">${timeoff.filter(r=>r.status==='pending').length}</div></div>
+  `;
 }
 
 function updateDashClock(){
@@ -2808,41 +3911,156 @@ function filterFrota(tipo){
   _frotaFilter=tipo;
   ['all','viatura','embarcacao','maquina'].forEach(t=>{
     const btn=document.getElementById(`fbtn-${t}`);
-    if(btn)btn.className=`btn ${t===tipo||(!tipo&&t==='all')?'btn-primary':'btn-secondary'}`;
+    if(btn)btn.className=`btn btn-sm ${t===tipo||(!tipo&&t==='all')?'btn-primary':'btn-secondary'}`;
   });
   renderFrota(tipo);
 }
 
 function renderFrota(tipo){
   const data=getFrota().filter(f=>!tipo||f.tipo===tipo);
-  const grid=document.getElementById('frota-grid');if(!grid)return;
-  if(data.length===0){grid.innerHTML='<div class="empty-state"><p>Nenhum veículo encontrado</p></div>';return;}
-  grid.innerHTML=data.map(f=>`<div class="fleet-card">
-    <div class="fc-header">
-      <div><div class="fc-name">${f.nome}</div><div class="fc-type text-mono">${f.placa||''} · ${tipoLabel(f.tipo)}</div></div>
-      ${statusFrotaBadge(f.status)}
-    </div>
-    <div class="fc-body">
-      <div class="fc-field"><div class="fc-field-label">Modelo</div><div class="fc-field-value">${f.modelo||'-'}</div></div>
-      <div class="fc-field"><div class="fc-field-label">Capacidade</div><div class="fc-field-value">${f.capacidade||'-'}</div></div>
-      <div class="fc-field"><div class="fc-field-label">Ano</div><div class="fc-field-value">${f.ano||'-'}</div></div>
-      <div class="fc-field"><div class="fc-field-label">Km/Horímetro</div><div class="fc-field-value">${f.km||0}</div></div>
-    </div>
-    ${f.obs?`<div style="font-size:11px;color:var(--warn);margin-bottom:10px">⚠ ${f.obs}</div>`:''}
-    <div class="fc-actions">
-      <button class="btn btn-ghost btn-sm" onclick="editVeiculo('${f.id}')">✎ Editar</button>
-      ${f.status==='P'||f.status==='OR'?`<button class="btn btn-primary btn-sm" onclick="agendar('${f.id}')">📅 Agendar</button>`:''}
-      <select onchange="updateFrotaStatus('${f.id}',this.value)" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--text1)">
-        ${['P','OR','INOP','MANUT'].map(s=>`<option value="${s}"${f.status===s?' selected':''}>${s}</option>`).join('')}
-      </select>
-    </div>
-  </div>`).join('');
+  const tbody=document.getElementById('frota-tbody');if(!tbody)return;
+  if(data.length===0){tbody.innerHTML='<tr><td colspan="8" class="tbl-empty">Nenhum veículo encontrado</td></tr>';renderFrotaKPIs();return;}
+  tbody.innerHTML=data.map(f=>`<tr>
+    <td style="font-weight:600;color:var(--text1)">${f.nome}</td>
+    <td class="text-xs">${tipoLabel(f.tipo)}</td>
+    <td class="text-mono text-xs">${f.placa||'—'}</td>
+    <td class="text-xs">${f.modelo||'—'} · ${f.ano||'—'}</td>
+    <td class="text-mono text-xs">${(f.km||0).toLocaleString()}</td>
+    <td>${statusFrotaBadge(f.status)}</td>
+    <td class="text-xs" style="color:${f.obs?'var(--warn)':'var(--text3)'}">${f.obs||'—'}</td>
+    <td>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="editVeiculo('${f.id}')">✎</button>
+        ${f.status==='P'||f.status==='OR'?`<button class="btn btn-primary btn-sm" onclick="agendar('${f.id}')">Agendar</button>`:''}
+        <select onchange="updateFrotaStatus('${f.id}',this.value)" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:3px 7px;font-size:11px;color:var(--text1)">
+          ${['P','OR','INOP','MANUT'].map(s=>`<option value="${s}"${f.status===s?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    </td>
+  </tr>`).join('');
+  renderFrotaKPIs();
+}
+
+function renderFrotaKPIs(){
+  const frota=getFrota();
+  const c={P:0,OR:0,INOP:0,MANUT:0};
+  frota.forEach(f=>{if(c[f.status]!==undefined)c[f.status]++;});
+  const ids={P:'kpi-trp-p',OR:'kpi-trp-or',INOP:'kpi-trp-inop',MANUT:'kpi-trp-manut'};
+  for(const[s,id]of Object.entries(ids)){const el=document.getElementById(id);if(el)el.textContent=c[s]||0;}
+}
+
+function renderAgendaHoje(){
+  const today=new Date().toISOString().split('T')[0];
+  const lbl=document.getElementById('hoje-label');
+  if(lbl)lbl.textContent=`Agendamentos de ${fmtDateSimple(today)}`;
+  const data=getAgenda().filter(a=>a.data===today).sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+  const tbody=document.getElementById('agenda-hoje-body');if(!tbody)return;
+  if(data.length===0){tbody.innerHTML='<tr><td colspan="8" class="tbl-empty">Nenhum agendamento para hoje</td></tr>';return;}
+  tbody.innerHTML=data.map(a=>{
+    const v=getFrota().find(f=>f.id===a.veiculoId);
+    return `<tr>
+      <td class="text-mono text-xs">${a.id}</td>
+      <td>${a.solicitante}</td>
+      <td>${a.destino}</td>
+      <td class="text-mono text-xs">${a.hora||'—'}</td>
+      <td class="text-xs">${v?v.nome:'A definir'}</td>
+      <td class="text-xs">${a.motorista||'A definir'}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td>
+        ${(SESSION.role==='admin'||SESSION.role==='gestor')&&a.status==='pendente'?`<button class="btn btn-primary btn-sm" onclick="abrirAtribuir('${a.id}')">Atribuir →</button>`:''}
+        ${a.status==='confirmado'?`<button class="btn btn-secondary btn-sm" onclick="concluirAgenda('${a.id}')">✓ Concluir</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAgendaSemana(){
+  const now=new Date();
+  const dow=now.getDay();
+  const mon=new Date(now);mon.setDate(now.getDate()-(dow===0?6:dow-1));
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const startStr=mon.toISOString().split('T')[0];
+  const endStr=sun.toISOString().split('T')[0];
+  const lbl=document.getElementById('semana-label');
+  if(lbl)lbl.textContent=`Semana: ${fmtDateSimple(startStr)} → ${fmtDateSimple(endStr)}`;
+  const st=(document.getElementById('semana-filter')||{}).value||'';
+  const data=getAgenda().filter(a=>{
+    if(!a.data||a.data<startStr||a.data>endStr)return false;
+    if(st&&a.status!==st)return false;
+    return true;
+  }).sort((a,b)=>(a.data+(a.hora||'')).localeCompare(b.data+(b.hora||'')));
+  const tbody=document.getElementById('agenda-semana-body');if(!tbody)return;
+  if(data.length===0){tbody.innerHTML='<tr><td colspan="9" class="tbl-empty">Nenhum agendamento esta semana</td></tr>';return;}
+  tbody.innerHTML=data.map(a=>{
+    const v=getFrota().find(f=>f.id===a.veiculoId);
+    return `<tr>
+      <td class="text-mono text-xs">${fmtDateSimple(a.data)}</td>
+      <td class="text-mono text-xs">${a.id}</td>
+      <td>${a.solicitante}</td>
+      <td>${a.destino}</td>
+      <td class="text-mono text-xs">${a.hora||'—'}</td>
+      <td class="text-xs">${v?v.nome:'A definir'}</td>
+      <td class="text-xs">${a.motorista||'A definir'}</td>
+      <td>${statusBadge(a.status)}</td>
+      <td>
+        ${(SESSION.role==='admin'||SESSION.role==='gestor')&&a.status==='pendente'?`<button class="btn btn-primary btn-sm" onclick="abrirAtribuir('${a.id}')">Atribuir →</button>`:''}
+        ${a.status==='confirmado'?`<button class="btn btn-secondary btn-sm" onclick="concluirAgenda('${a.id}')">✓ Concluir</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCondFrota(){
+  const frota=getFrota();
+  const osManut=getOSManut();
+  const body=document.getElementById('condicao-frota-body');if(!body)return;
+  const intervalos={viatura:10000,embarcacao:200,maquina:250};
+  body.innerHTML=`<div class="status-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">${
+    frota.map(f=>{
+      const osAtivas=osManut.filter(o=>o.ativoId===f.ativoId&&(o.status==='aberta'||o.status==='em_andamento')).length;
+      const interval=intervalos[f.tipo]||5000;
+      const km=f.km||0;
+      const proxManut=(Math.ceil((km+1)/interval)*interval)-km;
+      const alerta=proxManut<=Math.round(interval*0.1);
+      return `<div class="status-card">
+        <div class="sc-header">
+          <div><div class="sc-name">${f.nome}</div><div class="sc-code text-mono">${f.placa||f.id} · ${tipoLabel(f.tipo)}</div></div>
+          ${statusFrotaBadge(f.status)}
+        </div>
+        <div class="sc-meta">
+          <div class="sc-row"><span class="sc-row-label">Modelo / Ano</span><span class="sc-row-value">${f.modelo||'—'} / ${f.ano||'—'}</span></div>
+          <div class="sc-row"><span class="sc-row-label">Km / Horímetro</span><span class="sc-row-value text-mono">${km.toLocaleString()}</span></div>
+          <div class="sc-row"><span class="sc-row-label">Próx. revisão</span><span class="sc-row-value"><span class="badge badge-${alerta?'warn':'ok'}">em ${proxManut.toLocaleString()} km/h</span></span></div>
+          <div style="margin:8px 0 4px;background:var(--bg3);border-radius:4px;height:5px;overflow:hidden"><div style="width:${Math.min(100,Math.round((km%interval)/interval*100))}%;height:100%;background:var(--${alerta?'warn':'acc'});border-radius:4px"></div></div>
+          <div class="sc-row"><span class="sc-row-label">OS ativas</span><span class="sc-row-value">${osAtivas?`<span class="badge badge-warn">${osAtivas} OS</span>`:'<span class="text-muted">—</span>'}</span></div>
+          ${f.obs?`<div style="font-size:11px;color:var(--warn);margin-top:6px">⚠ ${f.obs}</div>`:''}
+        </div>
+        <div class="sc-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editVeiculo('${f.id}')">✎ Editar</button>
+          ${f.ativoId?`<button class="btn btn-secondary btn-sm" onclick="novaOSManut('${f.ativoId}');showPage('manutencao')">OS Manutenção</button>`:''}
+        </div>
+      </div>`;
+    }).join('')
+  }</div>`;
+}
+
+function renderGPSFrota(){
+  const frota=getFrota();
+  const tbody=document.getElementById('gps-frota-body');if(!tbody)return;
+  tbody.innerHTML=frota.map(f=>`<tr>
+    <td style="font-weight:500">${f.nome}</td>
+    <td class="text-mono text-xs">${f.placa||f.id}</td>
+    <td class="text-xs">${tipoLabel(f.tipo)}</td>
+    <td>${statusFrotaBadge(f.status)}</td>
+    <td><span class="badge badge-neutral">— Sem sinal</span></td>
+    <td class="text-xs text-muted">—</td>
+  </tr>`).join('');
 }
 
 function updateFrotaStatus(id,status){
   if(soLeitura())return;
   const data=getFrota();const idx=data.findIndex(f=>f.id===id);if(idx<0)return;
-  data[idx].status=status;saveFrota(data);toast(`Status atualizado: ${status}`);renderFrota(_frotaFilter);initDashboard();
+  data[idx].status=status;saveFrota(data);toast(`Status atualizado: ${status}`);renderFrota(_frotaFilter);renderCondFrota();initDashboard();
 }
 
 function agendar(frId){openModal('modal-agendar');}
@@ -2873,32 +4091,9 @@ function criarAgendamento(){
 }
 
 function renderAgenda(){
-  const data=getAgenda();
-  const q=(document.getElementById('agenda-search')||{}).value?.toLowerCase()||'';
-  const st=(document.getElementById('agenda-filter')||{}).value||'';
-  const filtered=data.filter(a=>{
-    if(q&&!a.id.toLowerCase().includes(q)&&!a.destino.toLowerCase().includes(q)&&!a.solicitante.toLowerCase().includes(q))return false;
-    if(st&&a.status!==st)return false;
-    return true;
-  }).reverse();
-  const tbody=document.getElementById('agenda-body');if(!tbody)return;
-  tbody.innerHTML=filtered.length===0?'<tr><td colspan="8" class="tbl-empty">Nenhum agendamento</td></tr>':
-    filtered.map(a=>{
-      const v=getFrota().find(f=>f.id===a.veiculoId);
-      return `<tr>
-        <td class="text-mono text-xs">${a.id}</td>
-        <td>${a.solicitante}</td>
-        <td>${a.destino}</td>
-        <td class="text-xs text-muted">${fmtDateSimple(a.data)}</td>
-        <td class="text-xs">${v?v.nome:'A definir'}</td>
-        <td class="text-xs">${a.motorista||'A definir'}</td>
-        <td>${statusBadge(a.status)}</td>
-        <td>
-          ${(SESSION.role==='admin'||SESSION.role==='gestor')&&a.status==='pendente'?`<button class="btn btn-primary btn-sm" onclick="abrirAtribuir('${a.id}')">Atribuir →</button>`:''}
-          ${a.status==='confirmado'?`<button class="btn btn-secondary btn-sm" onclick="concluirAgenda('${a.id}')">✓ Concluir</button>`:''}
-        </td>
-      </tr>`;
-    }).join('');
+  // Shim: refresh both agenda views
+  renderAgendaHoje();
+  renderAgendaSemana();
 }
 
 function abrirAtribuir(id){
@@ -2925,7 +4120,7 @@ function confirmarAtribuicao(){
   const frData=getFrota();const fIdx=frData.findIndex(f=>f.id===vId);
   if(fIdx>=0&&frData[fIdx].status==='P'){frData[fIdx].status='OR';saveFrota(frData);}
   closeModal(document.getElementById('modal-atribuir'));
-  renderAgenda();renderFrota(_frotaFilter);initDashboard();
+  renderAgenda();renderFrota(_frotaFilter);renderFrotaKPIs();initDashboard();
   toast(`Agendamento confirmado: ${v?v.nome:vId} · ${mot}`);
 }
 
@@ -2939,15 +4134,13 @@ function concluirAgenda(id){
     const frData=getFrota();const fIdx=frData.findIndex(f=>f.id===ag.veiculoId);
     if(fIdx>=0&&frData[fIdx].status==='OR'){frData[fIdx].status='P';saveFrota(frData);}
   }
-  renderAgenda();renderFrota(_frotaFilter);initDashboard();toast('Agendamento concluído · veículo liberado');
+  renderAgenda();renderFrota(_frotaFilter);renderFrotaKPIs();initDashboard();toast('Agendamento concluído · veículo liberado');
 }
 
 function exportarEscalaCSV(){
-  const q=(document.getElementById('agenda-search')||{}).value?.toLowerCase()||'';
-  const st=(document.getElementById('agenda-filter')||{}).value||'';
+  const st=(document.getElementById('semana-filter')||{}).value?.toLowerCase()||'';
   const frota=getFrota();
   const data=getAgenda().filter(a=>{
-    if(q&&!a.id.toLowerCase().includes(q)&&!a.destino.toLowerCase().includes(q)&&!a.solicitante.toLowerCase().includes(q))return false;
     if(st&&a.status!==st)return false;
     return true;
   }).slice().reverse();
@@ -2978,7 +4171,7 @@ function salvarVeiculo(){
   const veiculo={id:editId||'f'+Date.now(),nome,tipo:document.getElementById('veiculo-tipo').value,placa:document.getElementById('veiculo-placa').value.trim(),modelo:document.getElementById('veiculo-modelo').value.trim(),ano:parseInt(document.getElementById('veiculo-ano').value)||0,capacidade:document.getElementById('veiculo-capacidade').value.trim(),status:document.getElementById('veiculo-status').value,secao:document.getElementById('veiculo-secao').value.trim(),obs:document.getElementById('veiculo-obs').value.trim(),km:0};
   if(editId){const idx=data.findIndex(f=>f.id===editId);if(idx>=0)data[idx]={...data[idx],...veiculo};}
   else data.push(veiculo);
-  saveFrota(data);closeModal(document.getElementById('modal-novo-veiculo'));renderFrota(_frotaFilter);initDashboard();toast('Veículo salvo');
+  saveFrota(data);closeModal(document.getElementById('modal-novo-veiculo'));renderFrota(_frotaFilter);renderFrotaKPIs();initDashboard();toast('Veículo salvo');
 }
 
 function editVeiculo(id){
@@ -3025,7 +4218,12 @@ function showTrpTab(name,el){
   const panel=document.getElementById('trp-tab-'+name);if(panel)panel.classList.add('active');
   document.querySelectorAll('#page-transportes .tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
-  if(name==='servico'){populateMotoristaSelect('ms-diretor');populateMotoristaSelect('ms-servico');renderMSHistorico();}
+  if(name==='hoje')renderAgendaHoje();
+  else if(name==='semana')renderAgendaSemana();
+  else if(name==='frota')renderFrota(_frotaFilter);
+  else if(name==='condicao')renderCondFrota();
+  else if(name==='servico'){populateMotoristaSelect('ms-diretor');populateMotoristaSelect('ms-servico');renderMSHistorico();}
+  else if(name==='gps')renderGPSFrota();
 }
 
 /* ════ MANUTENÇÃO ════════════════════════════════════════ */
@@ -3393,7 +4591,12 @@ function renderAdminDB(){
 function salvarCfg(){toast('Configurações salvas');}
 
 function exportBackup(){
-  const backup={v:1,ts:new Date().toISOString(),tmft:getTMFT(),users:getUsers(),cargos:getCargos(),ps:getPS(),os:getOS(),frota:getFrota(),ativos:getAtivos(),calib:getCalib(),ms:DB.get('ms_servico',{})};
+  const backup={
+    v:1,ts:new Date().toISOString(),
+    tmft:getTMFT(),users:getUsers(),cargos:getCargos(),ps:getPS(),os:getOS(),frota:getFrota(),ativos:getAtivos(),calib:getCalib(),ms:DB.get('ms_servico',{}),
+    ch_events:getColabEvents(),ch_policies:getColabPolicies(),ch_executives:getColabExecutives(),ch_announcements:getColabAnnouncements(),
+    ch_tickets:getColabTickets(),ch_timeoff:getColabTimeOff()
+  };
   download('xcmasm_backup_'+new Date().toISOString().split('T')[0]+'.json',JSON.stringify(backup,null,2),'application/json');
   toast('Backup exportado');
 }
@@ -3409,6 +4612,12 @@ function importBackup(input){
       if(data.os)saveOS(data.os);if(data.frota)saveFrota(data.frota);
       if(data.ativos)saveAtivos(data.ativos);if(data.calib)saveCalib(data.calib);
       if(data.ms)DB.set('ms_servico',data.ms);
+      if(data.ch_events)saveColabEvents(data.ch_events);
+      if(data.ch_policies)saveColabPolicies(data.ch_policies);
+      if(data.ch_executives)saveColabExecutives(data.ch_executives);
+      if(data.ch_announcements)saveColabAnnouncements(data.ch_announcements);
+      if(data.ch_tickets)saveColabTickets(data.ch_tickets);
+      if(data.ch_timeoff)saveColabTimeOff(data.ch_timeoff);
       toast('Backup restaurado com sucesso');
       initApp();
     }catch(err){toast('Erro ao restaurar: '+err.message,'error');}
@@ -3418,7 +4627,7 @@ function importBackup(input){
 
 function clearAllData(){
   if(soLeitura())return;
-  ['tmft','users','cargos','ps','os','frota','ativos','calib','ms_servico','os_manut','agenda','session'].forEach(k=>DB.del(k));
+  ['tmft','users','cargos','ps','os','frota','ativos','calib','ms_servico','os_manut','agenda','session','ch_events','ch_policies','ch_executives','ch_announcements','ch_tickets','ch_timeoff'].forEach(k=>DB.del(k));
   toast('Dados limpos. Recarregue para aplicar.','warning');
 }
 
@@ -3739,9 +4948,75 @@ const SEED_MAQ_VEGETAL = [
   {id:'mv4',nome:'Roçadeira de Roda Kawashima',tipo:'rocadeira_roda',marca:'Kawashima',modelo:'BCR52C',serie:'KW2023001',ano:2023,status:'INOP',horimetro:45,local:'Depósito Vegetal',obs:'Carburador para reparo'},
 ];
 const SEED_ATIV_VEGETAL = [
-  {id:'av1',data:'2025-04-15',area:'Área Verde Principal',maqId:'mv1',operador:'Roberto Nunes Barbosa',horas:4,obs:'Corte semanal programado'},
-  {id:'av2',data:'2025-04-22',area:'Entorno dos Paiois',maqId:'mv2',operador:'João Silva Santos',horas:6,obs:'Corte mensal'},
+  {id:'av1',data:'2025-04-15',area:'Área Verde Principal',areaId:'area1',maqId:'mv1',operador:'Roberto Nunes Barbosa',horas:4,obs:'Corte semanal programado'},
+  {id:'av2',data:'2025-04-22',area:'Entorno dos Paiois',areaId:'area2',maqId:'mv2',operador:'João Silva Santos',horas:6,obs:'Corte mensal'},
 ];
+const SEED_AREAS_VEGETAL = [
+  {id:'area1',nome:'Área Verde Principal',descricao:'Gramado central com acesso livre ao trator de corte.',tipo:'corte_grama',area_m2:4500,localizacao_gps:'Setor central',coords_json:'{"points":[{"x":12,"y":18},{"x":48,"y":20},{"x":44,"y":42},{"x":16,"y":40}]}',flora:'gramado',inclinacao:'plano',limpeza:'limpa',maquinas_compativeis:'["cortador_grama","rocadeira"]',ativa:1,grupo_nome:'Base operacional',visivel:1,cor_hex:'#22c55e',opacidade:0.26},
+  {id:'area2',nome:'Entorno dos Paióis',descricao:'Faixa lateral com vegetação média e circulação restrita.',tipo:'limpeza',area_m2:1800,localizacao_gps:'Faixa leste',coords_json:'{"points":[{"x":58,"y":12},{"x":84,"y":16},{"x":80,"y":34},{"x":55,"y":30}]}',flora:'capim_colonial',inclinacao:'moderado',limpeza:'media',maquinas_compativeis:'["rocadeira"]',ativa:1,grupo_nome:'Base operacional',visivel:1,cor_hex:'#f59e0b',opacidade:0.24},
+  {id:'area3',nome:'Acesso Principal',descricao:'Talude frontal sujeito a crescimento rápido.',tipo:'corte_localizado',area_m2:920,localizacao_gps:'Portaria',coords_json:'{"points":[{"x":8,"y":58},{"x":36,"y":56},{"x":32,"y":76},{"x":7,"y":78}]}',flora:'capim_colonial',inclinacao:'acentuado',limpeza:'densa',maquinas_compativeis:'["rocadeira"]',ativa:1,grupo_nome:'Perímetro crítico',visivel:1,cor_hex:'#ef4444',opacidade:0.22},
+  {id:'area4',nome:'Bosque Técnico',descricao:'Trecho com mata fechada e intervenção especializada.',tipo:'poda_arvore',area_m2:1240,localizacao_gps:'Setor oeste',coords_json:'{"points":[{"x":62,"y":48},{"x":90,"y":47},{"x":88,"y":74},{"x":60,"y":72}]}',flora:'mata_fechada',inclinacao:'moderado',limpeza:'densa',maquinas_compativeis:'["motosserra","rocadeira"]',ativa:1,grupo_nome:'Perímetro crítico',visivel:1,cor_hex:'#b91c1c',opacidade:0.3},
+];
+
+let VEG_DRAW_MODE = false;
+let VEG_DRAFT_POINTS = [];
+let VEG_DATA_LOADING = null;
+let VEG_SOURCE = 'local';
+let VEG_MAP = null;
+let VEG_AREA_LAYER = null;
+let VEG_DRAFT_LAYER = null;
+let VEG_DRAFT_POINT_LAYER = null;
+let VEG_LEAFLET_WAIT_TIMER = null;
+let VEG_AREA_MODAL_CONTEXT = '';
+let VEG_FOCUS_GROUP = '';
+let VEG_GROUP_FILTER = '';
+const VEG_DEFAULT_BOUNDS = {
+  north: -22.8195,
+  south: -22.8295,
+  west: -43.1245,
+  east: -43.1085,
+};
+const VEG_SERVICE_CATALOG = {
+  limpeza_pre: { nome: 'Limpeza preliminar', tipo: 'manual', fator_h_m2: 0.00016, custo_fixo: 25 },
+  corte_trator: { nome: 'Corte com trator', tipo: 'trator_corte', fator_h_m2: 0.00019, custo_fixo: 18 },
+  corte_rocadeira: { nome: 'Corte com roçadeira', tipo: 'rocadeira', fator_h_m2: 0.00031, custo_fixo: 14 },
+  corte_meio_fio: { nome: 'Acabamento de meio-fio', tipo: 'rocadeira', fator_h_m2: 0.00009, custo_fixo: 8 },
+  varricao: { nome: 'Varrição', tipo: 'manual', fator_h_m2: 0.00012, custo_fixo: 10 },
+  coleta_residuos: { nome: 'Coleta de resíduos', tipo: 'manual', fator_h_m2: 0.00008, custo_fixo: 12 },
+  desbaste_motosserra: { nome: 'Desbaste com motosserra', tipo: 'motosserra', fator_h_m2: 0.00025, custo_fixo: 30 },
+};
+const VEG_COST_PER_HOUR = {
+  mao_obra: 52,
+  rocadeira: 68,
+  rocadeira_roda: 80,
+  trator_corte: 125,
+  cortador_grama: 110,
+  motosserra: 92,
+  manual: 0,
+};
+const VEG_MATERIAL_CATALOG = {
+  limpeza_pre: [
+    { codigo:'EPI-002', nome:'Luva de nitrila G (cx100)', unidade:'cx', fator_m2:0.00012, fixo:0.05, obs:'EPI para equipe de limpeza' },
+  ],
+  corte_trator: [
+    { codigo:'LUB-001', nome:'Óleo hidráulico ISO 46 (20L)', unidade:'gl', fator_m2:0.00002, fixo:0.02, obs:'Lubrificação trator' },
+  ],
+  corte_rocadeira: [
+    { codigo:'MAT-002', nome:'Lubrificante WD-40 300ml', unidade:'fr', fator_m2:0.00005, fixo:0.03, obs:'Ajuste e limpeza de roçadeira' },
+  ],
+  corte_meio_fio: [
+    { codigo:'MAT-004', nome:'Fita isolante 20m preta', unidade:'rl', fator_m2:0.00001, fixo:0.01, obs:'Fixação e acabamento operacional' },
+  ],
+  varricao: [
+    { codigo:'EPI-002', nome:'Luva de nitrila G (cx100)', unidade:'cx', fator_m2:0.00005, fixo:0.02, obs:'EPI para varrição' },
+  ],
+  coleta_residuos: [
+    { codigo:'MAT-002', nome:'Lubrificante WD-40 300ml', unidade:'fr', fator_m2:0.00001, fixo:0.01, obs:'Limpeza pós-coleta' },
+  ],
+  desbaste_motosserra: [
+    { codigo:'LUB-001', nome:'Óleo hidráulico ISO 46 (20L)', unidade:'gl', fator_m2:0.00003, fixo:0.03, obs:'Lubrificação e cadeia da motosserra' },
+  ],
+};
 
 function getMaqVegetal(){ return DB.get('maq_vegetal', SEED_MAQ_VEGETAL.map(m=>({...m}))); }
 function saveMaqVegetal(d){ DB.set('maq_vegetal',d); }
@@ -3749,8 +5024,1036 @@ function getAtivVegetal(){ return DB.get('ativ_vegetal', SEED_ATIV_VEGETAL.map(a
 function saveAtivVegetal(d){ DB.set('ativ_vegetal',d); }
 function getOSVegetal(){ return DB.get('os_vegetal',[]); }
 function saveOSVegetal(d){ DB.set('os_vegetal',d); }
+function getAreasVegetal(){ return DB.get('areas_vegetal', SEED_AREAS_VEGETAL.map(a=>({...a}))); }
+function saveAreasVegetal(d){ DB.set('areas_vegetal',d); }
 
-function tipoMaqLabel(t){ return {rocadeira:'Roçadeira Costal',trator_corte:'Trator de Corte',motosserra:'Motosserra',rocadeira_roda:'Roçadeira de Roda',soprador:'Soprador'}[t]||t; }
+function vegDefaultAreaColor(flora){
+  return ({gramado:'#22c55e', capim_colonial:'#f59e0b', mata_fechada:'#ef4444'})[flora] || '#3b82f6';
+}
+
+function vegAreaGroupName(area){
+  return String(area?.grupo_nome || '').trim() || 'Sem grupo';
+}
+
+function vegAreaStyle(area){
+  const color = String(area?.cor_hex || '').trim() || vegDefaultAreaColor(area?.flora);
+  const opacity = Math.min(0.82, Math.max(0.08, Number(area?.opacidade ?? 0.24) || 0.24));
+  return { color, opacity };
+}
+
+function vegFetchJSON(path, opts={}){
+  return colabFetchJSON(path, opts);
+}
+
+function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+function tipoMaqLabel(t){
+  return {
+    rocadeira:'Roçadeira Costal',
+    rocadeira_roda:'Roçadeira de Roda',
+    trator_corte:'Trator de Corte',
+    motosserra:'Motosserra',
+    soprador:'Soprador',
+    cortador_grama:'Cortador de Grama',
+  }[t] || t || '—';
+}
+
+function normalizeVegMachineTypeKey(value){
+  const raw = String(value || '').trim().toLowerCase();
+  if(!raw) return '';
+  const normalized = raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+  if(normalized === 'rocadeira') return 'rocadeira';
+  if(normalized === 'rocadeira_de_roda') return 'rocadeira_roda';
+  return normalized;
+}
+
+function mapVegMachineStatus(st){
+  return ({operacional:'P',disponivel:'P',em_manutencao:'MANUT',inativo:'INOP',em_uso:'OR'})[st] || st || 'P';
+}
+
+function mapVegOsStatus(st){
+  return ({em_progresso:'em_andamento',agendada:'aberta',pendente:'aberta'})[st] || st || 'aberta';
+}
+
+function brl(value){
+  return Number(value || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+}
+
+function vegPeriodicidadeDias(area){
+  if(area?.limpeza === 'densa') return 7;
+  if(area?.limpeza === 'media') return 15;
+  return 30;
+}
+
+function vegPrioridadeArea(area){
+  if(!area) return 'media';
+  if(area.flora === 'mata_fechada' || area.inclinacao === 'acentuado') return 'alta';
+  if(Number(area.area_m2 || 0) >= 4000) return 'alta';
+  if(area.limpeza === 'media') return 'media';
+  return 'baixa';
+}
+
+function vegServicosPorArea(area){
+  const itens = ['limpeza_pre'];
+  if(area?.flora === 'gramado' && area?.inclinacao === 'plano') itens.push('corte_trator', 'corte_meio_fio');
+  else itens.push('corte_rocadeira');
+  if(area?.flora === 'mata_fechada') itens.push('desbaste_motosserra');
+  itens.push('varricao', 'coleta_residuos');
+  return itens;
+}
+
+function vegMateriaisPorPlano(area, servicos){
+  const areaM2 = Number(area?.area_m2 || 0);
+  const acc = new Map();
+  servicos.forEach(servico => {
+    const itens = VEG_MATERIAL_CATALOG[servico.codigo] || [];
+    itens.forEach(item => {
+      const quantidade = Math.max(0.01, (areaM2 * Number(item.fator_m2 || 0)) + Number(item.fixo || 0));
+      const key = item.codigo;
+      const prev = acc.get(key) || {
+        codigo: item.codigo,
+        nome: item.nome,
+        unidade: item.unidade || 'un',
+        quantidade: 0,
+        obs: item.obs || '',
+      };
+      prev.quantidade += quantidade;
+      acc.set(key, prev);
+    });
+  });
+  return [...acc.values()].map(item => ({
+    ...item,
+    quantidade: Number(item.quantidade.toFixed(2)),
+  }));
+}
+
+function pickVegMachineForArea(area){
+  const maqs = getMaqVegetal();
+  const compat = new Set(parseVegCompat(area?.maquinas_compativeis || JSON.stringify(calcVegCompat(area?.flora, area?.inclinacao, area?.limpeza))));
+  const dispo = maqs.filter(m => ['P', 'OR'].includes(m.status));
+  const preferred = dispo.find(m => compat.has(normalizeVegMachineTypeKey(m.tipo)));
+  return preferred || dispo[0] || maqs[0] || null;
+}
+
+function vegPlanoArea(area){
+  const areaM2 = Number(area?.area_m2 || 0);
+  const servicos = vegServicosPorArea(area).map(code => {
+    const base = VEG_SERVICE_CATALOG[code];
+    const horas = Math.max(0.15, areaM2 * (base?.fator_h_m2 || 0));
+    const custoHoraMao = VEG_COST_PER_HOUR.mao_obra;
+    const custoHoraMaq = VEG_COST_PER_HOUR[base?.tipo || 'manual'] || 0;
+    const custo = (horas * (custoHoraMao + custoHoraMaq)) + Number(base?.custo_fixo || 0);
+    return {
+      codigo: code,
+      nome: base?.nome || code,
+      tipo: base?.tipo || 'manual',
+      horas,
+      custo,
+    };
+  });
+  const total = servicos.reduce((sum, s) => sum + s.custo, 0);
+  const materiais = vegMateriaisPorPlano(area, servicos);
+  return {
+    prioridade: vegPrioridadeArea(area),
+    periodicidadeDias: vegPeriodicidadeDias(area),
+    servicos,
+    materiais,
+    custoCiclo: total,
+    custoMensal: total * (30 / vegPeriodicidadeDias(area)),
+  };
+}
+
+async function persistVegPlanoBackend(area, plano){
+  const payload = {
+    area_id: area.id,
+    nome: `Plano de rotina - ${area.nome}`,
+    periodicidade_dias: plano.periodicidadeDias,
+    prioridade: plano.prioridade,
+    servicos_json: plano.servicos,
+    materiais_json: plano.materiais,
+    custo_estimado_ciclo: Number(plano.custoCiclo.toFixed(2)),
+    custo_estimado_mensal: Number(plano.custoMensal.toFixed(2)),
+    observacoes: `Gerado automaticamente em ${new Date().toISOString()}`,
+  };
+  try{
+    const saved = await vegFetchJSON('/api/grama/planos', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    return saved?.id || null;
+  }catch(_err){
+    return null;
+  }
+}
+
+function aplicarBaixaMateriaisLocal(materiais, docRef='PLANO-VEGETAL'){
+  const itens = Array.isArray(materiais) ? materiais : [];
+  if(!itens.length) return { ok:true, modo:'local', itens_baixados:0, custo_real_materiais:0, detail:'Sem materiais previstos' };
+  const estoque = getEstoque();
+  const movs = getMovEstoque();
+  const pendencias = [];
+
+  for(const mat of itens){
+    const qtd = Number(mat.quantidade || 0);
+    if(!(qtd > 0)) continue;
+    const item = estoque.find(e => e.codigo === mat.codigo);
+    if(!item){
+      pendencias.push(`Item ${mat.codigo} não encontrado no estoque local`);
+      continue;
+    }
+    if(Number(item.saldo || 0) < qtd){
+      pendencias.push(`Saldo insuficiente: ${item.codigo} (${item.saldo} < ${qtd})`);
+    }
+  }
+  if(pendencias.length){
+    const detail = pendencias.join(' | ');
+    toast(`Baixa pendente: ${pendencias[0]}`, 'warning');
+    return { ok:false, modo:'local', itens_baixados:0, custo_real_materiais:0, detail };
+  }
+
+  let custo = 0;
+  let itensBaixados = 0;
+  for(const mat of itens){
+    const qtd = Number(mat.quantidade || 0);
+    if(!(qtd > 0)) continue;
+    const idx = estoque.findIndex(e => e.codigo === mat.codigo);
+    if(idx < 0) continue;
+    const preco = Number(estoque[idx].preco || estoque[idx].preco_unitario || 0);
+    custo += qtd * preco;
+    itensBaixados += 1;
+    estoque[idx].saldo = Number((Number(estoque[idx].saldo || 0) - qtd).toFixed(2));
+    movs.push({
+      id:'mv'+Date.now()+Math.floor(Math.random()*1000),
+      itemId: estoque[idx].id,
+      tipo:'saida',
+      qtd,
+      responsavel: SESSION.nome,
+      doc: docRef,
+      obs: `Baixa automática do ciclo vegetal (${mat.nome || mat.codigo})`,
+      data:new Date().toISOString(),
+    });
+  }
+  saveEstoque(estoque);
+  saveMovEstoque(movs);
+  renderEstoque?.();
+  renderEstoqueKPIs?.();
+  renderMovimentacoes?.();
+  renderEstoqueAlertas?.();
+  return { ok:true, modo:'local', itens_baixados:itensBaixados, custo_real_materiais:Number(custo.toFixed(2)), detail:'Baixa local registrada' };
+}
+
+async function executarBaixaPlanoVegetal(os){
+  const materiais = Array.isArray(os?.materiaisPrevistos) ? os.materiaisPrevistos : [];
+  if(os?.planoId){
+    try{
+      const out = await vegFetchJSON(`/api/grama/planos/${encodeURIComponent(os.planoId)}/executar`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          os_id: os.id,
+          usuario_id: SESSION.id || SESSION.nome,
+          materiais_json: materiais,
+          observacoes: 'Execução concluída via módulo vegetal',
+        }),
+      });
+      if(out?.ok){
+        const localResult = aplicarBaixaMateriaisLocal(materiais, os.id);
+        return {
+          ok: true,
+          modo: 'backend',
+          execucao_id: out.execucao_id || null,
+          itens_baixados: out.itens_baixados ?? localResult.itens_baixados ?? 0,
+          custo_real_materiais: Number(out.custo_real_materiais ?? localResult.custo_real_materiais ?? 0),
+          detail: 'Baixa registrada no backend e refletida localmente',
+        };
+      }
+    }catch(_err){
+      // fallback local abaixo
+    }
+  }
+  return aplicarBaixaMateriaisLocal(materiais, os.id || 'OSV');
+}
+
+function vegCustoAtividade(atividade, area, maquina){
+  const horas = Number(atividade?.horas || 0);
+  const tipo = normalizeVegMachineTypeKey(maquina?.tipo || 'manual') || 'manual';
+  const custo = horas * ((VEG_COST_PER_HOUR.mao_obra || 0) + (VEG_COST_PER_HOUR[tipo] || 0));
+  const plano = area ? vegPlanoArea(area) : null;
+  return {
+    custoExecucao: custo,
+    custoPlanejado: plano?.custoCiclo || 0,
+    plano,
+  };
+}
+
+function calcVegCompat(flora, inclinacao, limpeza){
+  if(!flora && !inclinacao && !limpeza) return [];
+  const tipos=[];
+  const emergencia=[];
+  if(flora==='mata_fechada') return ['motosserra','rocadeira'];
+  if(inclinacao==='acentuado'){
+    if(limpeza==='densa') emergencia.push('rocadeira');
+    else tipos.push('rocadeira');
+    return [...tipos,...emergencia];
+  }
+  if(flora==='gramado'){
+    if(inclinacao==='plano' && limpeza==='limpa') tipos.push('cortador_grama');
+    else if(inclinacao==='plano') tipos.push('cortador_grama','rocadeira');
+    else tipos.push('rocadeira');
+  }
+  if(flora==='capim_colonial'){
+    if(inclinacao==='plano' && limpeza==='limpa') tipos.push('cortador_grama','rocadeira');
+    else if(limpeza==='media' || limpeza==='densa') emergencia.push('rocadeira');
+    else tipos.push('rocadeira');
+  }
+  return [...tipos,...emergencia];
+}
+
+function parseVegCompat(raw){
+  if(!raw) return [];
+  try{
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed)
+      ? parsed.map(normalizeVegMachineTypeKey).filter(Boolean)
+      : [];
+  }catch(_err){
+    return [];
+  }
+}
+
+function parseVegCoords(raw){
+  if(!raw) return [];
+  try{
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const pts = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.points) ? parsed.points : []);
+    return pts.map(point => {
+      if(Array.isArray(point) && point.length >= 2) return { lat: Number(point[0]), lng: Number(point[1]) };
+      if(point && typeof point === 'object'){
+        if('x' in point && 'y' in point) return { x: Number(point.x), y: Number(point.y) };
+        if('lat' in point && 'lng' in point) return { lat: Number(point.lat), lng: Number(point.lng) };
+      }
+      return null;
+    }).filter(Boolean);
+  }catch(_err){
+    return [];
+  }
+}
+
+function vegPointToLatLng(point){
+  if('lat' in point && 'lng' in point) return { lat: Number(point.lat), lng: Number(point.lng) };
+  return {
+    lat: VEG_DEFAULT_BOUNDS.north - ((Number(point.y) / 100) * (VEG_DEFAULT_BOUNDS.north - VEG_DEFAULT_BOUNDS.south)),
+    lng: VEG_DEFAULT_BOUNDS.west + ((Number(point.x) / 100) * (VEG_DEFAULT_BOUNDS.east - VEG_DEFAULT_BOUNDS.west)),
+  };
+}
+
+function vegLatLngToLegacyPoint(latlng){
+  return {
+    x: ((latlng.lng - VEG_DEFAULT_BOUNDS.west) / (VEG_DEFAULT_BOUNDS.east - VEG_DEFAULT_BOUNDS.west)) * 100,
+    y: ((VEG_DEFAULT_BOUNDS.north - latlng.lat) / (VEG_DEFAULT_BOUNDS.north - VEG_DEFAULT_BOUNDS.south)) * 100,
+  };
+}
+
+function vegAreaLatLngs(area){
+  return parseVegCoords(area.coords_json).map(vegPointToLatLng);
+}
+
+function vegMapBounds(areas){
+  const pts = [];
+  areas.forEach(area => vegAreaLatLngs(area).forEach(point => pts.push([point.lat, point.lng])));
+  if(VEG_DRAFT_POINTS.length) VEG_DRAFT_POINTS.forEach(point => pts.push([point.lat, point.lng]));
+  return pts;
+}
+
+function vegPolygonAreaM2(latlngs){
+  if(!Array.isArray(latlngs) || latlngs.length < 3) return 0;
+  const lat0 = latlngs.reduce((sum, p) => sum + Number(p.lat || 0), 0) / latlngs.length;
+  const metersPerDegLat = 111132.92;
+  const metersPerDegLng = 111412.84 * Math.cos(lat0 * Math.PI / 180);
+  const pts = latlngs.map(p => ({ x: Number(p.lng || 0) * metersPerDegLng, y: Number(p.lat || 0) * metersPerDegLat }));
+  let area = 0;
+  for(let i = 0; i < pts.length; i++){
+    const j = (i + 1) % pts.length;
+    area += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+  }
+  return Math.abs(area / 2);
+}
+
+function vegEstimateAreaM2(){
+  return Number(vegPolygonAreaM2(VEG_DRAFT_POINTS).toFixed(2));
+}
+
+function openVegetalAreaModal(){
+  const modal = document.getElementById('modal-veg-area');
+  if(!modal) return;
+  const estimate = vegEstimateAreaM2();
+  const areaField = document.getElementById('veg-area-m2');
+  if(areaField && (!Number(areaField.value) || Number(areaField.value) <= 0) && estimate > 0) areaField.value = estimate;
+  openModal('modal-veg-area');
+}
+
+function prepareVegetalAreaModal(mode='new', area=null){
+  VEG_AREA_MODAL_CONTEXT = mode;
+  if(area){
+    document.getElementById('veg-area-edit-id').value = area.id;
+    document.getElementById('veg-area-nome').value = area.nome || '';
+    document.getElementById('veg-area-tipo').value = area.tipo || 'corte_grama';
+    document.getElementById('veg-area-m2').value = Number(area.area_m2 || vegEstimateAreaM2() || 0);
+    document.getElementById('veg-area-flora').value = area.flora || 'gramado';
+    document.getElementById('veg-area-inclinacao').value = area.inclinacao || 'plano';
+    document.getElementById('veg-area-limpeza').value = area.limpeza || 'limpa';
+    document.getElementById('veg-area-gps').value = area.localizacao_gps || '';
+    document.getElementById('veg-area-desc').value = area.descricao || '';
+  } else {
+    document.getElementById('veg-area-edit-id').value = '';
+    document.getElementById('veg-area-nome').value = '';
+    document.getElementById('veg-area-tipo').value = 'corte_grama';
+    document.getElementById('veg-area-m2').value = vegEstimateAreaM2() || 0;
+    document.getElementById('veg-area-flora').value = 'gramado';
+    document.getElementById('veg-area-inclinacao').value = 'plano';
+    document.getElementById('veg-area-limpeza').value = 'limpa';
+    document.getElementById('veg-area-gps').value = '';
+    document.getElementById('veg-area-desc').value = '';
+  }
+  previewVegetalCompat();
+  openVegetalAreaModal();
+}
+
+function initVegetalMap(){
+  const host = document.getElementById('veg-map-canvas');
+  if(!host || VEG_MAP || !window.L) return;
+  VEG_MAP = L.map(host, { zoomControl: true, attributionControl: true }).setView([
+    (VEG_DEFAULT_BOUNDS.north + VEG_DEFAULT_BOUNDS.south) / 2,
+    (VEG_DEFAULT_BOUNDS.west + VEG_DEFAULT_BOUNDS.east) / 2,
+  ], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 20,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(VEG_MAP);
+  VEG_AREA_LAYER = L.layerGroup().addTo(VEG_MAP);
+  VEG_DRAFT_LAYER = L.layerGroup().addTo(VEG_MAP);
+  VEG_DRAFT_POINT_LAYER = L.layerGroup().addTo(VEG_MAP);
+  VEG_MAP.on('click', (event) => {
+    if(!VEG_DRAW_MODE) return;
+    VEG_DRAFT_POINTS.push({ lat: Number(event.latlng.lat.toFixed(6)), lng: Number(event.latlng.lng.toFixed(6)) });
+    const estimate = vegEstimateAreaM2();
+    if(estimate > 0) syncVegetalStatus(`Croqui em edição: ${VEG_DRAFT_POINTS.length} ponto(s) · ~${estimate.toLocaleString('pt-BR')} m²`);
+    renderVegetalMap();
+  });
+}
+
+function waitForVegetalLeaflet(){
+  if(window.L) return;
+  if(VEG_LEAFLET_WAIT_TIMER) return;
+  VEG_LEAFLET_WAIT_TIMER = setTimeout(() => {
+    VEG_LEAFLET_WAIT_TIMER = null;
+    renderVegetalMap();
+  }, 200);
+}
+
+function syncVegetalSourceBadge(){
+  const badge = document.getElementById('veg-source-badge');
+  if(badge) badge.textContent = VEG_SOURCE;
+}
+
+function syncVegetalStatus(text){
+  const el = document.getElementById('veg-map-status');
+  if(el) el.textContent = text;
+}
+
+function normalizeVegArea(row){
+  return {
+    id: row.id,
+    nome: row.nome,
+    descricao: row.descricao || '',
+    tipo: row.tipo || 'corte_grama',
+    area_m2: row.area_m2 || 0,
+    localizacao_gps: row.localizacao_gps || '',
+    coords_json: row.coords_json || '',
+    flora: row.flora || 'gramado',
+    inclinacao: row.inclinacao || 'plano',
+    limpeza: row.limpeza || 'limpa',
+    maquinas_compativeis: row.maquinas_compativeis || JSON.stringify(calcVegCompat(row.flora, row.inclinacao, row.limpeza)),
+    ativa: row.ativa ?? 1,
+    grupo_nome: row.grupo_nome || '',
+    visivel: row.visivel ?? 1,
+    cor_hex: row.cor_hex || vegDefaultAreaColor(row.flora),
+    opacidade: row.opacidade ?? 0.24,
+  };
+}
+
+function normalizeVegMaq(row){
+  return {
+    id: row.id,
+    nome: row.nome,
+    tipo: row.tipo,
+    marca: row.fabricante || '-',
+    modelo: row.modelo || '-',
+    serie: row.numero_serie || '',
+    ano: row.ano_fabricacao || '-',
+    status: mapVegMachineStatus(row.status),
+    horimetro: row.horas_uso || 0,
+    local: 'Controle Vegetal',
+    obs: row.observacoes || '',
+  };
+}
+
+function normalizeVegAtividade(row){
+  return {
+    id: row.id,
+    data: (row.data_agendada || '').split('T')[0],
+    area: row.area_nome || row.area_id || '—',
+    areaId: row.area_id || '',
+    maqId: row.maquina_id || '',
+    operador: row.usuario_id || 'Equipe Vegetal',
+    tipoServico: row.tipo_servico || '',
+    horas: row.horas_utilizadas || 0,
+    obs: row.observacoes || '',
+  };
+}
+
+function normalizeVegOS(row){
+  return {
+    id: row.id,
+    maqId: row.maquina_id,
+    maqNome: row.maquina_nome || row.maquina_id,
+    tipo: row.tipo || 'preventiva',
+    descricao: row.descricao || '',
+    abertura: (row.data_agendada || '').split('T')[0],
+    status: mapVegOsStatus(row.status),
+    dataConclusao: row.data_conclusao,
+  };
+}
+
+function vegetalPopupHtml(area){
+  const compat = parseVegCompat(area.maquinas_compativeis || JSON.stringify(calcVegCompat(area.flora, area.inclinacao, area.limpeza)));
+  return `<div style="min-width:180px">
+    <div style="font-weight:700;margin-bottom:4px">${escapeHtml(area.nome)}</div>
+    <div style="font-size:12px;color:#94a3b8">${escapeHtml(area.tipo || '—')} · ${Number(area.area_m2 || 0).toLocaleString('pt-BR')} m²</div>
+    <div style="font-size:12px;margin-top:6px">Grupo: ${escapeHtml(vegAreaGroupName(area))}</div>
+    <div style="font-size:12px;margin-top:6px">${escapeHtml(area.flora || '—')} · ${escapeHtml(area.inclinacao || '—')} · ${escapeHtml(area.limpeza || '—')}</div>
+    <div style="font-size:12px;margin-top:6px">Visibilidade: ${Number(area.visivel ?? 1) !== 0 ? 'no mapa' : 'oculta'}</div>
+    <div style="font-size:12px;margin-top:6px;color:#cbd5e1">${compat.length ? compat.map(tipoMaqLabel).join(', ') : 'Sem compatibilidade calculada'}</div>
+  </div>`;
+}
+
+async function loadVegetalData(force=false){
+  if(VEG_DATA_LOADING && !force) return VEG_DATA_LOADING;
+  VEG_DATA_LOADING = (async()=>{
+    const [areas, maquinas, operacoes, manutencoes] = await Promise.all([
+      vegFetchJSON('/api/grama/areas'),
+      vegFetchJSON('/api/grama/maquinas'),
+      vegFetchJSON('/api/grama/operacoes'),
+      vegFetchJSON('/api/grama/manutencao'),
+    ]);
+    let synced = false;
+    if(Array.isArray(areas) && areas.length){ saveAreasVegetal(areas.map(normalizeVegArea)); synced = true; }
+    if(Array.isArray(maquinas) && maquinas.length){ saveMaqVegetal(maquinas.map(normalizeVegMaq)); synced = true; }
+    if(Array.isArray(operacoes) && operacoes.length){ saveAtivVegetal(operacoes.map(normalizeVegAtividade)); synced = true; }
+    if(Array.isArray(manutencoes) && manutencoes.length){ saveOSVegetal(manutencoes.map(normalizeVegOS)); synced = true; }
+    VEG_SOURCE = synced ? 'backend' : 'local';
+    syncVegetalSourceBadge();
+    syncVegetalStatus(synced ? 'Dados sincronizados do núcleo xGrama' : 'Sem resposta da API · exibindo fallback local');
+    if(document.getElementById('page-vegetal')?.classList.contains('active')){
+      renderVegetalAreas();
+      renderVegetalMaq();
+      renderVegetalAtiv();
+      renderVegetalOS();
+    }
+    if(force) toast(synced ? 'Controle Vegetal sincronizado' : 'API indisponível · usando dados locais', synced ? 'success' : 'warning');
+  })();
+  try{ await VEG_DATA_LOADING; } finally { VEG_DATA_LOADING = null; }
+}
+
+function renderVegetalMap(focusId=''){
+  if(!window.L){
+    syncVegetalStatus('Carregando mapa...');
+    waitForVegetalLeaflet();
+    return;
+  }
+  initVegetalMap();
+  if(!VEG_MAP || !VEG_AREA_LAYER || !VEG_DRAFT_LAYER || !VEG_DRAFT_POINT_LAYER) return;
+  const areas = getAreasVegetal().filter(area => area.ativa !== 0);
+  const filteredAreas = VEG_GROUP_FILTER ? areas.filter(area => vegAreaGroupName(area) === VEG_GROUP_FILTER) : areas;
+  const visibleAreas = areas.filter(area => Number(area.visivel ?? 1) !== 0);
+  const visibleFilteredAreas = filteredAreas.filter(area => Number(area.visivel ?? 1) !== 0);
+  VEG_AREA_LAYER.clearLayers();
+  VEG_DRAFT_LAYER.clearLayers();
+  VEG_DRAFT_POINT_LAYER.clearLayers();
+
+  let focusBounds = null;
+  visibleFilteredAreas.forEach(area => {
+    const latlngs = vegAreaLatLngs(area);
+    if(latlngs.length < 3) return;
+    const groupName = vegAreaGroupName(area);
+    const active = (focusId && focusId === area.id) || (VEG_FOCUS_GROUP && groupName === VEG_FOCUS_GROUP);
+    const style = vegAreaStyle(area);
+    const polygon = L.polygon(latlngs.map(point => [point.lat, point.lng]), {
+      color: style.color,
+      weight: active ? 4 : 2,
+      fillColor: style.color,
+      fillOpacity: active ? Math.min(0.72, style.opacity + 0.12) : style.opacity,
+    }).bindPopup(vegetalPopupHtml(area));
+    polygon.on('click', () => syncVegetalStatus(`Área: ${area.nome}`));
+    polygon.addTo(VEG_AREA_LAYER);
+    if(active) focusBounds = focusBounds ? focusBounds.extend(polygon.getBounds()) : polygon.getBounds();
+  });
+
+  if(VEG_DRAFT_POINTS.length){
+    const latlngs = VEG_DRAFT_POINTS.map(point => [point.lat, point.lng]);
+    L.polyline(latlngs, { color:'#38bdf8', weight:3, dashArray: VEG_DRAFT_POINTS.length >= 3 ? null : '8 6' }).addTo(VEG_DRAFT_LAYER);
+    if(VEG_DRAFT_POINTS.length >= 3){
+      L.polygon(latlngs, { color:'#38bdf8', weight:2, fillColor:'#38bdf8', fillOpacity:0.12 }).addTo(VEG_DRAFT_LAYER);
+    }
+    VEG_DRAFT_POINTS.forEach((point, index) => {
+      const marker = L.marker([point.lat, point.lng], {
+        draggable: !!VEG_DRAW_MODE,
+        icon: L.divIcon({
+          className: 'veg-draft-vertex',
+          html: '<span style="display:block;width:10px;height:10px;border-radius:50%;background:#60a5fa;border:1px solid #dbeafe"></span>',
+          iconSize: [10, 10],
+          iconAnchor: [5, 5],
+        }),
+      }).bindTooltip(String(index + 1), { permanent: true, direction: 'top', offset: [0, -8] });
+      if(VEG_DRAW_MODE){
+        marker.on('drag', (event) => {
+          const pos = event.target.getLatLng();
+          VEG_DRAFT_POINTS[index] = { lat: Number(pos.lat.toFixed(6)), lng: Number(pos.lng.toFixed(6)) };
+          const nextLatLngs = VEG_DRAFT_POINTS.map(p => [p.lat, p.lng]);
+          VEG_DRAFT_LAYER.clearLayers();
+          L.polyline(nextLatLngs, { color:'#38bdf8', weight:3, dashArray: VEG_DRAFT_POINTS.length >= 3 ? null : '8 6' }).addTo(VEG_DRAFT_LAYER);
+          if(VEG_DRAFT_POINTS.length >= 3){
+            L.polygon(nextLatLngs, { color:'#38bdf8', weight:2, fillColor:'#38bdf8', fillOpacity:0.12 }).addTo(VEG_DRAFT_LAYER);
+          }
+        });
+        marker.on('dragend', () => {
+          syncVegetalStatus(`Croqui ajustado: ${VEG_DRAFT_POINTS.length} ponto(s)`);
+          renderVegetalMap();
+        });
+        marker.on('dblclick', () => {
+          if(VEG_DRAFT_POINTS.length <= 3) return;
+          VEG_DRAFT_POINTS.splice(index, 1);
+          syncVegetalStatus(`Vértice removido: ${VEG_DRAFT_POINTS.length} ponto(s)`);
+          renderVegetalMap();
+        });
+      }
+      marker.addTo(VEG_DRAFT_POINT_LAYER);
+    });
+  }
+
+  requestAnimationFrame(() => {
+    VEG_MAP.invalidateSize();
+    if(focusBounds) VEG_MAP.fitBounds(focusBounds.pad(0.25));
+    else {
+      const bounds = vegMapBounds(filteredAreas);
+      if(bounds.length) VEG_MAP.fitBounds(bounds, { padding: [20,20] });
+      else VEG_MAP.fitBounds([[VEG_DEFAULT_BOUNDS.south, VEG_DEFAULT_BOUNDS.west],[VEG_DEFAULT_BOUNDS.north, VEG_DEFAULT_BOUNDS.east]], { padding: [20,20] });
+    }
+  });
+}
+
+function renderVegetalAreas(){
+  const tbody = document.getElementById('veg-area-body');
+  if(!tbody) return;
+  const areas = getAreasVegetal().filter(area => area.ativa !== 0)
+    .filter(area => !VEG_GROUP_FILTER || vegAreaGroupName(area) === VEG_GROUP_FILTER)
+    .sort((a, b) => vegAreaGroupName(a).localeCompare(vegAreaGroupName(b), 'pt-BR') || String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+  renderVegetalGroupOptions();
+  tbody.innerHTML = areas.length === 0 ? '<tr><td colspan="6" class="tbl-empty">Nenhuma área cadastrada</td></tr>' : areas.map(area => {
+    const compat = parseVegCompat(area.maquinas_compativeis || JSON.stringify(calcVegCompat(area.flora, area.inclinacao, area.limpeza)));
+    const plano = vegPlanoArea(area);
+    const visivel = Number(area.visivel ?? 1) !== 0;
+    return `<tr class="${visivel ? '' : 'veg-hidden-row'}">
+      <td><div style="font-weight:600;color:var(--text1)">${escapeHtml(area.nome)}</div><div class="text-xs text-muted">${escapeHtml(area.localizacao_gps || 'Sem referência')}</div></td>
+      <td class="text-xs"><div style="font-weight:600;color:var(--text1)">${escapeHtml(vegAreaGroupName(area))}</div><div class="text-xs text-muted" style="margin-top:4px">${visivel ? 'Visível no mapa' : 'Oculta do mapa'}</div></td>
+      <td class="text-xs">${escapeHtml(area.flora || '—')} · ${escapeHtml(area.inclinacao || '—')}</td>
+      <td class="text-xs">${compat.length ? compat.map(tipoMaqLabel).join(', ') : '—'}
+        <div class="text-xs text-muted" style="margin-top:4px">Plano: ${plano.servicos.length} serviços · ${plano.periodicidadeDias} dias · ${plano.prioridade}</div>
+        <div class="text-xs text-muted">Estimativa: ${brl(plano.custoCiclo)}/ciclo · ${brl(plano.custoMensal)}/mês</div>
+      </td>
+      <td class="text-mono text-xs">${Number(area.area_m2 || 0).toLocaleString('pt-BR')} m²</td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="editVegetalArea('${area.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleVegetalAreaVisibility('${area.id}')">${visivel ? 'Ocultar' : 'Exibir'}</button><button class="btn btn-ghost btn-sm" onclick="renderVegetalMap('${area.id}')">Focar</button><button class="btn btn-primary btn-sm" onclick="gerarPlanoVegetalServicos('${area.id}')">PS/OS</button></div></td>
+    </tr>`;
+  }).join('');
+  renderVegetalGroupSummary();
+  renderVegetalMap();
+}
+
+function renderVegetalGroupOptions(){
+  const datalist = document.getElementById('veg-grupos-list');
+  if(!datalist) return;
+  const select = document.getElementById('veg-group-filter');
+  const groups = [...new Set(getAreasVegetal().map(area => vegAreaGroupName(area)).filter(group => group && group !== 'Sem grupo'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  datalist.innerHTML = groups.map(group => `<option value="${escapeHtml(group)}"></option>`).join('');
+  if(select){
+    const options = ['<option value="">Todos os grupos</option>'].concat(groups.map(group => `<option value="${escapeHtml(group)}" ${VEG_GROUP_FILTER === group ? 'selected' : ''}>${escapeHtml(group)}</option>`));
+    select.innerHTML = options.join('');
+  }
+}
+
+function renderVegetalGroupSummary(){
+  const host = document.getElementById('veg-group-body');
+  if(!host) return;
+  const areas = getAreasVegetal().filter(area => area.ativa !== 0).filter(area => !VEG_GROUP_FILTER || vegAreaGroupName(area) === VEG_GROUP_FILTER);
+  const groups = new Map();
+  areas.forEach(area => {
+    const key = vegAreaGroupName(area);
+    if(!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(area);
+  });
+  if(!groups.size){
+    host.innerHTML = '<div class="tbl-empty">Sem grupos cadastrados</div>';
+    return;
+  }
+  host.innerHTML = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR')).map(([groupName, items]) => {
+    const summary = items.reduce((acc, area) => {
+      const plano = vegPlanoArea(area);
+      acc.area += Number(area.area_m2 || 0);
+      acc.custoCiclo += plano.custoCiclo;
+      acc.custoMensal += plano.custoMensal;
+      acc.horas += plano.servicos.reduce((sum, servico) => sum + Number(servico.horas || 0), 0);
+      acc.visiveis += Number(area.visivel ?? 1) !== 0 ? 1 : 0;
+      return acc;
+    }, { area: 0, custoCiclo: 0, custoMensal: 0, horas: 0, visiveis: 0 });
+    return `<button type="button" class="veg-group-item" onclick="setVegetalGroupFilter(${JSON.stringify(groupName)})">
+      <div class="veg-group-compact">
+        <div class="veg-group-name">${escapeHtml(groupName)}</div>
+        <span class="badge badge-info">${items.length} área(s)</span>
+      </div>
+      <div class="veg-group-meta">${summary.visiveis}/${items.length} visíveis · ${summary.area.toLocaleString('pt-BR')} m²</div>
+      <div class="veg-group-meta">Horas/ciclo: ${summary.horas.toFixed(1)} · ${brl(summary.custoCiclo)}/ciclo · ${brl(summary.custoMensal)}/mês</div>
+    </button>`;
+  }).join('');
+}
+
+function focusVegetalGroup(groupName){
+  VEG_FOCUS_GROUP = groupName || '';
+  syncVegetalStatus(VEG_FOCUS_GROUP ? `Grupo em foco: ${VEG_FOCUS_GROUP}` : 'Grupo liberado');
+  renderVegetalMap();
+}
+
+function clearVegetalGroupFocus(){
+  VEG_FOCUS_GROUP = '';
+  VEG_GROUP_FILTER = '';
+  const select = document.getElementById('veg-group-filter');
+  if(select) select.value = '';
+  renderVegetalMap();
+  renderVegetalGroupSummary();
+  renderVegetalAreas();
+}
+
+function setVegetalGroupFilter(groupName){
+  VEG_GROUP_FILTER = groupName || '';
+  VEG_FOCUS_GROUP = VEG_GROUP_FILTER;
+  syncVegetalStatus(VEG_GROUP_FILTER ? `Filtro ativo: ${VEG_GROUP_FILTER}` : 'Filtro de grupo limpo');
+  renderVegetalAreas();
+}
+
+async function gerarPlanoVegetalServicos(areaId){
+  if(soLeitura()) return;
+  const area = getAreasVegetal().find(item => item.id === areaId);
+  if(!area){ toast('Área não encontrada', 'warning'); return; }
+  if(typeof getPS !== 'function' || typeof savePS !== 'function' || typeof getOS !== 'function' || typeof saveOS !== 'function'){
+    toast('Módulo de Serviços indisponível para integração', 'warning');
+    return;
+  }
+  const plano = vegPlanoArea(area);
+  const planoId = await persistVegPlanoBackend(area, plano);
+  const maq = pickVegMachineForArea(area);
+  const linhas = plano.servicos.map((s, idx) => `${idx + 1}. ${s.nome} — ${s.horas.toFixed(1)}h — ${brl(s.custo)}`);
+  const materiais = plano.materiais.map((m, idx) => `${idx + 1}. ${m.nome} (${m.codigo}) — ${m.quantidade} ${m.unidade}`);
+  const descricao = [
+    `Área: ${area.nome}`,
+    `Prioridade: ${plano.prioridade}`,
+    `Periodicidade: ${plano.periodicidadeDias} dias`,
+    planoId ? `Plano backend: ${planoId}` : 'Plano backend: pendente (offline/local)',
+    '',
+    'Pacote de serviços:',
+    ...linhas,
+    '',
+    'Materiais/sobressalentes estimados:',
+    ...(materiais.length ? materiais : ['Sem materiais previstos']),
+    '',
+    `Custo estimado por ciclo: ${brl(plano.custoCiclo)}`,
+    `Custo estimado mensal: ${brl(plano.custoMensal)}`,
+    '',
+    'Dependências: maquinário compatível, equipe vegetal, sobressalentes e coleta de resíduos.',
+  ].join('\n');
+
+  const psData = getPS();
+  const ps = {
+    id:'PS-'+padZero(psData.length+1,4),
+    solicitante: SESSION.nome,
+    solicitanteId: SESSION.id,
+    destino: 'Controle Vegetal',
+    assunto: `[Vegetal] Plano de rotina — ${area.nome}`,
+    descricao,
+    prioridade: plano.prioridade === 'alta' ? 'alta' : 'media',
+    dataNecessaria: '',
+    dataCriacao: new Date().toISOString(),
+    status: 'autorizada',
+    autorizadoPor: SESSION.nome,
+    dataAutorizacao: new Date().toISOString(),
+    historico: [],
+  };
+  psData.push(ps);
+  savePS(psData);
+
+  const osData = getOS();
+  const os = {
+    id:'OS-'+padZero(osData.length+1,4),
+    psId: ps.id,
+    assunto: ps.assunto,
+    descricao: ps.descricao,
+    executor: '',
+    prioridade: ps.prioridade,
+    prazo: '',
+    dataAbertura: new Date().toISOString(),
+    status: 'aberta',
+    criadoPor: SESSION.nome,
+    moduloOrigem: 'vegetal',
+    areaId: area.id,
+    planoId,
+    materiaisPrevistos: plano.materiais,
+    custoEstimado: Number(plano.custoCiclo.toFixed(2)),
+    periodicidadeDias: plano.periodicidadeDias,
+  };
+  osData.push(os);
+  saveOS(osData);
+
+  const osvData = getOSVegetal();
+  const osv = {
+    id:'OSV-'+padZero(osvData.length+1,4),
+    maqId: maq?.id || '',
+    maqNome: maq?.nome || 'Equipe Vegetal',
+    tipo:'preventiva',
+    descricao:`Ciclo de rotina da área ${area.nome}`,
+    abertura:new Date().toISOString().split('T')[0],
+    status:'aberta',
+    criadoPor:SESSION.nome,
+    data:new Date().toISOString(),
+    areaId: area.id,
+    areaNome: area.nome,
+    planoId,
+    materiaisPrevistos: plano.materiais,
+    custoEstimado: Number(plano.custoCiclo.toFixed(2)),
+    periodicidadeDias: plano.periodicidadeDias,
+  };
+  osvData.push(osv);
+  saveOSVegetal(osvData);
+
+  renderPS?.();
+  renderOS?.();
+  renderVegetalOS();
+  renderKanban?.();
+  initDashboard?.();
+  toast(`Plano integrado: ${ps.id} + ${os.id} + ${osv.id}`, 'success');
+}
+
+function previewVegetalCompat(){
+  const flora = document.getElementById('veg-area-flora')?.value || '';
+  const inclinacao = document.getElementById('veg-area-inclinacao')?.value || '';
+  const limpeza = document.getElementById('veg-area-limpeza')?.value || '';
+  const compat = calcVegCompat(flora, inclinacao, limpeza);
+  syncVegetalStatus(compat.length ? `Compatível com: ${compat.map(tipoMaqLabel).join(', ')}` : 'Defina vegetação, inclinação e limpeza para sugerir máquinas');
+}
+
+function previewVegetalStyle(){
+  const color = document.getElementById('veg-area-cor')?.value || vegDefaultAreaColor(document.getElementById('veg-area-flora')?.value);
+  const opacity = Number(document.getElementById('veg-area-opacidade')?.value || 0.24);
+  const visivel = document.getElementById('veg-area-visivel')?.checked !== false;
+  const preview = document.getElementById('veg-area-style-preview');
+  if(preview) preview.style.background = visivel ? `linear-gradient(90deg, ${color}33, ${color})` : 'linear-gradient(90deg, rgba(148,163,184,.28), rgba(148,163,184,.08))';
+  if(preview) preview.style.opacity = String(visivel ? Math.max(0.3, Math.min(1, opacity + 0.2)) : 0.45);
+}
+
+function resetVegetalAreaForm(){
+  document.getElementById('veg-area-edit-id').value = '';
+  document.getElementById('veg-area-nome').value = '';
+  document.getElementById('veg-area-grupo').value = '';
+  document.getElementById('veg-area-tipo').value = 'corte_grama';
+  document.getElementById('veg-area-m2').value = '0';
+  document.getElementById('veg-area-flora').value = 'gramado';
+  document.getElementById('veg-area-inclinacao').value = 'plano';
+  document.getElementById('veg-area-limpeza').value = 'limpa';
+  document.getElementById('veg-area-gps').value = '';
+  document.getElementById('veg-area-desc').value = '';
+  document.getElementById('veg-area-cor').value = vegDefaultAreaColor('gramado');
+  document.getElementById('veg-area-opacidade').value = '0.24';
+  document.getElementById('veg-area-visivel').checked = true;
+  VEG_DRAFT_POINTS = [];
+  VEG_DRAW_MODE = false;
+  VEG_AREA_MODAL_CONTEXT = '';
+  previewVegetalCompat();
+  previewVegetalStyle();
+  renderVegetalMap();
+}
+
+function startVegetalAreaDraft(){
+  VEG_DRAW_MODE = true;
+  VEG_DRAFT_POINTS = [];
+  showVegetalTab('areas', document.querySelector('#page-vegetal .tab[data-vegtab="areas"]'));
+  syncVegetalStatus('Croqui ativo: clique no mapa para marcar os vértices');
+  renderVegetalMap();
+}
+
+function finalizeVegetalDraft(){
+  if(VEG_DRAFT_POINTS.length < 3){
+    toast('Desenhe ao menos 3 pontos antes de fechar a área', 'warning');
+    return;
+  }
+  VEG_DRAW_MODE = false;
+  prepareVegetalAreaModal('new');
+  syncVegetalStatus(`Área fechada: ~${vegEstimateAreaM2().toLocaleString('pt-BR')} m²`);
+  renderVegetalMap();
+}
+
+function undoVegetalDraftPoint(){
+  if(!VEG_DRAFT_POINTS.length) return;
+  VEG_DRAFT_POINTS.pop();
+  syncVegetalStatus(VEG_DRAFT_POINTS.length ? `Croqui em edição: ${VEG_DRAFT_POINTS.length} ponto(s)` : 'Croqui vazio');
+  renderVegetalMap();
+}
+
+function clearVegetalDraft(){
+  VEG_DRAFT_POINTS = [];
+  VEG_DRAW_MODE = false;
+  VEG_AREA_MODAL_CONTEXT = '';
+  syncVegetalStatus('Croqui limpo');
+  renderVegetalMap();
+  renderVegetalGroupOptions();
+  previewVegetalStyle();
+}
+
+function openVegetalAreaPlanner(){
+  VEG_FOCUS_GROUP = '';
+  startVegetalAreaDraft();
+  syncVegetalStatus('Croqui ativo: clique no mapa para marcar os vértices');
+}
+
+    document.getElementById('veg-area-grupo').value = vegAreaGroupName(area) === 'Sem grupo' ? '' : vegAreaGroupName(area);
+function cancelVegetalAreaDraft(){
+  closeModal(document.getElementById('modal-veg-area'));
+  VEG_DRAW_MODE = false;
+  VEG_DRAFT_POINTS = [];
+  VEG_FOCUS_GROUP = '';
+    document.getElementById('veg-area-cor').value = area.cor_hex || vegDefaultAreaColor(area.flora);
+    document.getElementById('veg-area-opacidade').value = String(area.opacidade ?? 0.24);
+    document.getElementById('veg-area-visivel').checked = Number(area.visivel ?? 1) !== 0;
+  if(VEG_AREA_MODAL_CONTEXT === 'new'){
+    resetVegetalAreaForm();
+  } else {
+    VEG_AREA_MODAL_CONTEXT = '';
+    renderVegetalMap();
+    document.getElementById('veg-area-grupo').value = '';
+  }
+}
+
+function onVegetalMapClick(event){
+  if(!VEG_DRAW_MODE || !window.L || !VEG_MAP) return;
+    document.getElementById('veg-area-cor').value = vegDefaultAreaColor('gramado');
+    document.getElementById('veg-area-opacidade').value = '0.24';
+    document.getElementById('veg-area-visivel').checked = true;
+}
+
+function editVegetalArea(id){
+  const area = getAreasVegetal().find(item => item.id === id);
+  previewVegetalStyle();
+  if(!area) return;
+  showVegetalTab('areas', document.querySelector('#page-vegetal .tab[data-vegtab="areas"]'));
+  prepareVegetalAreaModal('edit', area);
+  VEG_DRAFT_POINTS = vegAreaLatLngs(area);
+  VEG_DRAW_MODE = true;
+  VEG_FOCUS_GROUP = vegAreaGroupName(area);
+  previewVegetalCompat();
+  previewVegetalStyle();
+  syncVegetalStatus(`Editando área: ${area.nome}`);
+  renderVegetalMap(area.id);
+}
+
+async function saveVegetalArea(){
+  if(soLeitura()) return;
+  const nome = document.getElementById('veg-area-nome').value.trim();
+  const area_m2 = parseFloat(document.getElementById('veg-area-m2').value || '0');
+  if(!nome){ toast('Informe o nome da área','warning'); return; }
+  if(VEG_DRAFT_POINTS.length < 3){ toast('Desenhe ao menos 3 pontos no mapa','warning'); return; }
+  if(!(area_m2 > 0)){ toast('Informe a metragem da área','warning'); return; }
+
+  const payload = {
+    nome,
+    descricao: document.getElementById('veg-area-desc').value.trim(),
+    tipo: document.getElementById('veg-area-tipo').value,
+    area_m2,
+    localizacao_gps: document.getElementById('veg-area-gps').value.trim(),
+    coords_json: JSON.stringify({ points: VEG_DRAFT_POINTS.map(point => ({ lat: Number(point.lat.toFixed(6)), lng: Number(point.lng.toFixed(6)) })) }),
+    flora: document.getElementById('veg-area-flora').value,
+    inclinacao: document.getElementById('veg-area-inclinacao').value,
+    limpeza: document.getElementById('veg-area-limpeza').value,
+    grupo_nome: document.getElementById('veg-area-grupo').value.trim(),
+    visivel: document.getElementById('veg-area-visivel').checked ? 1 : 0,
+    cor_hex: document.getElementById('veg-area-cor').value || vegDefaultAreaColor(document.getElementById('veg-area-flora').value),
+    opacidade: Number(document.getElementById('veg-area-opacidade').value || 0.24),
+  };
+  const editId = document.getElementById('veg-area-edit-id').value;
+  const compat = JSON.stringify(calcVegCompat(payload.flora, payload.inclinacao, payload.limpeza));
+  let saved = null;
+  if(editId){
+    saved = await vegFetchJSON(`/api/grama/areas/${encodeURIComponent(editId)}`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+  } else {
+    saved = await vegFetchJSON('/api/grama/areas', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+  }
+  const data = getAreasVegetal();
+  const row = normalizeVegArea(saved || { id: editId || `area-${Date.now()}`, ...payload, maquinas_compativeis: compat, ativa: 1 });
+  row.maquinas_compativeis = row.maquinas_compativeis || compat;
+  row.grupo_nome = row.grupo_nome || payload.grupo_nome || '';
+  row.visivel = row.visivel ?? payload.visivel ?? 1;
+  row.cor_hex = row.cor_hex || payload.cor_hex;
+  row.opacidade = row.opacidade ?? payload.opacidade;
+  if(editId){
+    const idx = data.findIndex(item => item.id === editId);
+    if(idx >= 0) data[idx] = row;
+  } else {
+    data.push(row);
+  }
+  saveAreasVegetal(data);
+  toast(saved ? 'Área salva no núcleo' : 'Área salva localmente','success');
+  closeModal(document.getElementById('modal-veg-area'));
+  VEG_AREA_MODAL_CONTEXT = '';
+  resetVegetalAreaForm();
+  renderVegetalAreas();
+}
+
+async function toggleVegetalAreaVisibility(id){
+  if(soLeitura()) return;
+  const data = getAreasVegetal();
+  const idx = data.findIndex(item => item.id === id);
+  if(idx < 0) return;
+  const next = Number(data[idx].visivel ?? 1) === 0 ? 1 : 0;
+  data[idx].visivel = next;
+  saveAreasVegetal(data);
+  try{
+    await vegFetchJSON(`/api/grama/areas/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ visivel: next }),
+    });
+  }catch(_err){}
+  toast(next ? 'Área exibida no mapa' : 'Área ocultada do mapa', 'success');
+  renderVegetalAreas();
+}
 
 function renderVegetalMaq(){
   const data = getMaqVegetal();
@@ -3797,16 +6100,28 @@ Descreva o serviço:`);
 function renderVegetalAtiv(){
   const data = getAtivVegetal().slice().reverse();
   const maqs = getMaqVegetal();
+  const areas = getAreasVegetal();
   const tbody = document.getElementById('veg-ativ-body'); if(!tbody)return;
-  tbody.innerHTML = data.length===0?'<tr><td colspan="7" class="tbl-empty">Nenhuma atividade</td></tr>':
+  tbody.innerHTML = data.length===0?'<tr><td colspan="9" class="tbl-empty">Nenhuma atividade</td></tr>':
     data.map(a=>{
       const m = maqs.find(mx=>mx.id===a.maqId);
+      const area = areas.find(ar=>ar.id===a.areaId);
+      const custo = vegCustoAtividade(a, area, m);
+      const servicos = custo.plano?.servicos || [];
+      const lista = servicos.slice(0, 3).map(s => s.nome).join(', ');
+      const extra = servicos.length > 3 ? ` +${servicos.length - 3}` : '';
       return `<tr>
         <td class="text-mono text-xs">${fmtDateSimple(a.data)||a.data}</td>
-        <td style="font-weight:500">${a.area}</td>
+        <td style="font-weight:500">${area ? area.nome : a.area}</td>
         <td class="text-xs">${m?m.nome:a.maqId}</td>
+        <td class="text-xs">${lista || '—'}${extra}
+          <div class="text-xs text-muted">${custo.plano ? `${custo.plano.periodicidadeDias} dias · ${custo.plano.prioridade}` : 'Plano não encontrado'}</div>
+        </td>
         <td class="text-xs">${a.operador}</td>
         <td class="text-mono">${a.horas}h</td>
+        <td class="text-mono text-xs">${brl(custo.custoExecucao)}
+          <div class="text-xs text-muted">ciclo: ${brl(custo.custoPlanejado)}</div>
+        </td>
         <td class="text-xs text-muted">${a.obs||'—'}</td>
         <td><button class="btn btn-danger btn-sm" onclick="deleteAtivVegetal('${a.id}')">✕</button></td>
       </tr>`;
@@ -3822,9 +6137,21 @@ function renderVegetalOS(){
   const data = getOSVegetal().slice().reverse();
   const maqs = getMaqVegetal();
   const tbody = document.getElementById('veg-os-body'); if(!tbody)return;
-  tbody.innerHTML = data.length===0?'<tr><td colspan="7" class="tbl-empty">Nenhuma OS</td></tr>':
+  tbody.innerHTML = data.length===0?'<tr><td colspan="8" class="tbl-empty">Nenhuma OS</td></tr>':
     data.map(o=>{
       const m = maqs.find(mx=>mx.id===o.maqId);
+      const materiais = Array.isArray(o.materiaisPrevistos) ? o.materiaisPrevistos : [];
+      const materiaisResumo = materiais.length
+        ? materiais.slice(0,2).map(item => `${item.codigo}: ${item.quantidade}`).join(' · ') + (materiais.length > 2 ? ` +${materiais.length - 2}` : '')
+        : 'Sem materiais previstos';
+      const baixaBadge = o.baixaStatus === 'ok'
+        ? '<span class="badge badge-ok">Baixa OK</span>'
+        : o.baixaStatus === 'erro'
+          ? '<span class="badge badge-danger">Baixa pendente</span>'
+          : '<span class="badge badge-neutral">Não executada</span>';
+      const baixaMeta = o.baixaStatus
+        ? `${o.baixaMode || 'local'} · ${o.baixaItens || 0} item(ns) · ${brl(o.baixaCusto || 0)}`
+        : '—';
       return `<tr>
         <td class="text-mono text-xs font-bold">${o.id}</td>
         <td class="text-xs">${m?m.nome:o.maqId}</td>
@@ -3832,6 +6159,7 @@ function renderVegetalOS(){
         <td class="text-xs">${o.descricao?.substring(0,50)||'—'}</td>
         <td class="text-xs text-muted">${fmtDateSimple(o.abertura)||'—'}</td>
         <td>${statusBadge(o.status)}</td>
+        <td class="text-xs">${baixaBadge}<div class="text-xs text-muted" style="margin-top:4px">${materiaisResumo}</div><div class="text-xs text-muted">${baixaMeta}</div>${o.baixaMsg?`<div class="text-xs text-muted">${escapeHtml(o.baixaMsg)}</div>`:''}</td>
         <td>
           ${o.status==='aberta'?`<button class="btn btn-secondary btn-sm" onclick="avancarOSVeg('${o.id}','em_andamento')">→</button>`:''}
           ${o.status==='em_andamento'?`<button class="btn btn-primary btn-sm" onclick="avancarOSVeg('${o.id}','concluida')">✓</button>`:''}
@@ -3840,9 +6168,25 @@ function renderVegetalOS(){
     }).join('');
 }
 
-function avancarOSVeg(id,status){
+async function avancarOSVeg(id,status){
   if(soLeitura())return;
   const data=getOSVegetal(); const idx=data.findIndex(o=>o.id===id); if(idx<0)return;
+  const osAtual = data[idx];
+  if(status==='concluida'){
+    const baixa = await executarBaixaPlanoVegetal(osAtual);
+    data[idx].baixaStatus = baixa?.ok ? 'ok' : 'erro';
+    data[idx].baixaMode = baixa?.modo || 'local';
+    data[idx].baixaItens = Number(baixa?.itens_baixados || 0);
+    data[idx].baixaCusto = Number(baixa?.custo_real_materiais || 0);
+    data[idx].baixaExecucaoId = baixa?.execucao_id || '';
+    data[idx].baixaMsg = baixa?.detail || '';
+    if(!baixa?.ok){
+      saveOSVegetal(data);
+      renderVegetalOS();
+      toast('Não foi possível concluir: pendência de materiais/estoque', 'warning');
+      return;
+    }
+  }
   data[idx].status=status;
   if(status==='concluida'){
     data[idx].dataConclusao=new Date().toISOString();
@@ -3857,6 +6201,7 @@ function showVegetalTab(name,el){
   document.getElementById('veg-tab-'+name)?.classList.add('active');
   document.querySelectorAll('#page-vegetal .tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
+  if(name==='areas') renderVegetalAreas();
 }
 
 /* ════════════════════════════════════════════════════════════

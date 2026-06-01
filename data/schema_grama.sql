@@ -17,6 +17,10 @@ CREATE TABLE IF NOT EXISTS grama_areas (
   inclinacao TEXT CHECK (inclinacao IN ('plano','moderado','acentuado')),
   limpeza TEXT CHECK (limpeza IN ('limpa','media','densa')),
   maquinas_compativeis TEXT,
+  grupo_nome TEXT,
+  visivel INTEGER DEFAULT 1,
+  cor_hex TEXT,
+  opacidade REAL DEFAULT 0.24,
   ativa INTEGER DEFAULT 1,
   data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
   ultima_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -116,6 +120,39 @@ CREATE TABLE IF NOT EXISTS grama_combustivel_log (
   FOREIGN KEY (maquina_id) REFERENCES grama_maquinas(id)
 );
 
+-- PLANEJAMENTO DE ROTINAS POR ÁREA (estilo PMOC Vegetal)
+CREATE TABLE IF NOT EXISTS grama_planos_area (
+  id TEXT PRIMARY KEY,
+  area_id TEXT NOT NULL,
+  nome TEXT NOT NULL,
+  periodicidade_dias INTEGER NOT NULL,
+  prioridade TEXT CHECK (prioridade IN ('baixa','media','alta','critica')) DEFAULT 'media',
+  servicos_json TEXT NOT NULL,
+  materiais_json TEXT,
+  custo_estimado_ciclo REAL DEFAULT 0,
+  custo_estimado_mensal REAL DEFAULT 0,
+  ativo INTEGER DEFAULT 1,
+  observacoes TEXT,
+  data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+  ultima_atualizacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (area_id) REFERENCES grama_areas(id)
+);
+
+-- HISTÓRICO DE EXECUÇÕES DOS PLANOS
+CREATE TABLE IF NOT EXISTS grama_planos_execucoes (
+  id TEXT PRIMARY KEY,
+  plano_id TEXT NOT NULL,
+  area_id TEXT NOT NULL,
+  os_id TEXT,
+  usuario_id TEXT,
+  materiais_json TEXT,
+  custo_real_materiais REAL DEFAULT 0,
+  data_execucao DATETIME DEFAULT CURRENT_TIMESTAMP,
+  observacoes TEXT,
+  FOREIGN KEY (plano_id) REFERENCES grama_planos_area(id),
+  FOREIGN KEY (area_id) REFERENCES grama_areas(id)
+);
+
 -- KANBAN — Board de tarefas de vegetação
 CREATE TABLE IF NOT EXISTS grama_kanban_tarefas (
   id TEXT PRIMARY KEY,
@@ -158,3 +195,5 @@ CREATE INDEX IF NOT EXISTS idx_grama_op_serv_status ON grama_operacoes_servico(s
 CREATE INDEX IF NOT EXISTS idx_grama_op_serv_data ON grama_operacoes_servico(data_agendada);
 CREATE INDEX IF NOT EXISTS idx_grama_kanban_coluna ON grama_kanban_tarefas(coluna);
 CREATE INDEX IF NOT EXISTS idx_grama_cal_data ON grama_calendario_eventos(data_inicio);
+CREATE INDEX IF NOT EXISTS idx_grama_planos_area ON grama_planos_area(area_id, ativo);
+CREATE INDEX IF NOT EXISTS idx_grama_exec_plano ON grama_planos_execucoes(plano_id, data_execucao);

@@ -144,6 +144,96 @@ CREATE TABLE IF NOT EXISTS estoque_movimentos (
   criado_em   DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Portal do Colaborador (CompanyHub incorporado)
+CREATE TABLE IF NOT EXISTS colab_events (
+  id           TEXT PRIMARY KEY,
+  title        TEXT NOT NULL,
+  type         TEXT NOT NULL DEFAULT 'event',
+  event_date   TEXT NOT NULL,
+  location     TEXT,
+  attendees    INTEGER DEFAULT 0,
+  description  TEXT,
+  created_em   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_em   DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS colab_policies (
+  id            TEXT PRIMARY KEY,
+  title         TEXT NOT NULL,
+  category      TEXT NOT NULL DEFAULT 'general',
+  version       TEXT,
+  description   TEXT,
+  owner         TEXT,
+  created_date  TEXT,
+  updated_date  TEXT,
+  created_em    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_em    DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS colab_executives (
+  id                  TEXT PRIMARY KEY,
+  full_name           TEXT NOT NULL,
+  position            TEXT NOT NULL,
+  department          TEXT,
+  email               TEXT,
+  phone               TEXT,
+  office_location     TEXT,
+  years_with_company  INTEGER DEFAULT 0,
+  bio                 TEXT,
+  linkedin_url        TEXT,
+  photo_url           TEXT,
+  created_em          DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_em          DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS colab_announcements (
+  id            TEXT PRIMARY KEY,
+  title         TEXT NOT NULL,
+  content       TEXT NOT NULL,
+  priority      TEXT NOT NULL DEFAULT 'medium',
+  author        TEXT,
+  created_date  TEXT,
+  created_em    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_em    DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS colab_tickets (
+  id               TEXT PRIMARY KEY,
+  subject          TEXT NOT NULL,
+  description      TEXT NOT NULL,
+  category         TEXT NOT NULL DEFAULT 'other',
+  priority         TEXT NOT NULL DEFAULT 'medium',
+  status           TEXT NOT NULL DEFAULT 'open',
+  requester_name   TEXT,
+  requester_email  TEXT,
+  department       TEXT,
+  assigned_to      TEXT,
+  resolution_notes TEXT,
+  due_date         TEXT,
+  created_date     TEXT,
+  created_em       DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_em       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS colab_timeoff (
+  id              TEXT PRIMARY KEY,
+  type            TEXT NOT NULL DEFAULT 'vacation',
+  start_date      TEXT NOT NULL,
+  end_date        TEXT NOT NULL,
+  reason          TEXT,
+  total_days      INTEGER DEFAULT 0,
+  status          TEXT NOT NULL DEFAULT 'pending',
+  employee_name   TEXT,
+  employee_email  TEXT,
+  department      TEXT,
+  manager_email   TEXT,
+  manager_notes   TEXT,
+  approval_date   TEXT,
+  created_date    TEXT,
+  created_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_em      DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Migração aditiva: campos extras em ativos
 -- (ALTER TABLE só roda se a coluna não existir — verificado em db_core.py)
 
@@ -209,3 +299,11 @@ CREATE INDEX IF NOT EXISTS idx_os_modulo       ON ordens_servico(modulo_origem);
 CREATE INDEX IF NOT EXISTS idx_os_local        ON ordens_servico(local_id);
 CREATE INDEX IF NOT EXISTS idx_estoque_cat     ON estoque(categoria);
 CREATE INDEX IF NOT EXISTS idx_estmov_item     ON estoque_movimentos(item_id);
+CREATE INDEX IF NOT EXISTS idx_colab_events_date       ON colab_events(event_date);
+CREATE INDEX IF NOT EXISTS idx_colab_policies_cat      ON colab_policies(category);
+CREATE INDEX IF NOT EXISTS idx_colab_executives_dept   ON colab_executives(department);
+CREATE INDEX IF NOT EXISTS idx_colab_announcements_dt  ON colab_announcements(created_date);
+CREATE INDEX IF NOT EXISTS idx_colab_tickets_email     ON colab_tickets(requester_email);
+CREATE INDEX IF NOT EXISTS idx_colab_tickets_status    ON colab_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_colab_timeoff_email     ON colab_timeoff(employee_email);
+CREATE INDEX IF NOT EXISTS idx_colab_timeoff_status    ON colab_timeoff(status);

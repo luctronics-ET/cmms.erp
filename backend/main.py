@@ -35,6 +35,141 @@ _SATELLITES = [
     {"id": "xcalibracao","name": "xCalibracao", "url": XCALIBRACAO_URL,"port": 8004},
 ]
 
+_COLAB_SEED_EVENTS = [
+    {
+        "id": "ev1",
+        "title": "Treinamento NR-10",
+        "type": "training",
+        "event_date": "2026-06-03",
+        "location": "Auditorio Principal",
+        "attendees": 25,
+        "description": "Reciclagem obrigatoria para equipes tecnicas.",
+    },
+    {
+        "id": "ev2",
+        "title": "Reuniao de Alinhamento Operacional",
+        "type": "meeting",
+        "event_date": "2026-06-05",
+        "location": "Sala CMASM-01",
+        "attendees": 14,
+        "description": "Alinhamento semanal de metas entre divisoes.",
+    },
+    {
+        "id": "ev3",
+        "title": "Palestra de Seguranca da Informacao",
+        "type": "company_event",
+        "event_date": "2026-06-10",
+        "location": "Auditorio Principal",
+        "attendees": 80,
+        "description": "Boas praticas e requisitos de protecao de dados.",
+    },
+    {
+        "id": "ev4",
+        "title": "Escala Especial de Fim de Semana",
+        "type": "shift",
+        "event_date": "2026-06-14",
+        "location": "Base Operacional",
+        "attendees": 12,
+        "description": "Cobertura operacional programada.",
+    },
+]
+
+_COLAB_SEED_POLICIES = [
+    {
+        "id": "po1",
+        "title": "Politica de Trabalho Presencial",
+        "category": "hr",
+        "version": "2.1",
+        "description": "Define jornadas, controle de presenca e regras de justificativa para ausencias.",
+        "owner": "Divisao de Pessoal",
+        "created_date": "2026-02-02",
+        "updated_date": "2026-04-10",
+    },
+    {
+        "id": "po2",
+        "title": "Politica de Seguranca da Informacao",
+        "category": "security",
+        "version": "3.0",
+        "description": "Classificacao da informacao, uso de credenciais e resposta a incidentes ciberneticos.",
+        "owner": "Secao de Seguranca",
+        "created_date": "2025-11-01",
+        "updated_date": "2026-03-25",
+    },
+    {
+        "id": "po3",
+        "title": "Politica de Uso de Recursos de TI",
+        "category": "it",
+        "version": "1.4",
+        "description": "Uso aceitavel de equipamentos, redes e servicos corporativos.",
+        "owner": "Divisao de Comunicacoes",
+        "created_date": "2026-01-18",
+        "updated_date": "2026-05-02",
+    },
+]
+
+_COLAB_SEED_EXECUTIVES = [
+    {
+        "id": "ex1",
+        "full_name": "Ana Valeria Greco de Sousa",
+        "position": "Diretora",
+        "department": "Direcao",
+        "email": "ana.valeria@marinha.mil.br",
+        "phone": "(21) 99999-0101",
+        "office_location": "Gabinete CMASM-01",
+        "years_with_company": 11,
+        "bio": "Responsavel pela direcao estrategica e governanca do CMASM.",
+    },
+    {
+        "id": "ex2",
+        "full_name": "Luciana Santana Pires",
+        "position": "Vice-Diretora",
+        "department": "Vice-Direcao",
+        "email": "luciana.pires@marinha.mil.br",
+        "phone": "(21) 99999-0202",
+        "office_location": "Gabinete CMASM-02",
+        "years_with_company": 9,
+        "bio": "Coordena integracao operacional entre departamentos e projetos criticos.",
+    },
+    {
+        "id": "ex3",
+        "full_name": "Marcos Paulo Ferreira",
+        "position": "Chefe de Infraestrutura",
+        "department": "Infraestrutura",
+        "email": "marcos.ferreira@marinha.mil.br",
+        "phone": "(21) 99999-0303",
+        "office_location": "CMASM-10",
+        "years_with_company": 8,
+        "bio": "Lidera servicos de manutencao, logistica e instalacoes.",
+    },
+]
+
+_COLAB_SEED_ANNOUNCEMENTS = [
+    {
+        "id": "an1",
+        "title": "Atualizacao de Procedimentos de Acesso",
+        "content": "A partir de 03/06, todos os acessos administrativos exigirao autenticacao multifator no primeiro login do dia.",
+        "priority": "high",
+        "author": "Secao de Seguranca",
+        "created_date": "2026-05-28T08:30:00Z",
+    },
+    {
+        "id": "an2",
+        "title": "Revisao do Cronograma de Treinamentos",
+        "content": "O calendario do 2o semestre foi atualizado com novas turmas para NR-10 e combate a incendio.",
+        "priority": "medium",
+        "author": "Divisao de Pessoal",
+        "created_date": "2026-05-25T13:10:00Z",
+    },
+    {
+        "id": "an3",
+        "title": "Manutencao Preventiva da Rede",
+        "content": "Janela de manutencao prevista para sabado, das 22h as 23h30, com indisponibilidade intermitente.",
+        "priority": "low",
+        "author": "Divisao de Comunicacoes",
+        "created_date": "2026-05-22T10:00:00Z",
+    },
+]
+
 app = FastAPI(title="xCore API", version="1.0.0", docs_url="/docs")
 app.add_middleware(
     CORSMiddleware,
@@ -57,6 +192,82 @@ if os.path.isdir(_PMOC_DIR):
     app.mount("/pmoc", StaticFiles(directory=_PMOC_DIR, html=True), name="pmoc")
 
 
+async def _seed_colab_if_empty() -> None:
+    checks = {
+        "events": await db.fetch_one("SELECT COUNT(*) AS n FROM colab_events"),
+        "policies": await db.fetch_one("SELECT COUNT(*) AS n FROM colab_policies"),
+        "executives": await db.fetch_one("SELECT COUNT(*) AS n FROM colab_executives"),
+        "announcements": await db.fetch_one("SELECT COUNT(*) AS n FROM colab_announcements"),
+    }
+    if any((checks[k] or {}).get("n", 0) > 0 for k in checks):
+        return
+
+    await db.executemany(
+        "INSERT INTO colab_events (id, title, type, event_date, location, attendees, description) VALUES (?,?,?,?,?,?,?)",
+        [
+            (
+                item["id"],
+                item["title"],
+                item["type"],
+                item["event_date"],
+                item.get("location"),
+                item.get("attendees", 0),
+                item.get("description"),
+            )
+            for item in _COLAB_SEED_EVENTS
+        ],
+    )
+    await db.executemany(
+        "INSERT INTO colab_policies (id, title, category, version, description, owner, created_date, updated_date) VALUES (?,?,?,?,?,?,?,?)",
+        [
+            (
+                item["id"],
+                item["title"],
+                item["category"],
+                item.get("version"),
+                item.get("description"),
+                item.get("owner"),
+                item.get("created_date"),
+                item.get("updated_date"),
+            )
+            for item in _COLAB_SEED_POLICIES
+        ],
+    )
+    await db.executemany(
+        "INSERT INTO colab_executives (id, full_name, position, department, email, phone, office_location, years_with_company, bio, linkedin_url, photo_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        [
+            (
+                item["id"],
+                item["full_name"],
+                item["position"],
+                item.get("department"),
+                item.get("email"),
+                item.get("phone"),
+                item.get("office_location"),
+                item.get("years_with_company", 0),
+                item.get("bio"),
+                item.get("linkedin_url"),
+                item.get("photo_url"),
+            )
+            for item in _COLAB_SEED_EXECUTIVES
+        ],
+    )
+    await db.executemany(
+        "INSERT INTO colab_announcements (id, title, content, priority, author, created_date) VALUES (?,?,?,?,?,?)",
+        [
+            (
+                item["id"],
+                item["title"],
+                item["content"],
+                item.get("priority", "medium"),
+                item.get("author"),
+                item.get("created_date"),
+            )
+            for item in _COLAB_SEED_ANNOUNCEMENTS
+        ],
+    )
+
+
 @app.get("/")
 async def root():
     return FileResponse(os.path.join(_FRONTEND_DIR, "cmasm_erp.html"))
@@ -64,6 +275,10 @@ async def root():
 
 @app.get("/{filename:path}.html")
 async def serve_html(filename: str):
+    if filename == "cmasm-erp":
+        alias_path = os.path.join(_FRONTEND_DIR, "cmasm_erp.html")
+        if os.path.isfile(alias_path):
+            return FileResponse(alias_path)
     path = os.path.join(_FRONTEND_DIR, f"{filename}.html")
     if os.path.isfile(path):
         return FileResponse(path)
@@ -151,6 +366,7 @@ async def list_modulos():
 async def startup():
     await db.init()
     init_grama(db)
+    await _seed_colab_if_empty()
 
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
@@ -281,6 +497,13 @@ class MovimentoIn(BaseModel):
     obs: Optional[str] = None
     documento: Optional[str] = None   # NF, requisição, nº doc
     fornecedor: Optional[str] = None  # fornecedor (entrada) ou requisitante (saída)
+
+
+def _to_int(value, default=0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -625,6 +848,437 @@ async def health():
     n_users = await db.fetch_one("SELECT COUNT(*) AS n FROM usuarios")
     n_ativos = await db.fetch_one("SELECT COUNT(*) AS n FROM ativos")
     return {"status": "ok", "usuarios": n_users["n"], "ativos": n_ativos["n"]}
+
+
+# ── Portal do Colaborador (CompanyHub incorporado) ─────────────────────────
+@app.get("/api/colab/bootstrap")
+async def colab_bootstrap():
+    events = await db.fetch_all(
+        "SELECT id, title, type, event_date, location, attendees, description FROM colab_events ORDER BY event_date"
+    )
+    policies = await db.fetch_all(
+        "SELECT id, title, category, version, description, owner, created_date, updated_date FROM colab_policies ORDER BY updated_date DESC"
+    )
+    executives = await db.fetch_all(
+        "SELECT id, full_name, position, department, email, phone, office_location, years_with_company, bio, linkedin_url, photo_url FROM colab_executives ORDER BY full_name"
+    )
+    announcements = await db.fetch_all(
+        "SELECT id, title, content, priority, author, created_date FROM colab_announcements ORDER BY created_date DESC"
+    )
+    tickets = await db.fetch_all(
+        "SELECT id, subject, description, category, priority, status, requester_name, requester_email, department, assigned_to, resolution_notes, due_date, created_date FROM colab_tickets ORDER BY created_date DESC"
+    )
+    timeoff = await db.fetch_all(
+        "SELECT id, type, start_date, end_date, reason, total_days, status, employee_name, employee_email, department, manager_email, manager_notes, approval_date, created_date FROM colab_timeoff ORDER BY created_date DESC"
+    )
+    return {
+        "events": events,
+        "policies": policies,
+        "executives": executives,
+        "announcements": announcements,
+        "tickets": tickets,
+        "timeoff": timeoff,
+    }
+
+
+@app.post("/api/colab/events", status_code=201)
+async def colab_create_event(payload: dict):
+    event_id = payload.get("id") or str(uuid.uuid4())[:8]
+    await db.execute(
+        "INSERT INTO colab_events (id, title, type, event_date, location, attendees, description) VALUES (?,?,?,?,?,?,?)",
+        (
+            event_id,
+            payload.get("title") or "",
+            payload.get("type") or "event",
+            payload.get("event_date") or "",
+            payload.get("location"),
+            _to_int(payload.get("attendees"), 0),
+            payload.get("description"),
+        ),
+    )
+    return await db.fetch_one(
+        "SELECT id, title, type, event_date, location, attendees, description FROM colab_events WHERE id = ?",
+        (event_id,),
+    )
+
+
+@app.delete("/api/colab/events/{event_id}")
+async def colab_delete_event(event_id: str):
+    exists = await db.fetch_one("SELECT id FROM colab_events WHERE id = ?", (event_id,))
+    if not exists:
+        raise HTTPException(404, "Evento não encontrado")
+    await db.execute("DELETE FROM colab_events WHERE id = ?", (event_id,))
+    return {"ok": True, "id": event_id}
+
+
+@app.post("/api/colab/policies", status_code=201)
+async def colab_create_policy(payload: dict):
+    policy_id = payload.get("id") or str(uuid.uuid4())[:8]
+    await db.execute(
+        "INSERT INTO colab_policies (id, title, category, version, description, owner, created_date, updated_date) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            policy_id,
+            payload.get("title") or "",
+            payload.get("category") or "general",
+            payload.get("version"),
+            payload.get("description"),
+            payload.get("owner"),
+            payload.get("created_date"),
+            payload.get("updated_date"),
+        ),
+    )
+    return await db.fetch_one(
+        "SELECT id, title, category, version, description, owner, created_date, updated_date FROM colab_policies WHERE id = ?",
+        (policy_id,),
+    )
+
+
+@app.delete("/api/colab/policies/{policy_id}")
+async def colab_delete_policy(policy_id: str):
+    exists = await db.fetch_one("SELECT id FROM colab_policies WHERE id = ?", (policy_id,))
+    if not exists:
+        raise HTTPException(404, "Política não encontrada")
+    await db.execute("DELETE FROM colab_policies WHERE id = ?", (policy_id,))
+    return {"ok": True, "id": policy_id}
+
+
+@app.post("/api/colab/executives", status_code=201)
+async def colab_create_executive(payload: dict):
+    executive_id = payload.get("id") or str(uuid.uuid4())[:8]
+    await db.execute(
+        "INSERT INTO colab_executives (id, full_name, position, department, email, phone, office_location, years_with_company, bio, linkedin_url, photo_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            executive_id,
+            payload.get("full_name") or "",
+            payload.get("position") or "",
+            payload.get("department"),
+            payload.get("email"),
+            payload.get("phone"),
+            payload.get("office_location"),
+            _to_int(payload.get("years_with_company"), 0),
+            payload.get("bio"),
+            payload.get("linkedin_url"),
+            payload.get("photo_url"),
+        ),
+    )
+    return await db.fetch_one(
+        "SELECT id, full_name, position, department, email, phone, office_location, years_with_company, bio, linkedin_url, photo_url FROM colab_executives WHERE id = ?",
+        (executive_id,),
+    )
+
+
+@app.delete("/api/colab/executives/{executive_id}")
+async def colab_delete_executive(executive_id: str):
+    exists = await db.fetch_one("SELECT id FROM colab_executives WHERE id = ?", (executive_id,))
+    if not exists:
+        raise HTTPException(404, "Executivo não encontrado")
+    await db.execute("DELETE FROM colab_executives WHERE id = ?", (executive_id,))
+    return {"ok": True, "id": executive_id}
+
+
+@app.post("/api/colab/announcements", status_code=201)
+async def colab_create_announcement(payload: dict):
+    announcement_id = payload.get("id") or str(uuid.uuid4())[:8]
+    await db.execute(
+        "INSERT INTO colab_announcements (id, title, content, priority, author, created_date) VALUES (?,?,?,?,?,?)",
+        (
+            announcement_id,
+            payload.get("title") or "",
+            payload.get("content") or "",
+            payload.get("priority") or "medium",
+            payload.get("author"),
+            payload.get("created_date"),
+        ),
+    )
+    return await db.fetch_one(
+        "SELECT id, title, content, priority, author, created_date FROM colab_announcements WHERE id = ?",
+        (announcement_id,),
+    )
+
+
+@app.delete("/api/colab/announcements/{announcement_id}")
+async def colab_delete_announcement(announcement_id: str):
+    exists = await db.fetch_one("SELECT id FROM colab_announcements WHERE id = ?", (announcement_id,))
+    if not exists:
+        raise HTTPException(404, "Comunicado não encontrado")
+    await db.execute("DELETE FROM colab_announcements WHERE id = ?", (announcement_id,))
+    return {"ok": True, "id": announcement_id}
+
+
+@app.post("/api/colab/tickets", status_code=201)
+async def colab_create_ticket(payload: dict):
+    ticket_id = payload.get("id") or str(uuid.uuid4())[:8]
+    await db.execute(
+        "INSERT INTO colab_tickets (id, subject, description, category, priority, status, requester_name, requester_email, department, assigned_to, resolution_notes, due_date, created_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            ticket_id,
+            payload.get("subject") or "",
+            payload.get("description") or "",
+            payload.get("category") or "other",
+            payload.get("priority") or "medium",
+            payload.get("status") or "open",
+            payload.get("requester_name"),
+            payload.get("requester_email"),
+            payload.get("department"),
+            payload.get("assigned_to"),
+            payload.get("resolution_notes"),
+            payload.get("due_date"),
+            payload.get("created_date"),
+        ),
+    )
+    return await db.fetch_one(
+        "SELECT id, subject, description, category, priority, status, requester_name, requester_email, department, assigned_to, resolution_notes, due_date, created_date FROM colab_tickets WHERE id = ?",
+        (ticket_id,),
+    )
+
+
+@app.patch("/api/colab/tickets/{ticket_id}")
+async def colab_patch_ticket(ticket_id: str, payload: dict):
+    exists = await db.fetch_one("SELECT id FROM colab_tickets WHERE id = ?", (ticket_id,))
+    if not exists:
+        raise HTTPException(404, "Chamado não encontrado")
+    await db.execute(
+        "UPDATE colab_tickets SET status = ?, assigned_to = ?, resolution_notes = ?, due_date = ? WHERE id = ?",
+        (
+            payload.get("status") or "open",
+            payload.get("assigned_to"),
+            payload.get("resolution_notes"),
+            payload.get("due_date"),
+            ticket_id,
+        ),
+    )
+    return await db.fetch_one(
+        "SELECT id, subject, description, category, priority, status, requester_name, requester_email, department, assigned_to, resolution_notes, due_date, created_date FROM colab_tickets WHERE id = ?",
+        (ticket_id,),
+    )
+
+
+@app.delete("/api/colab/tickets/{ticket_id}")
+async def colab_delete_ticket(ticket_id: str):
+    exists = await db.fetch_one("SELECT id FROM colab_tickets WHERE id = ?", (ticket_id,))
+    if not exists:
+        raise HTTPException(404, "Chamado não encontrado")
+    await db.execute("DELETE FROM colab_tickets WHERE id = ?", (ticket_id,))
+    return {"ok": True, "id": ticket_id}
+
+
+@app.post("/api/colab/timeoff", status_code=201)
+async def colab_create_timeoff(payload: dict):
+    timeoff_id = payload.get("id") or str(uuid.uuid4())[:8]
+    await db.execute(
+        "INSERT INTO colab_timeoff (id, type, start_date, end_date, reason, total_days, status, employee_name, employee_email, department, manager_email, manager_notes, approval_date, created_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            timeoff_id,
+            payload.get("type") or "vacation",
+            payload.get("start_date") or "",
+            payload.get("end_date") or "",
+            payload.get("reason"),
+            _to_int(payload.get("total_days"), 0),
+            payload.get("status") or "pending",
+            payload.get("employee_name"),
+            payload.get("employee_email"),
+            payload.get("department"),
+            payload.get("manager_email"),
+            payload.get("manager_notes"),
+            payload.get("approval_date"),
+            payload.get("created_date"),
+        ),
+    )
+    return await db.fetch_one(
+        "SELECT id, type, start_date, end_date, reason, total_days, status, employee_name, employee_email, department, manager_email, manager_notes, approval_date, created_date FROM colab_timeoff WHERE id = ?",
+        (timeoff_id,),
+    )
+
+
+@app.patch("/api/colab/timeoff/{timeoff_id}")
+async def colab_patch_timeoff(timeoff_id: str, payload: dict):
+    exists = await db.fetch_one("SELECT id FROM colab_timeoff WHERE id = ?", (timeoff_id,))
+    if not exists:
+        raise HTTPException(404, "Solicitação de folga não encontrada")
+    await db.execute(
+        "UPDATE colab_timeoff SET status = ?, manager_notes = ?, manager_email = ?, approval_date = ? WHERE id = ?",
+        (
+            payload.get("status") or "pending",
+            payload.get("manager_notes"),
+            payload.get("manager_email"),
+            payload.get("approval_date"),
+            timeoff_id,
+        ),
+    )
+    return await db.fetch_one(
+        "SELECT id, type, start_date, end_date, reason, total_days, status, employee_name, employee_email, department, manager_email, manager_notes, approval_date, created_date FROM colab_timeoff WHERE id = ?",
+        (timeoff_id,),
+    )
+
+
+@app.delete("/api/colab/timeoff/{timeoff_id}")
+async def colab_delete_timeoff(timeoff_id: str):
+    exists = await db.fetch_one("SELECT id FROM colab_timeoff WHERE id = ?", (timeoff_id,))
+    if not exists:
+        raise HTTPException(404, "Solicitação de folga não encontrada")
+    await db.execute("DELETE FROM colab_timeoff WHERE id = ?", (timeoff_id,))
+    return {"ok": True, "id": timeoff_id}
+
+
+@app.put("/api/colab/events")
+async def colab_put_events(payload: list[dict]):
+    await db.execute("DELETE FROM colab_events")
+    rows = []
+    for item in payload:
+        rows.append(
+            (
+                item.get("id") or str(uuid.uuid4())[:8],
+                item.get("title") or "",
+                item.get("type") or "event",
+                item.get("event_date") or "",
+                item.get("location"),
+                _to_int(item.get("attendees"), 0),
+                item.get("description"),
+            )
+        )
+    if rows:
+        await db.executemany(
+            "INSERT INTO colab_events (id, title, type, event_date, location, attendees, description) VALUES (?,?,?,?,?,?,?)",
+            rows,
+        )
+    return {"ok": True, "count": len(rows)}
+
+
+@app.put("/api/colab/policies")
+async def colab_put_policies(payload: list[dict]):
+    await db.execute("DELETE FROM colab_policies")
+    rows = []
+    for item in payload:
+        rows.append(
+            (
+                item.get("id") or str(uuid.uuid4())[:8],
+                item.get("title") or "",
+                item.get("category") or "general",
+                item.get("version"),
+                item.get("description"),
+                item.get("owner"),
+                item.get("created_date"),
+                item.get("updated_date"),
+            )
+        )
+    if rows:
+        await db.executemany(
+            "INSERT INTO colab_policies (id, title, category, version, description, owner, created_date, updated_date) VALUES (?,?,?,?,?,?,?,?)",
+            rows,
+        )
+    return {"ok": True, "count": len(rows)}
+
+
+@app.put("/api/colab/executives")
+async def colab_put_executives(payload: list[dict]):
+    await db.execute("DELETE FROM colab_executives")
+    rows = []
+    for item in payload:
+        rows.append(
+            (
+                item.get("id") or str(uuid.uuid4())[:8],
+                item.get("full_name") or "",
+                item.get("position") or "",
+                item.get("department"),
+                item.get("email"),
+                item.get("phone"),
+                item.get("office_location"),
+                _to_int(item.get("years_with_company"), 0),
+                item.get("bio"),
+                item.get("linkedin_url"),
+                item.get("photo_url"),
+            )
+        )
+    if rows:
+        await db.executemany(
+            "INSERT INTO colab_executives (id, full_name, position, department, email, phone, office_location, years_with_company, bio, linkedin_url, photo_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            rows,
+        )
+    return {"ok": True, "count": len(rows)}
+
+
+@app.put("/api/colab/announcements")
+async def colab_put_announcements(payload: list[dict]):
+    await db.execute("DELETE FROM colab_announcements")
+    rows = []
+    for item in payload:
+        rows.append(
+            (
+                item.get("id") or str(uuid.uuid4())[:8],
+                item.get("title") or "",
+                item.get("content") or "",
+                item.get("priority") or "medium",
+                item.get("author"),
+                item.get("created_date"),
+            )
+        )
+    if rows:
+        await db.executemany(
+            "INSERT INTO colab_announcements (id, title, content, priority, author, created_date) VALUES (?,?,?,?,?,?)",
+            rows,
+        )
+    return {"ok": True, "count": len(rows)}
+
+
+@app.put("/api/colab/tickets")
+async def colab_put_tickets(payload: list[dict]):
+    await db.execute("DELETE FROM colab_tickets")
+    rows = []
+    for item in payload:
+        rows.append(
+            (
+                item.get("id") or str(uuid.uuid4())[:8],
+                item.get("subject") or "",
+                item.get("description") or "",
+                item.get("category") or "other",
+                item.get("priority") or "medium",
+                item.get("status") or "open",
+                item.get("requester_name"),
+                item.get("requester_email"),
+                item.get("department"),
+                item.get("assigned_to"),
+                item.get("resolution_notes"),
+                item.get("due_date"),
+                item.get("created_date"),
+            )
+        )
+    if rows:
+        await db.executemany(
+            "INSERT INTO colab_tickets (id, subject, description, category, priority, status, requester_name, requester_email, department, assigned_to, resolution_notes, due_date, created_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            rows,
+        )
+    return {"ok": True, "count": len(rows)}
+
+
+@app.put("/api/colab/timeoff")
+async def colab_put_timeoff(payload: list[dict]):
+    await db.execute("DELETE FROM colab_timeoff")
+    rows = []
+    for item in payload:
+        rows.append(
+            (
+                item.get("id") or str(uuid.uuid4())[:8],
+                item.get("type") or "vacation",
+                item.get("start_date") or "",
+                item.get("end_date") or "",
+                item.get("reason"),
+                _to_int(item.get("total_days"), 0),
+                item.get("status") or "pending",
+                item.get("employee_name"),
+                item.get("employee_email"),
+                item.get("department"),
+                item.get("manager_email"),
+                item.get("manager_notes"),
+                item.get("approval_date"),
+                item.get("created_date"),
+            )
+        )
+    if rows:
+        await db.executemany(
+            "INSERT INTO colab_timeoff (id, type, start_date, end_date, reason, total_days, status, employee_name, employee_email, department, manager_email, manager_notes, approval_date, created_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            rows,
+        )
+    return {"ok": True, "count": len(rows)}
 
 
 # ── Locais ────────────────────────────────────────────────────────────────────

@@ -61,6 +61,15 @@ class CoreDB:
             ]:
                 if col not in os_existing:
                     await db.execute(ddl)
+            grama_existing = {row[1] async for row in await db.execute("PRAGMA table_info(grama_areas)")}
+            for col, ddl in [
+                ("grupo_nome", "ALTER TABLE grama_areas ADD COLUMN grupo_nome TEXT"),
+                ("visivel", "ALTER TABLE grama_areas ADD COLUMN visivel INTEGER DEFAULT 1"),
+                ("cor_hex", "ALTER TABLE grama_areas ADD COLUMN cor_hex TEXT"),
+                ("opacidade", "ALTER TABLE grama_areas ADD COLUMN opacidade REAL DEFAULT 0.24"),
+            ]:
+                if col not in grama_existing:
+                    await db.execute(ddl)
             await db.commit()
 
     async def fetch_one(self, sql: str, params=()) -> dict | None:

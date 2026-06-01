@@ -267,7 +267,30 @@
           ...baixo.slice(0, 10).map(i => el('li', {}, `${i.nome} · saldo ${fmt.num(i.qtd_atual)} < min ${fmt.num(i.qtd_minima)}`))),
       );
 
-      cont.replaceChildren(kpiGrid, charts, alertas);
+      // Frota vinculada — status resumo
+      const frota = window.getFrota?.() || [];
+      const frotaCard = frota.length > 0 ? el('div', {
+        style: { background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px', marginTop: '12px' },
+      },
+        el('div', { style: { fontWeight: '600', marginBottom: '10px' } }, 'Frota vinculada aos ativos'),
+        el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '8px' } },
+          ...frota.filter(f => f.ativoId).map(f => {
+            const ativo = ativos.find(a => a.id === f.ativoId);
+            const osA = os.filter(o => o.ativo_id === f.ativoId && o.status !== 'concluida' && o.status !== 'cancelada').length;
+            const badgeKind = { P: 'green', OR: 'blue', INOP: 'red', MANUT: 'amber' }[f.status] || 'gray';
+            return el('div', { style: { padding: '8px 10px', background: 'var(--bg3)', borderRadius: '6px', fontSize: '12px' } },
+              el('div', { style: { fontWeight: '600', marginBottom: '3px' } }, f.nome),
+              el('div', { style: { color: 'var(--ink-3)' } }, ativo ? ativo.nome : f.ativoId),
+              el('div', { style: { display: 'flex', gap: '6px', marginTop: '4px', alignItems: 'center' } },
+                window.engine.badge(f.status, badgeKind),
+                osA > 0 ? window.engine.badge(`${osA} OS`, 'amber') : null,
+              ),
+            );
+          }),
+        ),
+      ) : null;
+
+      cont.replaceChildren(kpiGrid, charts, alertas, ...(frotaCard ? [frotaCard] : []));
     },
 
     ativos(cont) {
@@ -427,25 +450,81 @@
     const planos = (window.ERP_MANUT_MOCKS?.planos_manutencao || [])
       .filter(p => p.ativo_id === ativo.id || (p.tipo_codigo && p.tipo_codigo === ativo.tipo));
     const osDoAtivo = (state.cache.os?.data || []).filter(o => o.ativo_id === ativo.id);
+    // Frota vinculada: veículo com ativoId === ativo.id
+    const frotaVin = (window.getFrota?.() || []).find(f => f.ativoId === ativo.id);
 
     function dadosView() {
-      return el('div', {},
-        ...Object.entries(ativo).map(([k, v]) =>
-          el('div', { style: { display: 'flex', gap: '8px', padding: '6px 0', borderBottom: '1px solid var(--line)' } },
-            el('div', { style: { color: 'var(--ink-3)', minWidth: '160px' } }, k),
-            el('div', {}, v == null ? '—' : String(v)),
-          )),
+      const rows = [
+        ['Código', ativo.codigo || ativo.id],
+        ['Nome', ativo.nome],
+        ['Categoria', ativo.categoria || '—'],
+        ['Tipo', ativo.tipo || '—'],
+        ['Fabricante', ativo.fabricante || '—'],
+        ['Modelo', ativo.modelo || '—'],
+        ['Série', ativo.serie || '—'],
+        ['Ano', ativo.ano || '—'],
+        ['Uso atual', `${fmt.num(ativo.uso_atual, 1)} ${ativo.unidade_uso || 'h'}`],
+        ['Criticidade', ativo.criticidade || '—'],
+        ['Responsável PMOC', ativo.responsavel_pmoc || '—'],
+        ['Status', ativo.status || '—'],
+        ['Observações', ativo.observacoes || '—'],
+      ];
+      const tbl = el('div', { style: { fontSize: '13px' } },
+        ...rows.map(([k, v]) => el('div', {
+          style: { display: 'flex', gap: '8px', padding: '5px 0', borderBottom: '1px solid var(--line)' },
+        }, el('div', { style: { color: 'var(--ink-3)', minWidth: '160px', flexShrink: 0 } }, k),
+           el('div', { style: { color: 'var(--ink)' } }, String(v || '—')))),
       );
+      // Frota vinculada
+      if (frotaVin) {
+        const badge = { P: '🟢 Pronto', OR: '🔵 Em uso', INOP: '🔴 Inoperante', MANUT: '🟡 Em manutenção' };
+        tbl.appendChild(el('div', {
+          style: { marginTop: '12px', padding: '10px', background: 'var(--bg3)',
+            borderRadius: '8px', border: '1px solid var(--line)' },
+        },
+          el('div', { style: { fontSize: '11px', color: 'var(--ink-3)', textTransform: 'uppercase',
+            letterSpacing: '.6px', marginBottom: '6px' } }, 'Veículo vinculado'),
+          el('div', { style: { fontWeight: '600', color: 'var(--ink)' } }, frotaVin.nome),
+          el('div', { style: { fontSize: '12px', color: 'var(--ink-2)', marginTop: '2px' } },
+            `${frotaVin.placa || frotaVin.id} · ${frotaVin.modelo || ''} · Km/Hr: ${(frotaVin.km || 0).toLocaleString()}`),
+          el('div', { style: { fontSize: '12px', marginTop: '4px' } },
+            badge[frotaVin.status] || frotaVin.status),
+        ));
+      }
+      return tbl;
     }
+
     function planosView() {
-      if (!planos.length) return el('div', { style: { color: 'var(--ink-3)' } }, 'Sem planos vinculados.');
-      return el('ul', {}, ...planos.map(p =>
-        el('li', {}, `${p.servico_id} · ${JSON.stringify(p.frequencia)} · próx ${p.proxima_execucao}`)));
+      if (!planos.length) return el('div', { style: { color: 'var(--ink-3)', fontSize: '13px' } }, 'Sem planos vinculados.');
+      return el('ul', { style: { paddingLeft: '18px', fontSize: '13px', lineHeight: '1.8' } },
+        ...planos.map(p => el('li', {}, `${p.servico_id} · ${JSON.stringify(p.frequencia)} · próx ${p.proxima_execucao}`)));
     }
+
     function osView() {
-      if (!osDoAtivo.length) return el('div', { style: { color: 'var(--ink-3)' } }, 'Sem OS para este ativo.');
-      return el('ul', {}, ...osDoAtivo.map(o =>
-        el('li', {}, `[${o.status}] ${o.codigo || o.id} · ${o.titulo}`)));
+      if (!osDoAtivo.length) return el('div', { style: { color: 'var(--ink-3)', fontSize: '13px' } }, 'Sem OS para este ativo.');
+      return el('div', { style: { fontSize: '13px' } },
+        ...osDoAtivo.map(o => {
+          const pecasText = o.pecas || o.materiais || '';
+          return el('div', {
+            style: { padding: '10px', marginBottom: '8px', background: 'var(--bg3)',
+              borderRadius: '8px', border: '1px solid var(--line)' },
+          },
+            el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
+              el('span', { style: { fontWeight: '600', fontFamily: 'var(--font-mono)' } }, o.codigo || o.id),
+              window.engine.badge(o.status, o.status === 'concluida' ? 'green' : o.status === 'cancelada' ? 'red' : 'amber'),
+            ),
+            el('div', { style: { color: 'var(--ink)' } }, o.titulo || '—'),
+            o.data_abertura ? el('div', { style: { fontSize: '11px', color: 'var(--ink-3)', marginTop: '3px' } },
+              `Aberta: ${fmt.date(o.data_abertura)}${o.data_conclusao ? ' · Concluída: ' + fmt.date(o.data_conclusao) : ''}`) : null,
+            o.responsavel ? el('div', { style: { fontSize: '11px', color: 'var(--ink-3)' } },
+              `Responsável: ${o.responsavel}`) : null,
+            pecasText ? el('div', { style: { fontSize: '11px', color: 'var(--ink-2)',
+              marginTop: '4px', padding: '4px 8px', background: 'var(--bg2)',
+              borderRadius: '4px', borderLeft: '2px solid var(--amber)' } },
+              `Materiais/Peças: ${pecasText}`) : null,
+          );
+        }),
+      );
     }
 
     let activeSub = 'dados';
@@ -460,9 +539,9 @@
         onclick: () => { activeSub = id; renderSub(); refreshSubTabs(); },
       }, label);
     }
-    const subTabs = el('div', {}, tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', 'OS'));
+    const subTabs = el('div', {}, tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', `OS (${osDoAtivo.length})`));
     function refreshSubTabs() {
-      subTabs.replaceChildren(tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', 'OS'));
+      subTabs.replaceChildren(tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', `OS (${osDoAtivo.length})`));
     }
 
     const m = window.engine.modal({
@@ -492,8 +571,34 @@
         state.catsAvailable = [...new Set(ativos.map(a => a.categoria).filter(Boolean))].sort();
         if (state._renderChips) state._renderChips();
       } catch (e) {
-        console.warn('[manut] fetchAll falhou:', e);
-        showErrorBanner(e.message, !!state.cache.ativos);
+        console.warn('[manut] fetchAll API falhou, tentando localStorage:', e);
+        // Fallback: usa dados do localStorage (getAtivos/getOSManut/getEstoque do ERP)
+        const lsAtivos   = (window.getAtivos?.()  || []).map(a => ({
+          id: a.id, nome: a.nome, codigo: a.cod, tipo: a.categoria, categoria: a.categoria,
+          fabricante: a.fabricante, modelo: a.modelo, serie: a.serie, ano: a.ano,
+          ativo: a.status !== 'INOP' ? 1 : 0, uso_atual: a.horimetro || 0, unidade_uso: 'h',
+          criticidade: 'operacional', responsavel_pmoc: a.local || '—', status: a.status,
+          observacoes: a.obs,
+        }));
+        const lsOS = (window.getOSManut?.() || []).map(o => ({
+          id: o.id, codigo: o.id, titulo: o.descricao?.substring(0, 60) || o.id,
+          tipo: o.tipo, status: o.status, prioridade: 'normal', ativo_id: o.ativoId,
+          data_abertura: o.abertura, data_conclusao: o.dataConclusao,
+          responsavel: o.responsavel,
+        }));
+        const lsEstoque = (window.getEstoque?.() || []).map(i => ({
+          id: i.id, nome: i.nome, unidade: i.unidade, qtd_atual: i.qtd, qtd_minima: i.qtdMin,
+        }));
+        if (lsAtivos.length > 0) {
+          state.cache.ativos  = { data: lsAtivos,  ts: Date.now(), fromLS: true };
+          state.cache.os      = { data: lsOS,      ts: Date.now(), fromLS: true };
+          state.cache.estoque = { data: lsEstoque, ts: Date.now(), fromLS: true };
+          state.catsAvailable = [...new Set(lsAtivos.map(a => a.categoria).filter(Boolean))].sort();
+          if (state._renderChips) state._renderChips();
+          showErrorBanner(e.message, true);
+        } else {
+          showErrorBanner(e.message, !!state.cache.ativos);
+        }
       }
     })();
     state._fetching = work;

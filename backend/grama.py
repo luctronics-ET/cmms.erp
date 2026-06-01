@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import time
 from datetime import date
-from typing import Optional
+from typing import Optional, Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -73,6 +73,21 @@ def _calc_compatibilidade(flora: Optional[str], inclinacao: Optional[str], limpe
     return json.dumps(result) if result else None
 
 
+def _json_list(value: Any) -> list[dict]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return [item for item in parsed if isinstance(item, dict)]
+        except json.JSONDecodeError:
+            return []
+    return []
+
+
 # ── Pydantic models ───────────────────────────────────────────────────────────
 
 class AreaIn(BaseModel):
@@ -85,6 +100,10 @@ class AreaIn(BaseModel):
     flora: Optional[str] = None
     inclinacao: Optional[str] = None
     limpeza: Optional[str] = None
+    grupo_nome: Optional[str] = None
+    visivel: Optional[int] = 1
+    cor_hex: Optional[str] = None
+    opacidade: Optional[float] = 0.24
 
 
 class AreaUpdate(BaseModel):
@@ -98,6 +117,10 @@ class AreaUpdate(BaseModel):
     flora: Optional[str] = None
     inclinacao: Optional[str] = None
     limpeza: Optional[str] = None
+    grupo_nome: Optional[str] = None
+    visivel: Optional[int] = None
+    cor_hex: Optional[str] = None
+    opacidade: Optional[float] = None
 
 
 class PosicaoUpdate(BaseModel):
@@ -171,6 +194,47 @@ class OperacaoStatusIn(BaseModel):
     observacoes: Optional[str] = None
 
 
+class CombustivelIn(BaseModel):
+    maquina_id: str
+    tipo: str
+    quantidade_adicionada: float
+    custo: Optional[float] = None
+    usuario_id: Optional[str] = None
+    data: Optional[str] = None
+    observacoes: Optional[str] = None
+
+
+class PlanoAreaIn(BaseModel):
+    area_id: str
+    nome: str
+    periodicidade_dias: int
+    prioridade: str = "media"
+    servicos_json: Any
+    materiais_json: Optional[Any] = None
+    custo_estimado_ciclo: float = 0
+    custo_estimado_mensal: float = 0
+    observacoes: Optional[str] = None
+
+
+class PlanoAreaUpdate(BaseModel):
+    nome: Optional[str] = None
+    periodicidade_dias: Optional[int] = None
+    prioridade: Optional[str] = None
+    servicos_json: Optional[Any] = None
+    materiais_json: Optional[Any] = None
+    custo_estimado_ciclo: Optional[float] = None
+    custo_estimado_mensal: Optional[float] = None
+    observacoes: Optional[str] = None
+    ativo: Optional[int] = None
+
+
+class PlanoExecIn(BaseModel):
+    os_id: Optional[str] = None
+    usuario_id: Optional[str] = None
+    materiais_json: Optional[Any] = None
+    observacoes: Optional[str] = None
+
+
 class KanbanTarefaIn(BaseModel):
     titulo: str
     descricao: Optional[str] = None
@@ -203,7 +267,7 @@ class CalendarioEventoIn(BaseModel):
 @router.get("/areas")
 async def list_areas(ativa: int = 1):
     return await _get_db().fetch_all(
-        "SELECT * FROM grama_areas WHERE ativa=? ORDER BY nome", (ativa,)
+        "SELECT * FROM grama_areas WHERE ativa=? ORDER BY COALESCE(NULLIF(TRIM(grupo_nome), ''), 'Sem grupo'), nome", (ativa,)
     )
 
 
@@ -223,11 +287,13 @@ async def create_area(body: AreaIn):
     await db.execute(
         """INSERT INTO grama_areas
            (id,nome,descricao,tipo,area_m2,localizacao_gps,coords_json,
-            flora,inclinacao,limpeza,maquinas_compativeis)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                        flora,inclinacao,limpeza,maquinas_compativeis,grupo_nome,visivel,cor_hex,opacidade)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (aid, body.nome, body.descricao, body.tipo, body.area_m2,
          body.localizacao_gps, body.coords_json,
-         body.flora, body.inclinacao, body.limpeza, compat),
+                 body.flora, body.inclinacao, body.limpeza, compat,
+                 body.grupo_nome, body.visivel if body.visivel is not None else 1,
+                 body.cor_hex, body.opacidade if body.opacidade is not None else 0.24),
     )
     return await _get_db().fetch_one("SELECT * FROM grama_areas WHERE id=?", (aid,))
 
@@ -249,13 +315,14 @@ async def update_area(area_id: str, body: AreaUpdate):
     await db.execute(
         """UPDATE grama_areas SET
            nome=?,descricao=?,tipo=?,area_m2=?,localizacao_gps=?,ativa=?,
-           coords_json=?,flora=?,inclinacao=?,limpeza=?,maquinas_compativeis=?,
+           coords_json=?,flora=?,inclinacao=?,limpeza=?,maquinas_compativeis=?,grupo_nome=?,visivel=?,cor_hex=?,opacidade=?,
            ultima_atualizacao=CURRENT_TIMESTAMP
            WHERE id=?""",
         (updated["nome"], updated["descricao"], updated["tipo"], updated["area_m2"],
          updated["localizacao_gps"], updated.get("ativa", 1),
          updated["coords_json"], updated["flora"], updated["inclinacao"], updated["limpeza"],
-         compat, area_id),
+         compat, updated.get("grupo_nome"), updated.get("visivel", existing.get("visivel", 1)),
+         updated.get("cor_hex"), updated.get("opacidade", existing.get("opacidade", 0.24)), area_id),
     )
     return await db.fetch_one("SELECT * FROM grama_areas WHERE id=?", (area_id,))
 
@@ -270,6 +337,203 @@ async def update_posicao(area_id: str, body: PosicaoUpdate):
         (body.coords_json, body.area_m2, area_id),
     )
     return await db.fetch_one("SELECT * FROM grama_areas WHERE id=?", (area_id,))
+
+
+# ── Planos de Rotina Vegetal ────────────────────────────────────────────────
+
+@router.get("/planos")
+async def list_planos(area_id: Optional[str] = None, ativo: int = 1):
+    sql = """SELECT p.*, a.nome AS area_nome
+             FROM grama_planos_area p
+             LEFT JOIN grama_areas a ON a.id = p.area_id
+             WHERE p.ativo=?"""
+    params: list = [ativo]
+    if area_id:
+        sql += " AND p.area_id=?"
+        params.append(area_id)
+    sql += " ORDER BY p.ultima_atualizacao DESC"
+    rows = await _get_db().fetch_all(sql, tuple(params))
+    for row in rows:
+        row["servicos_json"] = _json_list(row.get("servicos_json"))
+        row["materiais_json"] = _json_list(row.get("materiais_json"))
+    return rows
+
+
+@router.get("/planos/{plano_id}")
+async def get_plano(plano_id: str):
+    row = await _get_db().fetch_one(
+        """SELECT p.*, a.nome AS area_nome
+           FROM grama_planos_area p
+           LEFT JOIN grama_areas a ON a.id = p.area_id
+           WHERE p.id=?""",
+        (plano_id,),
+    )
+    if not row:
+        raise HTTPException(404, "Plano não encontrado")
+    row["servicos_json"] = _json_list(row.get("servicos_json"))
+    row["materiais_json"] = _json_list(row.get("materiais_json"))
+    execs = await _get_db().fetch_all(
+        "SELECT * FROM grama_planos_execucoes WHERE plano_id=? ORDER BY data_execucao DESC LIMIT 20",
+        (plano_id,),
+    )
+    for ex in execs:
+        ex["materiais_json"] = _json_list(ex.get("materiais_json"))
+    row["execucoes"] = execs
+    return row
+
+
+@router.post("/planos", status_code=201)
+async def create_plano(body: PlanoAreaIn):
+    db = _get_db()
+    if body.periodicidade_dias <= 0:
+        raise HTTPException(422, "periodicidade_dias deve ser maior que zero")
+    area = await db.fetch_one("SELECT id FROM grama_areas WHERE id=?", (body.area_id,))
+    if not area:
+        raise HTTPException(404, "Área não encontrada")
+    pid = _uid("plano")
+    await db.execute(
+        """INSERT INTO grama_planos_area
+           (id,area_id,nome,periodicidade_dias,prioridade,servicos_json,materiais_json,
+            custo_estimado_ciclo,custo_estimado_mensal,observacoes)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (
+            pid,
+            body.area_id,
+            body.nome,
+            body.periodicidade_dias,
+            body.prioridade,
+            json.dumps(_json_list(body.servicos_json), ensure_ascii=False),
+            json.dumps(_json_list(body.materiais_json), ensure_ascii=False),
+            body.custo_estimado_ciclo,
+            body.custo_estimado_mensal,
+            body.observacoes,
+        ),
+    )
+    return await get_plano(pid)
+
+
+@router.put("/planos/{plano_id}")
+async def update_plano(plano_id: str, body: PlanoAreaUpdate):
+    db = _get_db()
+    existing = await db.fetch_one("SELECT * FROM grama_planos_area WHERE id=?", (plano_id,))
+    if not existing:
+        raise HTTPException(404, "Plano não encontrado")
+
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        return await get_plano(plano_id)
+
+    merged = {**existing, **updates}
+    if int(merged.get("periodicidade_dias") or 0) <= 0:
+        raise HTTPException(422, "periodicidade_dias deve ser maior que zero")
+
+    await db.execute(
+        """UPDATE grama_planos_area SET
+           nome=?,periodicidade_dias=?,prioridade=?,servicos_json=?,materiais_json=?,
+           custo_estimado_ciclo=?,custo_estimado_mensal=?,observacoes=?,ativo=?,
+           ultima_atualizacao=CURRENT_TIMESTAMP
+           WHERE id=?""",
+        (
+            merged.get("nome"),
+            merged.get("periodicidade_dias"),
+            merged.get("prioridade"),
+            json.dumps(_json_list(merged.get("servicos_json")), ensure_ascii=False),
+            json.dumps(_json_list(merged.get("materiais_json")), ensure_ascii=False),
+            merged.get("custo_estimado_ciclo") or 0,
+            merged.get("custo_estimado_mensal") or 0,
+            merged.get("observacoes"),
+            merged.get("ativo", 1),
+            plano_id,
+        ),
+    )
+    return await get_plano(plano_id)
+
+
+@router.post("/planos/{plano_id}/executar")
+async def executar_plano(plano_id: str, body: PlanoExecIn):
+    db = _get_db()
+    plano = await db.fetch_one("SELECT * FROM grama_planos_area WHERE id=? AND ativo=1", (plano_id,))
+    if not plano:
+        raise HTTPException(404, "Plano não encontrado")
+
+    materiais = _json_list(body.materiais_json) if body.materiais_json is not None else _json_list(plano.get("materiais_json"))
+
+    resolvidos: list[dict] = []
+    custo_real = 0.0
+    for material in materiais:
+        qtd = float(material.get("quantidade") or 0)
+        if qtd <= 0:
+            continue
+        item = None
+        if material.get("item_id") is not None:
+            item = await db.fetch_one(
+                "SELECT id, codigo, nome, qtd_atual, preco_unitario FROM estoque WHERE id=? AND ativo=1",
+                (material.get("item_id"),),
+            )
+        elif material.get("codigo"):
+            item = await db.fetch_one(
+                "SELECT id, codigo, nome, qtd_atual, preco_unitario FROM estoque WHERE codigo=? AND ativo=1",
+                (material.get("codigo"),),
+            )
+        if not item:
+            raise HTTPException(404, f"Item de estoque não encontrado para material: {material}")
+        if float(item.get("qtd_atual") or 0) < qtd:
+            raise HTTPException(400, f"Saldo insuficiente para {item.get('codigo')} ({item.get('nome')})")
+        resolvidos.append({"item": item, "quantidade": qtd, "obs": material.get("obs")})
+
+    for entry in resolvidos:
+        item = entry["item"]
+        qtd = entry["quantidade"]
+        await db.execute("UPDATE estoque SET qtd_atual=qtd_atual-? WHERE id=?", (qtd, item["id"]))
+        await db.execute(
+            """INSERT INTO estoque_movimentos
+               (item_id, tipo, quantidade, os_id, usuario_id, obs, documento, fornecedor)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (
+                item["id"],
+                "saida",
+                qtd,
+                body.os_id,
+                body.usuario_id,
+                entry.get("obs") or f"Baixa automática plano vegetal {plano_id}",
+                "PLANO-VEGETAL",
+                "Controle Vegetal",
+            ),
+        )
+        custo_real += qtd * float(item.get("preco_unitario") or 0)
+
+    exec_id = _uid("exec")
+    await db.execute(
+        """INSERT INTO grama_planos_execucoes
+           (id,plano_id,area_id,os_id,usuario_id,materiais_json,custo_real_materiais,observacoes)
+           VALUES (?,?,?,?,?,?,?,?)""",
+        (
+            exec_id,
+            plano_id,
+            plano.get("area_id"),
+            body.os_id,
+            body.usuario_id,
+            json.dumps([
+                {
+                    "item_id": entry["item"]["id"],
+                    "codigo": entry["item"].get("codigo"),
+                    "nome": entry["item"].get("nome"),
+                    "quantidade": entry["quantidade"],
+                }
+                for entry in resolvidos
+            ], ensure_ascii=False),
+            round(custo_real, 2),
+            body.observacoes,
+        ),
+    )
+
+    return {
+        "ok": True,
+        "execucao_id": exec_id,
+        "plano_id": plano_id,
+        "itens_baixados": len(resolvidos),
+        "custo_real_materiais": round(custo_real, 2),
+    }
 
 
 # ── Máquinas ──────────────────────────────────────────────────────────────────
@@ -486,6 +750,88 @@ async def update_operacao_status(op_id: str, body: OperacaoStatusIn):
             (body.horas_utilizadas, body.combustivel_utilizado or 0, op_id),
         )
     return await db.fetch_one("SELECT * FROM grama_operacoes_servico WHERE id=?", (op_id,))
+
+
+# ── Combustível ──────────────────────────────────────────────────────────────
+
+@router.get("/combustivel")
+async def list_combustivel(
+    maquina_id: Optional[str] = None,
+    inicio: Optional[str] = None,
+    fim: Optional[str] = None,
+):
+    sql = """SELECT cl.*, m.nome AS maquina_nome
+             FROM grama_combustivel_log cl
+             LEFT JOIN grama_maquinas m ON m.id = cl.maquina_id
+             WHERE 1=1"""
+    params: list = []
+    if maquina_id:
+        sql += " AND cl.maquina_id=?"
+        params.append(maquina_id)
+    if inicio:
+        sql += " AND date(cl.data) >= date(?)"
+        params.append(inicio)
+    if fim:
+        sql += " AND date(cl.data) <= date(?)"
+        params.append(fim)
+    sql += " ORDER BY cl.data DESC, cl.data_criacao DESC"
+    return await _get_db().fetch_all(sql, tuple(params))
+
+
+@router.get("/combustivel/{log_id}")
+async def get_combustivel(log_id: str):
+    row = await _get_db().fetch_one(
+        """SELECT cl.*, m.nome AS maquina_nome
+           FROM grama_combustivel_log cl
+           LEFT JOIN grama_maquinas m ON m.id = cl.maquina_id
+           WHERE cl.id=?""",
+        (log_id,),
+    )
+    if not row:
+        raise HTTPException(404, "Abastecimento não encontrado")
+    return row
+
+
+@router.post("/combustivel", status_code=201)
+async def create_combustivel(body: CombustivelIn):
+    db = _get_db()
+    maq = await db.fetch_one(
+        "SELECT id, combustivel_capacidade, combustivel_atual FROM grama_maquinas WHERE id=?",
+        (body.maquina_id,),
+    )
+    if not maq:
+        raise HTTPException(404, "Máquina não encontrada")
+    if body.quantidade_adicionada <= 0:
+        raise HTTPException(422, "quantidade_adicionada deve ser maior que zero")
+
+    cid = _uid("comb")
+    data_log = body.data or date.today().isoformat()
+    await db.execute(
+        """INSERT INTO grama_combustivel_log
+           (id, maquina_id, data, tipo, quantidade_adicionada, custo, usuario_id, observacoes)
+           VALUES (?,?,?,?,?,?,?,?)""",
+        (
+            cid,
+            body.maquina_id,
+            data_log,
+            body.tipo,
+            body.quantidade_adicionada,
+            body.custo,
+            body.usuario_id,
+            body.observacoes,
+        ),
+    )
+
+    capacidade = maq.get("combustivel_capacidade") or 0
+    atual = maq.get("combustivel_atual") or 0
+    novo_nivel = atual + body.quantidade_adicionada
+    if capacidade > 0:
+        novo_nivel = min(capacidade, novo_nivel)
+    await db.execute(
+        "UPDATE grama_maquinas SET combustivel_atual=?, ultima_atualizacao=CURRENT_TIMESTAMP WHERE id=?",
+        (novo_nivel, body.maquina_id),
+    )
+    return await get_combustivel(cid)
 
 
 # ── Kanban ────────────────────────────────────────────────────────────────────
