@@ -2,6 +2,7 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/pmoc-engine.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -1601,6 +1602,8 @@ table{border-collapse:collapse;width:100%}
           </div>
           <span class="badge badge-info" id="veg-source-badge">local</span>
           <button class="btn btn-secondary btn-sm" onclick="startVegetalAreaDraft()">Criar área</button>
+          <button class="btn btn-secondary btn-sm" onclick="editSelectedVegetalArea()">Editar área</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSelectedVegetalArea()">Deletar área</button>
           <button class="btn btn-secondary btn-sm" onclick="undoVegetalDraftPoint()">Desfazer</button>
           <button class="btn btn-primary btn-sm" onclick="finalizeVegetalDraft()">Fechar área</button>
           <button class="btn btn-ghost btn-sm" onclick="clearVegetalDraft()">Limpar</button>
@@ -1613,6 +1616,7 @@ table{border-collapse:collapse;width:100%}
             <div class="veg-map-tools-card">
               <div class="veg-map-tools-title">Croqui rápido</div>
               <div class="veg-map-tools-text">Clique para marcar vértices. Use “Fechar área” para abrir o modal dos dados.</div>
+              <div class="veg-map-tools-text" id="veg-map-selection" style="margin-top:8px">Área selecionada: nenhuma</div>
             </div>
           </div>
         </div>
@@ -4970,6 +4974,7 @@ let VEG_LEAFLET_WAIT_TIMER = null;
 let VEG_AREA_MODAL_CONTEXT = '';
 let VEG_FOCUS_GROUP = '';
 let VEG_GROUP_FILTER = '';
+let VEG_SELECTED_AREA_ID = '';
 const VEG_DEFAULT_BOUNDS = {
   north: -22.8195,
   south: -22.8295,
@@ -5394,6 +5399,8 @@ function openVegetalAreaModal(){
   const estimate = vegEstimateAreaM2();
   const areaField = document.getElementById('veg-area-m2');
   if(areaField && (!Number(areaField.value) || Number(areaField.value) <= 0) && estimate > 0) areaField.value = estimate;
+  renderVegetalGroupOptions();
+  previewVegetalStyle();
   openModal('modal-veg-area');
 }
 
@@ -5402,25 +5409,34 @@ function prepareVegetalAreaModal(mode='new', area=null){
   if(area){
     document.getElementById('veg-area-edit-id').value = area.id;
     document.getElementById('veg-area-nome').value = area.nome || '';
+    document.getElementById('veg-area-grupo').value = vegAreaGroupName(area) === 'Sem grupo' ? '' : vegAreaGroupName(area);
     document.getElementById('veg-area-tipo').value = area.tipo || 'corte_grama';
     document.getElementById('veg-area-m2').value = Number(area.area_m2 || vegEstimateAreaM2() || 0);
     document.getElementById('veg-area-flora').value = area.flora || 'gramado';
     document.getElementById('veg-area-inclinacao').value = area.inclinacao || 'plano';
     document.getElementById('veg-area-limpeza').value = area.limpeza || 'limpa';
+    document.getElementById('veg-area-cor').value = area.cor_hex || vegDefaultAreaColor(area.flora);
+    document.getElementById('veg-area-opacidade').value = String(area.opacidade ?? 0.24);
+    document.getElementById('veg-area-visivel').checked = Number(area.visivel ?? 1) !== 0;
     document.getElementById('veg-area-gps').value = area.localizacao_gps || '';
     document.getElementById('veg-area-desc').value = area.descricao || '';
   } else {
     document.getElementById('veg-area-edit-id').value = '';
     document.getElementById('veg-area-nome').value = '';
+    document.getElementById('veg-area-grupo').value = '';
     document.getElementById('veg-area-tipo').value = 'corte_grama';
     document.getElementById('veg-area-m2').value = vegEstimateAreaM2() || 0;
     document.getElementById('veg-area-flora').value = 'gramado';
     document.getElementById('veg-area-inclinacao').value = 'plano';
     document.getElementById('veg-area-limpeza').value = 'limpa';
+    document.getElementById('veg-area-cor').value = vegDefaultAreaColor('gramado');
+    document.getElementById('veg-area-opacidade').value = '0.24';
+    document.getElementById('veg-area-visivel').checked = true;
     document.getElementById('veg-area-gps').value = '';
     document.getElementById('veg-area-desc').value = '';
   }
   previewVegetalCompat();
+  previewVegetalStyle();
   openVegetalAreaModal();
 }
 
@@ -5464,6 +5480,23 @@ function syncVegetalSourceBadge(){
 function syncVegetalStatus(text){
   const el = document.getElementById('veg-map-status');
   if(el) el.textContent = text;
+}
+
+function syncVegetalSelectionLabel(){
+  const el = document.getElementById('veg-map-selection');
+  if(!el) return;
+  const area = getAreasVegetal().find(item => item.id === VEG_SELECTED_AREA_ID && item.ativa !== 0);
+  el.textContent = area ? `Área selecionada: ${area.nome}` : 'Área selecionada: nenhuma';
+}
+
+function selectVegetalArea(areaId, focus=false){
+  VEG_SELECTED_AREA_ID = areaId || '';
+  syncVegetalSelectionLabel();
+  if(areaId){
+    const area = getAreasVegetal().find(item => item.id === areaId);
+    if(area) syncVegetalStatus(`Área: ${area.nome}`);
+  }
+  renderVegetalMap(focus ? VEG_SELECTED_AREA_ID : '');
 }
 
 function normalizeVegArea(row){
@@ -5591,7 +5624,7 @@ function renderVegetalMap(focusId=''){
     const latlngs = vegAreaLatLngs(area);
     if(latlngs.length < 3) return;
     const groupName = vegAreaGroupName(area);
-    const active = (focusId && focusId === area.id) || (VEG_FOCUS_GROUP && groupName === VEG_FOCUS_GROUP);
+    const active = (focusId && focusId === area.id) || (VEG_SELECTED_AREA_ID && VEG_SELECTED_AREA_ID === area.id) || (VEG_FOCUS_GROUP && groupName === VEG_FOCUS_GROUP);
     const style = vegAreaStyle(area);
     const polygon = L.polygon(latlngs.map(point => [point.lat, point.lng]), {
       color: style.color,
@@ -5599,7 +5632,12 @@ function renderVegetalMap(focusId=''){
       fillColor: style.color,
       fillOpacity: active ? Math.min(0.72, style.opacity + 0.12) : style.opacity,
     }).bindPopup(vegetalPopupHtml(area));
-    polygon.on('click', () => syncVegetalStatus(`Área: ${area.nome}`));
+    polygon.on('click', () => {
+      VEG_SELECTED_AREA_ID = area.id;
+      syncVegetalSelectionLabel();
+      syncVegetalStatus(`Área: ${area.nome}`);
+      renderVegetalMap(area.id);
+    });
     polygon.addTo(VEG_AREA_LAYER);
     if(active) focusBounds = focusBounds ? focusBounds.extend(polygon.getBounds()) : polygon.getBounds();
   });
@@ -5655,6 +5693,7 @@ function renderVegetalMap(focusId=''){
       else VEG_MAP.fitBounds([[VEG_DEFAULT_BOUNDS.south, VEG_DEFAULT_BOUNDS.west],[VEG_DEFAULT_BOUNDS.north, VEG_DEFAULT_BOUNDS.east]], { padding: [20,20] });
     }
   });
+  syncVegetalSelectionLabel();
 }
 
 function renderVegetalAreas(){
@@ -5677,7 +5716,7 @@ function renderVegetalAreas(){
         <div class="text-xs text-muted">Estimativa: ${brl(plano.custoCiclo)}/ciclo · ${brl(plano.custoMensal)}/mês</div>
       </td>
       <td class="text-mono text-xs">${Number(area.area_m2 || 0).toLocaleString('pt-BR')} m²</td>
-      <td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="editVegetalArea('${area.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleVegetalAreaVisibility('${area.id}')">${visivel ? 'Ocultar' : 'Exibir'}</button><button class="btn btn-ghost btn-sm" onclick="renderVegetalMap('${area.id}')">Focar</button><button class="btn btn-primary btn-sm" onclick="gerarPlanoVegetalServicos('${area.id}')">PS/OS</button></div></td>
+      <td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-secondary btn-sm" onclick="editVegetalArea('${area.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteVegetalArea('${area.id}')">Deletar</button><button class="btn btn-ghost btn-sm" onclick="toggleVegetalAreaVisibility('${area.id}')">${visivel ? 'Ocultar' : 'Exibir'}</button><button class="btn btn-ghost btn-sm" onclick="selectVegetalArea('${area.id}', true)">Focar</button><button class="btn btn-primary btn-sm" onclick="gerarPlanoVegetalServicos('${area.id}')">PS/OS</button></div></td>
     </tr>`;
   }).join('');
   renderVegetalGroupSummary();
@@ -5752,6 +5791,50 @@ function setVegetalGroupFilter(groupName){
   VEG_FOCUS_GROUP = VEG_GROUP_FILTER;
   syncVegetalStatus(VEG_GROUP_FILTER ? `Filtro ativo: ${VEG_GROUP_FILTER}` : 'Filtro de grupo limpo');
   renderVegetalAreas();
+}
+
+function editSelectedVegetalArea(){
+  if(!VEG_SELECTED_AREA_ID){
+    toast('Selecione uma área no mapa para editar', 'warning');
+    return;
+  }
+  editVegetalArea(VEG_SELECTED_AREA_ID);
+}
+
+async function deleteVegetalArea(id){
+  if(soLeitura()) return;
+  const data = getAreasVegetal();
+  const idx = data.findIndex(item => item.id === id && item.ativa !== 0);
+  if(idx < 0){ toast('Área não encontrada', 'warning'); return; }
+  const nome = data[idx].nome || id;
+  if(!confirm(`Deseja deletar a área "${nome}"?`)) return;
+
+  let ok = false;
+  try{
+    const out = await vegFetchJSON(`/api/grama/areas/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ ativa: 0 }),
+    });
+    ok = !!out;
+  }catch(_err){
+    ok = false;
+  }
+
+  data[idx].ativa = 0;
+  saveAreasVegetal(data);
+  if(VEG_SELECTED_AREA_ID === id) VEG_SELECTED_AREA_ID = '';
+  syncVegetalSelectionLabel();
+  toast(ok ? 'Área deletada no núcleo' : 'Área deletada localmente', 'success');
+  renderVegetalAreas();
+}
+
+function deleteSelectedVegetalArea(){
+  if(!VEG_SELECTED_AREA_ID){
+    toast('Selecione uma área no mapa para deletar', 'warning');
+    return;
+  }
+  deleteVegetalArea(VEG_SELECTED_AREA_ID);
 }
 
 async function gerarPlanoVegetalServicos(areaId){
@@ -5936,35 +6019,28 @@ function openVegetalAreaPlanner(){
   syncVegetalStatus('Croqui ativo: clique no mapa para marcar os vértices');
 }
 
-    document.getElementById('veg-area-grupo').value = vegAreaGroupName(area) === 'Sem grupo' ? '' : vegAreaGroupName(area);
 function cancelVegetalAreaDraft(){
   closeModal(document.getElementById('modal-veg-area'));
   VEG_DRAW_MODE = false;
   VEG_DRAFT_POINTS = [];
   VEG_FOCUS_GROUP = '';
-    document.getElementById('veg-area-cor').value = area.cor_hex || vegDefaultAreaColor(area.flora);
-    document.getElementById('veg-area-opacidade').value = String(area.opacidade ?? 0.24);
-    document.getElementById('veg-area-visivel').checked = Number(area.visivel ?? 1) !== 0;
   if(VEG_AREA_MODAL_CONTEXT === 'new'){
     resetVegetalAreaForm();
   } else {
     VEG_AREA_MODAL_CONTEXT = '';
     renderVegetalMap();
-    document.getElementById('veg-area-grupo').value = '';
   }
 }
 
 function onVegetalMapClick(event){
   if(!VEG_DRAW_MODE || !window.L || !VEG_MAP) return;
-    document.getElementById('veg-area-cor').value = vegDefaultAreaColor('gramado');
-    document.getElementById('veg-area-opacidade').value = '0.24';
-    document.getElementById('veg-area-visivel').checked = true;
 }
 
 function editVegetalArea(id){
   const area = getAreasVegetal().find(item => item.id === id);
-  previewVegetalStyle();
   if(!area) return;
+  VEG_SELECTED_AREA_ID = area.id;
+  syncVegetalSelectionLabel();
   showVegetalTab('areas', document.querySelector('#page-vegetal .tab[data-vegtab="areas"]'));
   prepareVegetalAreaModal('edit', area);
   VEG_DRAFT_POINTS = vegAreaLatLngs(area);

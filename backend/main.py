@@ -11,7 +11,7 @@ from typing import Optional
 import httpx
 from fastapi import FastAPI, HTTPException, Header, Query
 from fastapi import Request, Response
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -271,6 +271,11 @@ async def _seed_colab_if_empty() -> None:
 @app.get("/")
 async def root():
     return FileResponse(os.path.join(_FRONTEND_DIR, "cmasm_erp.html"))
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return RedirectResponse(url="/assets/favicon.svg", status_code=307)
 
 
 @app.get("/{filename:path}.html")

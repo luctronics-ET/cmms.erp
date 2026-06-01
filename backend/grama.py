@@ -774,7 +774,7 @@ async def list_combustivel(
     if fim:
         sql += " AND date(cl.data) <= date(?)"
         params.append(fim)
-    sql += " ORDER BY cl.data DESC, cl.data_criacao DESC"
+    sql += " ORDER BY cl.data DESC, cl.id DESC"
     return await _get_db().fetch_all(sql, tuple(params))
 
 
