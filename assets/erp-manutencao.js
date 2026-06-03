@@ -14,20 +14,14 @@
     catsAvailable: [],          // derivado dos ativos carregados
     cache: { ativos: null, os: null, estoque: null, catalogo_servicos: null, planos_manutencao: null },
     activeTab: 'dashboard',
-    tabDirty: { dashboard: true, ativos: true, os: true, planos: true,
-                catalogo: true, estoque: true, calgantt: true, config: true, eam: true },
+    tabDirty: { dashboard: true, os: true, planos: true, catalogo: true },
   };
 
   const TAB_DEFS = [
-    { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-    { id: 'ativos',    icon: '📦', label: 'Ativos' },
-    { id: 'os',        icon: '🧰', label: 'OS' },
+    { id: 'dashboard', icon: '📊', label: 'Painel' },
+    { id: 'os',        icon: '🧰', label: 'Controle' },
     { id: 'planos',    icon: '⚙️', label: 'Planos' },
-    { id: 'catalogo',  icon: '📖', label: 'Catálogo' },
-    { id: 'estoque',   icon: '🗄️', label: 'Estoque' },
-    { id: 'calgantt',  icon: '📅', label: 'Cal+Gantt' },
-    { id: 'config',    icon: '📄', label: 'Configuração' },
-    { id: 'eam',       icon: '🏭', label: 'EAM' },
+    { id: 'catalogo',  icon: '📖', label: 'Catálogo de Serviços' },
   ];
 
   // ── persistência filtros ─────────────────────────────────────────────────
@@ -1625,16 +1619,32 @@
       window.saveOSManut(osManutData);
     }
 
+    const requisitosMateriais = (svc?.materiais || []).filter(mat => mat.obrigatorio).map(mat => ({
+      id: 'r-' + Math.random().toString(36).slice(2, 8),
+      descricao: `${mat.nome_livre} — ${mat.qtd} ${mat.unidade}`,
+      obrigatorio: true,
+      atendido: false,
+      tipo: 'material',
+    }));
+    const requisitosEquipe = (svc?.pessoal || []).filter(p => !p.opcional).map(p => ({
+      id: 'r-' + Math.random().toString(36).slice(2, 8),
+      descricao: `Equipe: ${p.qualificacao_codigo} (qtd ${p.qtd || 1})`,
+      obrigatorio: true,
+      atendido: false,
+      tipo: 'pessoal',
+    }));
+    const requisitosFerramentas = (svc?.ferramentas || []).filter(f => f.obrigatorio).map(f => ({
+      id: 'r-' + Math.random().toString(36).slice(2, 8),
+      descricao: `Ferramenta: ${f.nome} (${f.qtd || 1})`,
+      obrigatorio: true,
+      atendido: false,
+      tipo: 'ferramenta',
+    }));
+    const requisitos = [...requisitosMateriais, ...requisitosEquipe, ...requisitosFerramentas];
+
     // 2. Salva também em PS (Serviços — visibilidade cross-módulo, Fase 1)
     if (typeof window.getPS === 'function' && typeof window.savePS === 'function') {
       const psId = 'PS-' + Date.now().toString(36).toUpperCase();
-      const requisitos = (svc?.materiais || []).filter(mat => mat.obrigatorio).map(mat => ({
-        id: 'r-' + Math.random().toString(36).slice(2, 8),
-        descricao: `${mat.nome_livre} — ${mat.qtd} ${mat.unidade}`,
-        obrigatorio: true,
-        atendido: false,
-        tipo: 'material',
-      }));
       const ps = window.getPS();
       ps.push({
         id: psId,
@@ -1652,6 +1662,8 @@
         osPai: null,
         osFilhos: [],
         requisitos,
+        materiaisPrevistos: (svc?.materiais || []).map(m => ({ ...m })),
+        servico_catalogo_id: plano.servico_id,
         custoPlanejado: 0,
         custoReal: 0,
         origem: 'manutencao',
@@ -1667,6 +1679,81 @@
         ativo_id: ativoId || plano.ativo_id,
         data_abertura: abertura.slice(0, 10), modulo_origem: 'manutencao',
       });
+    }
+
+    // 3. Espelha em OS (Serviços) para visibilidade imediata no módulo Serviços
+    const servicosPayload = {
+      id: osId,
+      assunto: svc?.nome || plano.servico_id,
+      descricao: `Preventiva automática — ${ativo?.nome || ativoId || 'ativo não especificado'}\nOS Manutenção: ${osId} | Plano: ${plano.id}`,
+      status: 'aberta',
+      prioridade: 'normal',
+      prazo: '',
+      executor: plano.responsavel_pmoc || '',
+      ativo_id: ativoId || plano.ativo_id || '',
+      plano_id: plano.id,
+      servico_id: plano.servico_id,
+      servico_catalogo_id: plano.servico_id,
+      materiaisPrevistos: (svc?.materiais || []).map(m => ({ ...m })),
+      requisitos,
+      dataAbertura: abertura,
+      criadoPor: 'sistema (PMOC)',
+      origem: 'manutencao',
+      modulo_origem: 'manutencao',
+    };
+    let syncOk = false;
+    try {
+      if (typeof window.syncManutOSIntoServicos === 'function') {
+        window.syncManutOSIntoServicos(servicosPayload);
+        syncOk = true;
+      }
+    } catch (_err) {
+      syncOk = false;
+    }
+    // Fallback defensivo: grava direto no store de OS caso a ponte de sincronização falhe.
+    if (!syncOk && typeof window.getOS === 'function' && typeof window.saveOS === 'function') {
+      const osData = window.getOS();
+      const exists = osData.some(o => o.id === osId);
+      if (!exists) {
+        osData.push({
+          id: osId,
+          solicitante: 'Sistema',
+          solicitanteId: '',
+          executorOrg: 'CMASM-10',
+          destino: 'CMASM-10',
+          assunto: servicosPayload.assunto,
+          descricao: servicosPayload.descricao,
+          prioridade: servicosPayload.prioridade,
+          prazo: servicosPayload.prazo,
+          dataAbertura: servicosPayload.dataAbertura,
+          status: 'autorizada',
+          criadoPor: servicosPayload.criadoPor,
+          autorizadoPor: servicosPayload.criadoPor,
+          dataAutorizacao: new Date().toISOString(),
+          avaliacaoAutorizador: null,
+          avaliacaoSolicitante: null,
+          executor: servicosPayload.executor,
+          osPai: null,
+          osFilhos: [],
+          requisitos: servicosPayload.requisitos || [],
+          materiaisPrevistos: servicosPayload.materiaisPrevistos || [],
+          servico_catalogo_id: servicosPayload.servico_catalogo_id || '',
+          custoPlanejado: 0,
+          custoReal: 0,
+          origem: 'manutencao',
+          modulo_origem: 'manutencao',
+          ativo_id: servicosPayload.ativo_id,
+          plano_id: servicosPayload.plano_id,
+          servico_id: servicosPayload.servico_id,
+        });
+        window.saveOS(osData);
+      }
+    }
+    if (typeof window.renderKpiServicos === 'function') window.renderKpiServicos();
+    if (typeof window.renderOS === 'function') window.renderOS();
+    if (typeof window.renderKanban === 'function') window.renderKanban();
+    if (typeof window.criarSRMateriaisDaOS === 'function' && Array.isArray(svc?.materiais) && svc.materiais.length) {
+      window.criarSRMateriaisDaOS(osId, svc.materiais, { origem: 'plano_manutencao', solicitante: 'Sistema' });
     }
 
     toast(`OS preventiva ${osId} criada (Manutenção + Serviços)`, 'green');

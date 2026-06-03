@@ -519,10 +519,6 @@ table{border-collapse:collapse;width:100%}
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
       Manutenção PMOC
     </div>
-    <div class="ni" data-page="calibracao" onclick="showPage('calibracao',this)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-      Calibração
-    </div>
     <div class="ni" data-page="vegetal" onclick="showPage('vegetal',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V12M12 12C12 7 7 3 2 3c0 5 4 9 10 9zM12 12C12 7 17 3 22 3c0 5-4 9-10 9z"/></svg>
       Controle Vegetal
@@ -530,6 +526,10 @@ table{border-collapse:collapse;width:100%}
     <div class="ni" data-page="predial" onclick="showPage('predial',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="1"/><path d="M9 3v18M15 9h4M15 12h4M15 15h4M5 9h2M5 12h2M5 15h2"/></svg>
       Predial
+    </div>
+    <div class="ni" data-page="ativos" onclick="showPage('ativos',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Ativos
     </div>
     <div class="ni" data-page="estoque" onclick="showPage('estoque',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -550,6 +550,13 @@ table{border-collapse:collapse;width:100%}
         Elétrica
       </span>
       <span class="ni-ext-tag">integração</span>
+    </div>
+    <div class="ni ni-ext" onclick="openModulo('xcalibracao')" title="xCalibracao — Sistema Externo (porta 8004)">
+      <span class="ni-ext-ico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Calibração
+      </span>
+      <span class="ni-ext-tag">↗ ext</span>
     </div>
     <div class="ni ni-ext" onclick="openModulo('xpaiol')" title="xPaiol — Controle de Paióis (porta 8003)">
       <span class="ni-ext-ico">
@@ -675,7 +682,6 @@ table{border-collapse:collapse;width:100%}
     <div class="kpi kpi-warn"><div class="kpi-label">Agendamentos</div><div class="kpi-value" id="kpi-agenda">0</div><div class="kpi-sub">pendentes</div></div>
     <div class="kpi kpi-danger"><div class="kpi-label">Manutenção</div><div class="kpi-value" id="kpi-manut">0</div><div class="kpi-sub">ativos c/ pendência</div></div>
     <div class="kpi kpi-accent"><div class="kpi-label">Frota Ativa</div><div class="kpi-value" id="kpi-frota">0</div><div class="kpi-sub">veículos/embarcações</div></div>
-    <div class="kpi kpi-ok"><div class="kpi-label">Calibrações</div><div class="kpi-value" id="kpi-calib">0</div><div class="kpi-sub">equipamentos</div></div>
   </div>
 
   <div class="portal-main-grid">
@@ -695,9 +701,9 @@ table{border-collapse:collapse;width:100%}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
             <div class="qa-btn-label">OS PMOC</div>
           </div>
-          <div class="qa-btn" onclick="showPage('calibracao');openModal('modal-nova-calib')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <div class="qa-btn-label">Calibração</div>
+          <div class="qa-btn" onclick="showPage('ativos');openNovoAtivoModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            <div class="qa-btn-label">Novo Ativo</div>
           </div>
         </div>
       </div>
@@ -740,6 +746,10 @@ table{border-collapse:collapse;width:100%}
       <div class="sc-header"><div><div class="sc-name">Manutenção (PMOC)</div><div class="sc-code">CMASM-ERP/MANUT</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Ativos gerenciados</span><span id="mod-manut-count">0</span></div></div>
     </div>
+    <div class="status-card module-tile" onclick="showPage('ativos')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Ativos</div><div class="sc-code">CMASM-ERP/ATV</div></div><span class="badge badge-ok">● Ativo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Cadastro central</span><span class="sc-row-value">Inventário operacional</span></div></div>
+    </div>
     <div class="status-card module-tile" onclick="showPage('estoque')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Estoque (MRP)</div><div class="sc-code">CMASM-ERP/STQ</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Almoxarifado</span><span id="mod-estoque-count">0 itens</span></div></div>
@@ -755,10 +765,6 @@ table{border-collapse:collapse;width:100%}
     <div class="status-card module-tile" onclick="showPage('paiois')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Paiois</div><div class="sc-code">CMASM-ERP/PAI</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Controle</span><span class="sc-row-value">Material e munições</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('calibracao')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Calibração</div><div class="sc-code">CMASM-ERP/CAL</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Equipamentos</span><span id="mod-calib-count">0 cadastrados</span></div></div>
     </div>
     <div class="status-card module-tile" onclick="showPage('colab-home')" style="cursor:pointer">
       <div class="sc-header"><div><div class="sc-name">Portal do Colaborador</div><div class="sc-code">CMASM-ERP/COLAB</div></div><span class="badge badge-ok">● Ativo</span></div>
@@ -784,6 +790,10 @@ table{border-collapse:collapse;width:100%}
     <div class="status-card module-tile" onclick="openModulo('xpaiol')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
       <div class="sc-header"><div><div class="sc-name">Paiois</div><div class="sc-code">:8003 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xpaiol">○ Externo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Monitoramento de paiois</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xpaiol')">Abrir ↗</button></div></div>
+    </div>
+    <div class="status-card module-tile" onclick="openModulo('xcalibracao')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
+      <div class="sc-header"><div><div class="sc-name">Calibração</div><div class="sc-code">:8004 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xcalibracao">○ Externo</span></div>
+      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Gestão metrológica externa</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xcalibracao')">Abrir ↗</button></div></div>
     </div>
     <div class="status-card module-tile" onclick="toast('Módulo CFTV em integração','warning')" style="cursor:pointer;border-color:rgba(245,158,11,.25)">
       <div class="sc-header"><div><div class="sc-name">CFTV</div><div class="sc-code">Integração em progresso</div></div><span class="badge badge-warn">◐ Integração</span></div>
@@ -1052,6 +1062,23 @@ table{border-collapse:collapse;width:100%}
 <div id="page-servicos" class="page">
   <div class="svc-display-topbar">
     <div class="svc-display-title" id="svc-display-title">Serviços · cmasm.erp</div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-body" style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text1)">Fluxo Integrado OS → SR → Estoque → Execução</div>
+        <div class="text-xs text-muted">Use o catálogo central para puxar serviço padronizado, requisitos, equipe, materiais e custo estimado na criação da OS.</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text2)">Kanban Operacional</div>
+        <div class="text-xs text-muted">Acompanhe bloqueios por requisito e gargalos por coluna para agir antes do atraso.</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--text2)">Calendário e Planejamento</div>
+        <div class="text-xs text-muted">Planeje janela de execução e recursos juntos para reduzir retrabalho e faltas de material.</div>
+      </div>
+    </div>
   </div>
 
   <!-- KPI bar -->
@@ -1359,43 +1386,6 @@ table{border-collapse:collapse;width:100%}
   <div id="manut-root"></div>
 </div>
 
-<!-- ════ CALIBRAÇÃO ═══════════════════════════════════════════ -->
-<div id="page-calibracao" class="page">
-  <div class="page-hdr">
-    <div class="page-hdr-left"><h1>Calibração</h1><p>Controle de calibração de instrumentos e equipamentos</p></div>
-    <div class="page-hdr-right">
-      <button class="btn btn-primary" onclick="openModal('modal-nova-calib')">+ Novo Registro</button>
-    </div>
-  </div>
-
-  <!-- KPIs calibração -->
-  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-    <div class="kpi kpi-ok"><div class="kpi-label">Dentro do Prazo</div><div class="kpi-value" id="calib-kpi-ok">0</div></div>
-    <div class="kpi kpi-warn"><div class="kpi-label">A Vencer (30d)</div><div class="kpi-value" id="calib-kpi-warn">0</div></div>
-    <div class="kpi kpi-danger"><div class="kpi-label">Vencidos</div><div class="kpi-value" id="calib-kpi-danger">0</div></div>
-    <div class="kpi kpi-accent"><div class="kpi-label">Total Equip.</div><div class="kpi-value" id="calib-kpi-total">0</div></div>
-  </div>
-
-  <div class="table-wrap">
-    <div class="table-toolbar">
-      <div class="search-box">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="calib-search" placeholder="Buscar equipamento, tag..." oninput="renderCalib()">
-      </div>
-      <select id="calib-filter" onchange="renderCalib()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
-        <option value="">Todos</option>
-        <option value="ok">Dentro do Prazo</option>
-        <option value="warn">A Vencer</option>
-        <option value="danger">Vencido</option>
-      </select>
-    </div>
-    <table class="tbl">
-      <thead><tr><th>Tag</th><th>Instrumento</th><th>Fabricante</th><th>Nº Série</th><th>Último</th><th>Próximo</th><th>Lab.</th><th>Status</th><th>Ações</th></tr></thead>
-      <tbody id="calib-body"><tr><td colspan="9" class="tbl-empty">Nenhum equipamento cadastrado</td></tr></tbody>
-    </table>
-  </div>
-</div>
-
 <!-- ── Modal Movimentação de Paiol ────────────────────────── -->
 <div id="modal-mov-paiol" class="modal-backdrop" onclick="if(event.target===this)closeModal(this)">
   <div class="modal modal-lg">
@@ -1497,6 +1487,35 @@ table{border-collapse:collapse;width:100%}
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ════ ATIVOS ═══════════════════════════════════════════════ -->
+<div id="page-ativos" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Ativos</h1><p>Cadastro e situação dos ativos da organização</p></div>
+    <div class="page-hdr-right">
+      <button class="btn btn-primary" onclick="openNovoAtivoModal()">+ Ativo</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <div class="search-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="ativo-search" placeholder="Buscar ativo por código ou nome..." oninput="renderAtivos()">
+      </div>
+      <select id="ativo-filter-status" onchange="renderAtivos()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
+        <option value="">Todos os status</option>
+        <option value="P">Pronto (P)</option>
+        <option value="OR">Op. c/ Restrição (OR)</option>
+        <option value="INOP">Inoperante (INOP)</option>
+        <option value="MANUT">Em Manutenção</option>
+      </select>
+    </div>
+    <table class="tbl">
+      <thead><tr><th>Código</th><th>Denominação</th><th>Categoria</th><th>Fabricante/Modelo</th><th>Uso Atual</th><th>Última Manutenção</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="ativos-body"><tr><td colspan="8" class="tbl-empty">Nenhum ativo</td></tr></tbody>
+    </table>
   </div>
 </div>
 
@@ -1913,6 +1932,17 @@ table{border-collapse:collapse;width:100%}
           <select id="ps-executor-org"></select>
           <div class="text-xs text-muted">Padrão: Dpto. de Infraestrutura (CMASM-10)</div>
         </div>
+        <div class="form-group"><label>Categoria do Serviço</label>
+          <select id="ps-servico-categoria" onchange="onPSServicoCategoriaChange()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+        <div class="form-group form-full"><label>Serviço Padronizado (Catálogo Central)</label>
+          <select id="ps-servico-id" onchange="onPSServicoChange()">
+            <option value="">— Selecionar serviço —</option>
+          </select>
+          <div class="text-xs text-muted">Selecionar um serviço aplica requisitos, materiais, equipe mínima e custo estimado.</div>
+        </div>
         <div class="form-group form-full"><label>Serviço</label><input type="text" id="ps-assunto" placeholder="Descreva brevemente o serviço solicitado"></div>
         <div class="form-group form-full"><label>Descrição Detalhada</label><textarea id="ps-descricao" rows="3" placeholder="Detalhes, observações..."></textarea></div>
         <div class="form-group"><label>Prioridade</label>
@@ -1925,6 +1955,15 @@ table{border-collapse:collapse;width:100%}
         <div class="form-group"><label>Data Necessária</label><input type="date" id="ps-data-necessaria"></div>
         <div class="form-group"><label>Custo Planejado (R$) <span class="text-muted" style="font-weight:400">opcional</span></label><input type="number" id="ps-custo-planejado" min="0" step="0.01" placeholder="0,00" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text1);font-size:13px;width:100%"></div>
         <div class="form-group"><label>Sub-OS de (OS Pai) <span class="text-muted" style="font-weight:400">opcional</span></label><select id="ps-os-pai" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text1);font-size:13px;width:100%"><option value="">— Nenhuma (OS independente) —</option></select></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-body" style="padding:10px 12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div style="font-size:13px;font-weight:700;color:var(--text2)">Materiais previstos e verificação de estoque</div>
+            <span id="ps-materiais-resumo" class="text-xs text-muted">Nenhum serviço selecionado</span>
+          </div>
+          <div id="ps-materiais-check" style="margin-top:8px"></div>
+        </div>
       </div>
       <div style="margin-top:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -2746,9 +2785,8 @@ function initApp(){
   hydrateAtivosFromBackend().then(()=>{
     initDashboard();
     const active = document.querySelector('.page.active');
-    if(active?.id==='page-manutencao'){
+    if(active?.id==='page-ativos'){
       renderAtivos();
-      renderPreventiva();
     }
   });
   // Lazy rendering: only the active page renders on boot.
@@ -2847,7 +2885,7 @@ const PAGE_TITLES = {
   servicos:'Serviços · cmasm.erp',
   transportes:'Transportes · cmasm.erp',
   manutencao:'Manutenção · cmasm.erp',
-  calibracao:'Calibração · cmasm.erp',
+  ativos:'Ativos · cmasm.erp',
   estoque:'Estoque · cmasm.erp',
   vegetal:'Controle Vegetal · cmasm.erp',
   predial:'Predial · cmasm.erp',
@@ -2887,7 +2925,7 @@ function showPage(page, el){
     organograma: ()=>renderOrgTree(),
     servicos: ()=>{renderKpiServicos();renderPS();renderOS();renderKanban();renderSR();},
     transportes: ()=>{renderFrotaKPIs();renderAgenda();renderFrota(_frotaFilter);},
-    calibracao: ()=>{renderCalib();renderCalibKPIs();},
+    ativos: ()=>renderAtivos(),
     estoque: ()=>{renderEstoque();renderEstoqueKPIs();renderMovimentacoes();renderEstoqueAlertas();renderEstoqueValidades();},
     vegetal: ()=>{renderVegetalAreas();renderVegetalMaq();renderVegetalAtiv();renderVegetalOS();loadVegetalData();},
     predial: ()=>{renderEdificacoes();renderReservas();renderOcorrencias();},
@@ -2987,7 +3025,12 @@ function openModal(id){
     document.getElementById('ps-solicitante').value=SESSION?SESSION.nome:'';
     const today=new Date();today.setDate(today.getDate()+3);
     document.getElementById('ps-data-necessaria').value=today.toISOString().split('T')[0];
+    const catSel=document.getElementById('ps-servico-categoria');if(catSel)catSel.value='';
+    const svcSel=document.getElementById('ps-servico-id');if(svcSel)svcSel.value='';
+    const assuntoEl=document.getElementById('ps-assunto');if(assuntoEl)assuntoEl.value='';
+    const descEl=document.getElementById('ps-descricao');if(descEl)descEl.value='';
     populateExecutorOrgSelect('ps-executor-org','CMASM-10');
+    initNovaOSServicoCatalogo();
     const selPai=document.getElementById('ps-os-pai');
     if(selPai){
       const osAbertas=getOS().filter(o=>!['concluida','cancelada','reprovada','arquivada'].includes(o.status));
@@ -3091,14 +3134,9 @@ function initDashboard(){
   const ps=DB.get('ps',[]);const os=DB.get('os',[]);
   const frota=getFrota();
   const ativos=getAtivos();
-  const calib=DB.get('calib',SEED_CALIB);
   const agenda=getAgenda();
   const osManut=DB.get('os_manut',[]);
   const colabTickets=getColabTickets();
-  const now=new Date();
-  // Calibrações vencidas
-  const calibVencidas=calib.filter(c=>{if(!c.proximo)return false;return new Date(c.proximo)<now;}).length;
-  const calibAVencer=calib.filter(c=>{if(!c.proximo)return false;const d=new Date(c.proximo);return d>=now&&d<new Date(now.getTime()+30*86400000);}).length;
   // KPIs
   const osAbertas=os.filter(o=>o.status!=='concluida'&&o.status!=='cancelada').length;
   const agPendentes=agenda.filter(a=>a.status==='agendada'||a.status==='em_andamento').length;
@@ -3109,10 +3147,8 @@ function initDashboard(){
   setText('kpi-agenda',agPendentes);
   setText('kpi-manut',ativosProblema);
   setText('kpi-frota',`${frotaPronta}/${frota.length}`);
-  setText('kpi-calib',calibVencidas>0?`${calibVencidas} venc.`:calib.length);
   setText('mod-frota-count',`${frotaPronta} prontos / ${frota.length} total`);
   setText('mod-manut-count',`${ativos.length} ativos · ${osManut.filter(o=>o.status!=='concluida').length} OS ativas`);
-  setText('mod-calib-count',`${calibVencidas} vencidas · ${calibAVencer} a vencer`);
   setText('mod-colab-tickets',colabTickets.filter(t=>!['resolved','closed'].includes(t.status)).length);
   const announcements = getColabAnnouncements().slice().sort((a,b)=>String(b.created_date).localeCompare(String(a.created_date))).slice(0,4);
   const calendar = getColabEvents().slice().sort((a,b)=>String(a.event_date).localeCompare(String(b.event_date))).slice(0,7);
@@ -3139,14 +3175,11 @@ function initDashboard(){
     const osPendAut = os.filter(o=>o.status==='pendente_autorizacao').length;
     const osPendAvalAut = os.filter(o=>o.status==='concluida' && !o.avaliacaoAutorizador).length;
     const osPendAvalSol = os.filter(o=>o.status==='concluida' && o.avaliacaoAutorizador?.resultado==='aprovado' && !o.avaliacaoSolicitante).length;
-    const alertas=calibVencidas+ativosProblema+osPendAut+osPendAvalAut+osPendAvalSol;
+    const alertas=ativosProblema+osPendAut+osPendAvalAut+osPendAvalSol;
     if(alertas>0){badge.className='topbar-badge warn';badge.textContent=`⚠ ${alertas} alerta${alertas>1?'s':''}`;}
     else{badge.className='topbar-badge ok';badge.textContent='● Sistema OK';}
   }
   // KPI color update
-  const elKpiCalib=document.getElementById('kpi-calib');
-  if(elKpiCalib&&calibVencidas>0)elKpiCalib.style.color='var(--danger)';
-  else if(elKpiCalib)elKpiCalib.style.color='';
   const elKpiManut=document.getElementById('kpi-manut');
   if(elKpiManut&&ativosProblema>0)elKpiManut.style.color='var(--warn)';
   else if(elKpiManut)elKpiManut.style.color='';
@@ -3928,12 +3961,328 @@ function getPS(){ return DB.get('ps',[]); }
 function savePS(d){ DB.set('ps',d); }
 function getOS(){ return DB.get('os',[]); }
 function saveOS(d){ DB.set('os',d); }
+const _manutBackendSyncInFlight = new Map();
+
+function _mapServicoStatusToBackend(status=''){
+  const s=String(status||'').toLowerCase();
+  if(s==='autorizada' || s==='pendente_autorizacao') return 'aberta';
+  if(s==='em_andamento') return 'em_andamento';
+  if(s==='aguardando') return 'aguardando';
+  if(s==='concluida') return 'concluida';
+  if(s==='cancelada') return 'cancelada';
+  return 'aberta';
+}
+
+function _mapServicoPrioridadeToBackend(prioridade=''){
+  const p=String(prioridade||'').toLowerCase();
+  if(p==='alta' || p==='urgente') return 'alta';
+  if(p==='baixa') return 'baixa';
+  return 'media';
+}
+
+function _persistManutOSInBackend(localId){
+  if(!localId || _manutBackendSyncInFlight.has(localId)) return;
+  const runner=(async()=>{
+    const snapshot=getOS();
+    const row=snapshot.find(o=>o.id===localId);
+    if(!row || row.origem!=='manutencao') return;
+
+    const desiredStatus=_mapServicoStatusToBackend(row.status);
+    let backendId=row.backend_os_id || '';
+
+    if(!backendId){
+      const created=await colabFetchJSON('/api/os', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          titulo: row.assunto || row.descricao || `OS ${row.id}`,
+          descricao: row.descricao || row.assunto || '',
+          tipo: row.tipo || 'preventiva',
+          prioridade: _mapServicoPrioridadeToBackend(row.prioridade),
+          modulo_origem: 'manutencao',
+          observacoes: `OS local: ${row.id}`,
+        })
+      });
+      if(!created || !created.id) return;
+      backendId=created.id;
+      const latest=getOS();
+      const idx=latest.findIndex(o=>o.id===localId);
+      if(idx>=0){
+        latest[idx]={
+          ...latest[idx],
+          backend_os_id: created.id,
+          backend_os_codigo: created.codigo || latest[idx].backend_os_codigo || '',
+          backend_os_last_status: 'aberta',
+        };
+        saveOS(latest);
+      }
+    }
+
+    const current=getOS().find(o=>o.id===localId);
+    if(!current || !backendId) return;
+    if(current.backend_os_last_status===desiredStatus) return;
+
+    const statusRes=await colabFetchJSON(`/api/os/${encodeURIComponent(backendId)}/status`, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ para_status: desiredStatus, obs: 'Sync automático da manutenção' })
+    });
+    if(statusRes){
+      const latest=getOS();
+      const idx=latest.findIndex(o=>o.id===localId);
+      if(idx>=0){
+        latest[idx]={...latest[idx], backend_os_last_status: desiredStatus};
+        saveOS(latest);
+      }
+    }
+  })().finally(()=>_manutBackendSyncInFlight.delete(localId));
+
+  _manutBackendSyncInFlight.set(localId, runner);
+}
+
+function syncManutOSIntoServicos(payload={}){
+  const data=getOS();
+  const normalizedStatus={aberta:'autorizada',em_andamento:'em_andamento',concluida:'concluida',cancelada:'cancelada'}[payload.status] || payload.status || 'autorizada';
+  const id=payload.id || _nextId('OS',data,getOSArquivo());
+  const idx=data.findIndex(o=>o.id===id);
+  const current=idx>=0?data[idx]:{};
+  const next={
+    ...current,
+    id,
+    solicitante: payload.solicitante || current.solicitante || SESSION?.nome || 'Sistema',
+    solicitanteId: payload.solicitanteId || current.solicitanteId || SESSION?.id || '',
+    executorOrg: payload.executorOrg || current.executorOrg || 'CMASM-10',
+    destino: payload.destino || current.destino || payload.executorOrg || current.executorOrg || 'CMASM-10',
+    assunto: payload.assunto || current.assunto || payload.descricao || 'OS manutenção',
+    descricao: payload.descricao ?? current.descricao ?? '',
+    prioridade: payload.prioridade || current.prioridade || 'normal',
+    prazo: payload.prazo ?? current.prazo ?? '',
+    dataAbertura: payload.dataAbertura || current.dataAbertura || new Date().toISOString(),
+    status: normalizedStatus,
+    criadoPor: payload.criadoPor || current.criadoPor || SESSION?.nome || 'Sistema',
+    autorizadoPor: payload.autorizadoPor || current.autorizadoPor || (normalizedStatus==='autorizada'? (SESSION?.nome || 'Sistema') : ''),
+    dataAutorizacao: payload.dataAutorizacao || current.dataAutorizacao || (normalizedStatus==='autorizada'? new Date().toISOString() : ''),
+    avaliacaoAutorizador: current.avaliacaoAutorizador || null,
+    avaliacaoSolicitante: current.avaliacaoSolicitante || null,
+    executor: payload.executor ?? current.executor ?? '',
+    osPai: current.osPai || null,
+    osFilhos: current.osFilhos || [],
+    requisitos: Array.isArray(payload.requisitos)?payload.requisitos:(current.requisitos||[]),
+    custoPlanejado: Number(payload.custoPlanejado ?? current.custoPlanejado ?? 0) || 0,
+    custoReal: Number(payload.custoReal ?? current.custoReal ?? 0) || 0,
+    origem: payload.origem || current.origem || 'manutencao',
+    modulo_origem: payload.modulo_origem || current.modulo_origem || 'manutencao',
+    ativo_id: payload.ativo_id || current.ativo_id || '',
+    plano_id: payload.plano_id || current.plano_id || '',
+    servico_id: payload.servico_id || current.servico_id || '',
+    dataConclusao: normalizedStatus==='concluida' ? (payload.dataConclusao || current.dataConclusao || new Date().toISOString()) : (current.dataConclusao || ''),
+  };
+  if(idx>=0) data[idx]=next;
+  else data.push(next);
+  saveOS(data);
+  _persistManutOSInBackend(next.id);
+  return next;
+}
 function getOSArquivo(){ return DB.get('os_arquivo',[]); }
 function saveOSArquivo(d){ DB.set('os_arquivo',d); }
 function getSR(){ return DB.get('sr',[]); }
 function saveSR(d){ DB.set('sr',d); }
 function getSRArquivo(){ return DB.get('sr_arquivo',[]); }
 function saveSRArquivo(d){ DB.set('sr_arquivo',d); }
+
+function _textKey(v=''){
+  return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+
+function getCatalogoServicosCentral(){
+  const base=Array.isArray(window.ERP_MANUT_MOCKS?.catalogo_servicos)?window.ERP_MANUT_MOCKS.catalogo_servicos:[];
+  const local=DB.get('catalogo_servicos',[]);
+  const byId=new Map();
+  [...base,...local].forEach(s=>{ if(s?.id&&!byId.has(s.id)) byId.set(s.id,s); });
+  return [...byId.values()].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||'')));
+}
+
+function _servicoCategoriaKey(servico={}){
+  const cat=Array.isArray(servico?.aplicavel_a?.categorias)&&servico.aplicavel_a.categorias.length?servico.aplicavel_a.categorias[0]:'geral';
+  return String(cat||'geral');
+}
+
+function _servicoCategoriaLabel(key='geral'){
+  const m={climatizacao:'Climatização',eletrica:'Elétrica',frota_terrestre:'Frota Terrestre',frota_naval:'Frota Naval',maquinas_corte:'Máquinas de Corte',predial:'Predial',instrumentos:'Instrumentos',geral:'Geral'};
+  return m[key]||String(key||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+function _findEstoqueForMaterial(material={}){
+  const estoque=getEstoque();
+  const alvoNome=_textKey(material.nome_livre||material.nome||'');
+  const alvoCodigo=_textKey(material.codigo||'');
+  if(alvoCodigo){
+    const byCode=estoque.find(e=>_textKey(e.codigo||e.id||'')===alvoCodigo);
+    if(byCode) return byCode;
+  }
+  if(!alvoNome) return null;
+  return estoque.find(e=>{
+    const desc=_textKey(e.descricao||'');
+    const cod=_textKey(e.codigo||'');
+    return desc.includes(alvoNome) || alvoNome.includes(desc) || cod.includes(alvoNome);
+  }) || null;
+}
+
+function _mapServicoMateriaisParaOS(servico={}){
+  const mats=Array.isArray(servico?.materiais)?servico.materiais:[];
+  return mats.map((mat,idx)=>{
+    const qtd=Number(mat.qtd||mat.quantidade||1)||1;
+    const item=_findEstoqueForMaterial(mat);
+    const saldo=Number(item?.saldo||0);
+    return {
+      id:`mat-${idx}-${Date.now()}`,
+      codigo: mat.codigo || item?.codigo || '',
+      nome_livre: mat.nome_livre || mat.nome || item?.descricao || 'Material',
+      qtd,
+      unidade: mat.unidade || item?.unidade || 'un',
+      obrigatorio: mat.obrigatorio!==0,
+      itemEstoqueId: item?.id || '',
+      saldoDisponivel: saldo,
+      disponivel: item ? saldo>=qtd : false,
+    };
+  });
+}
+
+function _calcServicoCustoPlanejado(materiais=[]){
+  return materiais.reduce((sum,mat)=>{
+    const item=mat.itemEstoqueId?getEstoque().find(e=>e.id===mat.itemEstoqueId):null;
+    const preco=Number(item?.preco||item?.preco_unitario||0);
+    return sum + (Number(mat.qtd||0)*preco);
+  },0);
+}
+
+function _gerarRequisitosServico(servico={}){
+  const out=[];
+  const mats=_mapServicoMateriaisParaOS(servico);
+  mats.filter(m=>m.obrigatorio).forEach(mat=>{
+    out.push({ id:'req-mat-'+Math.random().toString(36).slice(2,8), descricao:`Material: ${mat.nome_livre} — ${mat.qtd} ${mat.unidade}`, obrigatorio:true, atendido:false, tipo:'material' });
+  });
+  (Array.isArray(servico?.ferramentas)?servico.ferramentas:[]).filter(f=>f?.obrigatorio).forEach(f=>{
+    out.push({ id:'req-fer-'+Math.random().toString(36).slice(2,8), descricao:`Ferramenta: ${f.nome} (${f.qtd||1})`, obrigatorio:true, atendido:false, tipo:'ferramenta' });
+  });
+  (Array.isArray(servico?.pessoal)?servico.pessoal:[]).filter(p=>!p?.opcional).forEach(p=>{
+    out.push({ id:'req-pes-'+Math.random().toString(36).slice(2,8), descricao:`Equipe: ${p.qualificacao_codigo} (qtd ${p.qtd||1})`, obrigatorio:true, atendido:false, tipo:'pessoal' });
+  });
+  return out;
+}
+
+function _mergeRequisitos(base=[],extra=[]){
+  const seen=new Set();
+  const all=[...(Array.isArray(base)?base:[]),...(Array.isArray(extra)?extra:[])];
+  return all.filter(r=>{
+    const key=_textKey(r?.descricao||'');
+    if(!key||seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function _renderPSMateriaisPreview(servico=null){
+  const body=document.getElementById('ps-materiais-check');
+  const resumo=document.getElementById('ps-materiais-resumo');
+  if(!body||!resumo){ return []; }
+  if(!servico){
+    resumo.textContent='Nenhum serviço selecionado';
+    body.innerHTML='<div class="text-xs text-muted" style="padding:6px 0">Selecione um serviço do catálogo para visualizar materiais e saldo em estoque.</div>';
+    return [];
+  }
+  const mats=_mapServicoMateriaisParaOS(servico);
+  if(!mats.length){
+    resumo.textContent='Sem materiais previstos';
+    body.innerHTML='<div class="text-xs text-muted" style="padding:6px 0">Este serviço não exige materiais cadastrados.</div>';
+    return mats;
+  }
+  const ok=mats.filter(m=>m.disponivel).length;
+  resumo.textContent=`${mats.length} item(ns) previsto(s) · ${ok} com saldo suficiente`;
+  body.innerHTML=`<div style="display:grid;gap:6px">${mats.map(m=>`<div style="display:grid;grid-template-columns:1.4fr auto auto auto;gap:8px;align-items:center;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)"><span style="font-size:12px;color:var(--text1)">${m.nome_livre}</span><span class="text-xs text-muted">${m.qtd} ${m.unidade}</span><span class="text-xs text-muted">saldo: ${m.saldoDisponivel} ${m.unidade}</span><span class="badge ${m.disponivel?'badge-ok':'badge-warn'}">${m.disponivel?'OK':'Sem saldo'}</span></div>`).join('')}</div>`;
+  return mats;
+}
+
+function onPSServicoCategoriaChange(){
+  const cat=(document.getElementById('ps-servico-categoria')||{}).value||'';
+  const sel=document.getElementById('ps-servico-id');
+  if(!sel) return;
+  const rows=getCatalogoServicosCentral().filter(s=>!cat||_servicoCategoriaKey(s)===cat);
+  sel.innerHTML='<option value="">— Selecionar serviço —</option>'+rows.map(s=>`<option value="${s.id}">${_servicoCategoriaLabel(_servicoCategoriaKey(s))} · ${s.nome}</option>`).join('');
+  _renderPSMateriaisPreview(null);
+}
+
+function onPSServicoChange(){
+  const sid=(document.getElementById('ps-servico-id')||{}).value||'';
+  const svc=getCatalogoServicosCentral().find(s=>s.id===sid);
+  if(!svc){ _renderPSMateriaisPreview(null); return; }
+  const assunto=document.getElementById('ps-assunto');
+  const descricao=document.getElementById('ps-descricao');
+  if(assunto) assunto.value=svc.nome||assunto.value||'';
+  if(descricao && !String(descricao.value||'').trim()) descricao.value=svc.descricao||'';
+  const mats=_renderPSMateriaisPreview(svc);
+  const custoInput=document.getElementById('ps-custo-planejado');
+  if(custoInput){
+    const custo=_calcServicoCustoPlanejado(mats);
+    if(custo>0) custoInput.value=String(Number(custo.toFixed(2)));
+  }
+  const listEl=document.getElementById('ps-requisitos-list');
+  if(listEl){
+    listEl.innerHTML='';
+    _gerarRequisitosServico(svc).forEach(req=>{
+      const row=document.createElement('div');
+      row.className='req-row';
+      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px';
+      row.innerHTML=`<input type="text" class="req-desc" value="${String(req.descricao||'').replace(/\"/g,'&quot;')}" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text1);font-size:13px"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);white-space:nowrap"><input type="checkbox" class="req-obrig" ${req.obrigatorio?'checked':''} style="accent-color:var(--acc)"> Obrigatório</label><button class="btn-act" title="Remover" onclick="this.closest('.req-row').remove()">✕</button>`;
+      listEl.appendChild(row);
+    });
+  }
+}
+
+function initNovaOSServicoCatalogo(){
+  const catSel=document.getElementById('ps-servico-categoria');
+  if(!catSel) return;
+  const rows=getCatalogoServicosCentral();
+  const cats=[...new Set(rows.map(_servicoCategoriaKey))];
+  catSel.innerHTML='<option value="">Todas</option>'+cats.map(c=>`<option value="${c}">${_servicoCategoriaLabel(c)}</option>`).join('');
+  catSel.value='';
+  onPSServicoCategoriaChange();
+}
+
+function criarSRMateriaisDaOS(osId,materiais=[],opts={}){
+  const mats=Array.isArray(materiais)?materiais:[];
+  if(!mats.length) return { criadas:0, insuficientes:0 };
+  const srData=getSR();
+  let insuficientes=0;
+  mats.forEach(mat=>{
+    const qtd=Number(mat.qtd||mat.quantidade||0)||0;
+    if(!(qtd>0)) return;
+    const estoqueItem=mat.itemEstoqueId?getEstoque().find(e=>e.id===mat.itemEstoqueId):_findEstoqueForMaterial(mat);
+    const saldo=Number(estoqueItem?.saldo||0);
+    const disponivel=estoqueItem?saldo>=qtd:false;
+    if(!disponivel) insuficientes+=1;
+    srData.push({
+      id:_nextId('SR',srData,getSRArquivo()),
+      osId,
+      tipo:'material',
+      status:'pendente',
+      solicitante:opts.solicitante||SESSION?.nome||'Sistema',
+      lotacao:SESSION?.lotacao||'',
+      dataCriacao:new Date().toISOString(),
+      itemId:estoqueItem?.id||'',
+      itemDesc:mat.nome_livre||mat.nome||estoqueItem?.descricao||'Material',
+      qtd,
+      unidade:mat.unidade||estoqueItem?.unidade||'un',
+      saldoDisponivel:saldo,
+      prioridade:mat.obrigatorio?'alta':'normal',
+      origem:opts.origem||'servico',
+      obs:`SR automática da OS ${osId}${disponivel?'':' · saldo insuficiente'}`,
+    });
+  });
+  saveSR(srData);
+  renderSR();
+  return { criadas:mats.length, insuficientes };
+}
 
 function _nextId(prefix, items, archived=[]){
   const max=[...items,...archived].reduce((acc,it)=>{
@@ -3953,24 +4302,34 @@ function criarPS(){
   if(soLeitura())return;
   const assunto=document.getElementById('ps-assunto').value.trim();
   if(!assunto){toast('Informe o serviço','warning');return;}
+  const servicoCatalogoId=(document.getElementById('ps-servico-id')||{}).value||'';
+  const servicoCatalogo=getCatalogoServicosCentral().find(s=>s.id===servicoCatalogoId) || null;
+  const materiaisPrevistos=servicoCatalogo?_mapServicoMateriaisParaOS(servicoCatalogo):[];
+  const requisitosCatalogo=servicoCatalogo?_gerarRequisitosServico(servicoCatalogo):[];
+  const requisitosForm=_coletarRequisitosForm();
   const executorOrg=(document.getElementById('ps-executor-org')||{}).value || 'CMASM-10';
   const osPaiId=(document.getElementById('ps-os-pai')||{}).value||null;
-  const custoPlanejado=parseFloat((document.getElementById('ps-custo-planejado')||{}).value||0)||0;
+  const custoDigitado=parseFloat((document.getElementById('ps-custo-planejado')||{}).value||0)||0;
+  const custoPlanejado=custoDigitado>0?custoDigitado:_calcServicoCustoPlanejado(materiaisPrevistos);
+  const solicitanteNome=SESSION?.nome||'Sistema';
+  const solicitanteId=SESSION?.id||'';
   const data=getOS();
   const novaOS={
     id:_nextId('OS',data,getOSArquivo()),
-    solicitante:SESSION.nome,solicitanteId:SESSION.id,
+    solicitante:solicitanteNome,solicitanteId,
     executorOrg,
     destino:executorOrg,
     assunto,descricao:document.getElementById('ps-descricao').value.trim(),
     prioridade:document.getElementById('ps-prioridade').value,
     prazo:document.getElementById('ps-data-necessaria').value,
     dataAbertura:new Date().toISOString(),status:'pendente_autorizacao',
-    criadoPor:SESSION.nome,autorizadoPor:'',dataAutorizacao:'',avaliacaoAutorizador:null,avaliacaoSolicitante:null,
+    criadoPor:solicitanteNome,autorizadoPor:'',dataAutorizacao:'',avaliacaoAutorizador:null,avaliacaoSolicitante:null,
     executor:'',
     osPai:osPaiId,
     osFilhos:[],
-    requisitos:_coletarRequisitosForm(),
+    requisitos:_mergeRequisitos(requisitosCatalogo,requisitosForm),
+    materiaisPrevistos,
+    servico_catalogo_id: servicoCatalogoId || '',
     custoPlanejado,
     custoReal:0,
     origem:'manual'
@@ -3981,10 +4340,17 @@ function criarPS(){
     if(paiIdx>=0){if(!data[paiIdx].osFilhos)data[paiIdx].osFilhos=[];data[paiIdx].osFilhos.push(novaOS.id);}
   }
   saveOS(data);
+  if(materiaisPrevistos.length){
+    const srInfo=criarSRMateriaisDaOS(novaOS.id,materiaisPrevistos,{origem:'os_servico',solicitante:solicitanteNome});
+    if(srInfo.insuficientes>0) toast(`OS criada com ${srInfo.criadas} SR de material (${srInfo.insuficientes} sem saldo).`,'warning');
+  }
   closeModal(document.getElementById('modal-nova-ps'));
   renderKpiServicos();renderOS();renderKanban();initDashboard();
   toast('OS criada e aguardando autorização');
   ['ps-assunto','ps-descricao'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  (document.getElementById('ps-servico-id')||{value:''}).value='';
+  (document.getElementById('ps-servico-categoria')||{value:''}).value='';
+  _renderPSMateriaisPreview(null);
   const listEl=document.getElementById('ps-requisitos-list');if(listEl)listEl.innerHTML='';
   (document.getElementById('ps-custo-planejado')||{value:''}).value='';
   (document.getElementById('ps-os-pai')||{value:''}).value='';
@@ -4093,7 +4459,23 @@ function arquivarSR(id){
 }
 
 function _osBloqueada(o){
-  return (o.requisitos||[]).some(r=>r.obrigatorio&&!r.atendido)&&o.status==='autorizada';
+  return ((o.requisitos||[]).some(r=>r.obrigatorio&&!r.atendido) || _osTemSRMaterialPendente(o.id)) && o.status==='autorizada';
+}
+
+function _osMaterialSRPendentes(osId=''){
+  return getSR().filter(s=>s.osId===osId&&s.tipo==='material'&&s.status==='pendente');
+}
+
+function _osTemSRMaterialPendente(osId=''){
+  return _osMaterialSRPendentes(osId).length>0;
+}
+
+function _osMaterialPendenciaBadge(osId=''){
+  const pend=_osMaterialSRPendentes(osId);
+  if(!pend.length) return '';
+  const semSaldo=pend.filter(s=>Number(s.saldoDisponivel||0)<Number(s.qtd||0)).length;
+  const color=semSaldo>0?'var(--red-400)':'var(--amber)';
+  return `<span class="text-xs" style="color:${color}"> · SR mat pendente: ${pend.length}${semSaldo>0?` (${semSaldo} sem saldo)`:''}</span>`;
 }
 
 function _osHierarquiaBadge(o){
@@ -4132,6 +4514,7 @@ function renderOS(){
         <td>${o.assunto||o.descricao||'-'}</td>
         <td class="text-xs text-muted">${fmtDateSimple(o.prazo)||'-'}</td>
         <td>${statusBadge(o.status)}${bloqueada?` <span class="text-xs" style="color:var(--red-400)">Bloqueada</span>`:''}
+          ${_osMaterialPendenciaBadge(o.id)}
         </td>
         <td>${_osCustoBadge(o)}</td>
         <td class="text-xs">${o.solicitante||'-'}</td>
@@ -4158,6 +4541,8 @@ function verOS(id){
   const allOS=getOS();
   const filhos=allOS.filter(x=>(o.osFilhos||[]).includes(x.id));
   const reqs=o.requisitos||[];
+  const materiais=Array.isArray(o.materiaisPrevistos)?o.materiaisPrevistos:[];
+  const srsMateriaisPendentes=_osMaterialSRPendentes(o.id);
   const plan=Number(o.custoPlanejado||0);
   const real=Number(o.custoReal||0);
 
@@ -4180,9 +4565,14 @@ function verOS(id){
       </select>
     </div>
     <div class="form-group"><label>Autorizado por</label><input type="text" value="${o.autorizadoPor||'Pendente'}" readonly></div>
+    <div class="form-group"><label>SR Material pendentes</label><div>${srsMateriaisPendentes.length===0?'<span class="badge badge-ok">Sem pendências</span>':`<span class="badge badge-warn">${srsMateriaisPendentes.length} pendente(s)</span>`}</div></div>
     ${filhos.length>0?`<div class="form-group form-full"><label>Sub-OS vinculadas (${filhos.length})</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px">${filhos.map(f=>`<button class="btn btn-ghost btn-sm" onclick="closeModal(document.getElementById('modal-ver-os'));verOS('${f.id}')">${f.id} ${statusBadge(f.status)}</button>`).join('')}</div>
     </div>`:''}
+    <div class="form-group form-full"><label>Materiais planejados</label>
+      ${materiais.length===0?`<div class="text-xs text-muted">Sem materiais vinculados.</div>`:
+      `<div style="display:grid;gap:6px">${materiais.map(m=>`<div style="display:grid;grid-template-columns:1.3fr auto auto auto;gap:8px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)"><span style="font-size:12px">${m.nome_livre||m.nome||'-'}</span><span class="text-xs text-muted">${m.qtd||0} ${m.unidade||'un'}</span><span class="text-xs text-muted">saldo: ${Number(m.saldoDisponivel||0)} ${m.unidade||'un'}</span><span class="badge ${m.disponivel?'badge-ok':'badge-warn'}">${m.disponivel?'OK':'Sem saldo'}</span></div>`).join('')}</div>`}
+    </div>
   </div>`;
 
   const reqBloq=reqs.filter(r=>r.obrigatorio&&!r.atendido).length;
@@ -4223,16 +4613,20 @@ function verOS(id){
   </div>`;
 
   const body=document.getElementById('ver-os-body');
-  body.innerHTML=`
-    <div class="tabs" style="margin:-4px 0 14px;border-bottom:1px solid var(--border)">
-      <div class="tab active" id="ver-os-tab-dados" onclick="_verOSTab('dados')" style="padding:8px 14px;cursor:pointer">Dados</div>
-      <div class="tab" id="ver-os-tab-requisitos" onclick="_verOSTab('requisitos')" style="padding:8px 14px;cursor:pointer">Requisitos${reqBloq>0?` <span style="color:var(--red-400)">🔴${reqBloq}</span>`:reqs.length>0?` (${reqs.length})`:''}
-      </div>
-      <div class="tab" id="ver-os-tab-custos" onclick="_verOSTab('custos')" style="padding:8px 14px;cursor:pointer">Custos${plan>0||real>0?' ·':''}</div>
-    </div>
-    <div id="ver-os-panel-dados">${tabDados}</div>
-    <div id="ver-os-panel-requisitos" style="display:none">${tabReqs}</div>
-    <div id="ver-os-panel-custos" style="display:none">${tabCustos}</div>`;
+  body.innerHTML=`<div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:10px;align-items:start">
+    <details id="ver-os-col-dados" open style="border:1px solid var(--border);border-radius:10px;background:var(--bg2)">
+      <summary style="cursor:pointer;list-style:none;padding:10px 12px;font-size:13px;font-weight:700;color:var(--text1)">Dados da OS</summary>
+      <div style="padding:0 12px 12px">${tabDados}</div>
+    </details>
+    <details id="ver-os-col-requisitos" open style="border:1px solid var(--border);border-radius:10px;background:var(--bg2)">
+      <summary style="cursor:pointer;list-style:none;padding:10px 12px;font-size:13px;font-weight:700;color:var(--text1)">Requisitos ${reqBloq>0?`<span style='color:var(--red-400)'>🔴${reqBloq}</span>`:''}</summary>
+      <div style="padding:0 12px 12px">${tabReqs}</div>
+    </details>
+    <details id="ver-os-col-custos" open style="border:1px solid var(--border);border-radius:10px;background:var(--bg2)">
+      <summary style="cursor:pointer;list-style:none;padding:10px 12px;font-size:13px;font-weight:700;color:var(--text1)">Custos</summary>
+      <div style="padding:0 12px 12px">${tabCustos}</div>
+    </details>
+  </div>`;
 
   const footer=document.getElementById('ver-os-footer');
   const btnAvalAut=o.status==='concluida'&&!o.avaliacaoAutorizador&&canAutorizarOS()&&o.autorizadoPor===SESSION.nome?`<button class="btn btn-secondary" onclick="closeModal(document.getElementById('modal-ver-os'));abrirAvaliacaoOS('${o.id}','autorizador')">Avaliar (aut)</button>`:'';
@@ -4240,6 +4634,7 @@ function verOS(id){
   footer.innerHTML=`<button class="btn btn-secondary" onclick="closeModal(document.getElementById('modal-ver-os'))">Fechar</button>
   ${podeEditar?`<button class="btn btn-secondary" onclick="salvarOSModal('${o.id}')">Salvar Dados</button>`:''}
   ${o.status!=='cancelada'&&o.status!=='reprovada'?`<button class="btn btn-secondary" onclick="closeModal(document.getElementById('modal-ver-os'));abrirNovaSR('${o.id}')">+ SR</button>`:''}
+  ${srsMateriaisPendentes.length>0?`<button class="btn btn-secondary" onclick="closeModal(document.getElementById('modal-ver-os'));abrirSRDaOS('${o.id}')">Atender SR Materiais</button>`:''}
   ${canAutorizarOS()&&o.status==='pendente_autorizacao'?`<button class="btn btn-danger" onclick="autorizarOS('${o.id}',false);closeModal(document.getElementById('modal-ver-os'))">Reprovar</button><button class="btn btn-primary" onclick="autorizarOS('${o.id}',true);closeModal(document.getElementById('modal-ver-os'))">Autorizar</button>`:''}
   ${o.status==='autorizada'&&canExecutarOS(o)?`<button class="btn btn-primary" onclick="avancarOS('${o.id}','em_andamento');closeModal(document.getElementById('modal-ver-os'))">Iniciar execução</button>`:''}
   ${o.status==='em_andamento'&&canExecutarOS(o)?`<button class="btn btn-primary" onclick="avancarOS('${o.id}','concluida');closeModal(document.getElementById('modal-ver-os'))">Concluir OS</button>`:''}
@@ -4249,12 +4644,11 @@ function verOS(id){
 }
 
 function _verOSTab(name){
-  ['dados','requisitos','custos'].forEach(n=>{
-    const tab=document.getElementById('ver-os-tab-'+n);
-    const panel=document.getElementById('ver-os-panel-'+n);
-    if(tab)tab.classList.toggle('active',n===name);
-    if(panel)panel.style.display=n===name?'':'none';
-  });
+  const col=document.getElementById('ver-os-col-'+name);
+  if(col){
+    col.open=true;
+    col.scrollIntoView({behavior:'smooth',block:'center'});
+  }
 }
 
 function salvarRequisito(osId){
@@ -4278,7 +4672,7 @@ function atenderRequisito(osId,reqId,atendido){
   req.atendido=!!atendido;
   saveOS(data);
   renderKpiServicos();renderOS();renderKanban();
-  const tabName=document.getElementById('ver-os-panel-requisitos')?.style.display!=='none'?'requisitos':'dados';
+  const tabName=document.getElementById('ver-os-col-requisitos')?.open?'requisitos':'dados';
   verOS(osId);_verOSTab(tabName);
 }
 
@@ -4381,9 +4775,18 @@ function renderKanban(){
           <div class="kcard-meta">${item.solicitante||item.criadoPor||'-'} · ${prioBadge(item.prioridade)}</div>
           ${custoInfo}
           ${bloqueada?`<div style="font-size:10px;color:var(--red-400);margin-top:3px">⚠ Req. não atendido(s)</div>`:''}
+          ${_osTemSRMaterialPendente(item.id)?`<div style="font-size:10px;color:var(--amber);margin-top:3px">🧱 SR de material pendente</div>`:''}
         </div>`;
       }).join('');
   });
+}
+
+function abrirSRDaOS(osId){
+  showPage('servicos');
+  showSvcTab('sr');
+  const input=document.getElementById('sr-search');
+  if(input){ input.value=osId; }
+  renderSR();
 }
 
 function showSvcTab(name, el){
@@ -4538,11 +4941,73 @@ function renderSR(){
         <td class="text-xs text-muted">${fmtDate(s.dataCriacao)}</td>
         <td>${statusBadge(s.status)}</td>
         <td>
+          ${s.tipo==='material'&&s.status==='pendente'?`<button class="btn btn-ghost btn-sm" title="Atender SR de material" onclick="atenderSRMaterial('${s.id}')">Atender</button>`:''}
           ${s.tipo==='externo'&&!s.nf?`<button class="btn btn-ghost btn-sm" title="Registrar Nota Fiscal" onclick="registrarNF('${s.id}')">+ NF</button>`:''}
           ${['atendida','concluida'].includes(s.status)?`<button class="btn btn-ghost btn-sm" title="Arquivar SR" onclick="arquivarSR('${s.id}')">Arquivar</button>`:''}
         </td>
       </tr>`;
     }).join('');
+}
+
+function atenderSRMaterial(srId){
+  if(soLeitura())return;
+  const srData=getSR();
+  const idx=srData.findIndex(s=>s.id===srId);
+  if(idx<0){toast('SR não encontrada','warning');return;}
+  const sr=srData[idx];
+  if(sr.tipo!=='material'){toast('Ação válida apenas para SR de material','warning');return;}
+  if(sr.status!=='pendente'){toast('SR já atendida','warning');return;}
+
+  const estoque=getEstoque();
+  let itemIdx=sr.itemId?estoque.findIndex(e=>e.id===sr.itemId):-1;
+  if(itemIdx<0){
+    const item=_findEstoqueForMaterial({nome_livre:sr.itemDesc,codigo:sr.itemCodigo||''});
+    itemIdx=item?estoque.findIndex(e=>e.id===item.id):-1;
+  }
+  if(itemIdx<0){toast('Item de estoque não encontrado para esta SR','warning');return;}
+
+  const qtd=Number(sr.qtd||0)||0;
+  const saldo=Number(estoque[itemIdx].saldo||0);
+  if(!(qtd>0)){toast('Quantidade inválida na SR','warning');return;}
+  if(saldo<qtd){
+    srData[idx].saldoDisponivel=saldo;
+    saveSR(srData);
+    renderSR();
+    toast(`Saldo insuficiente: ${saldo} < ${qtd}`,'warning');
+    return;
+  }
+
+  estoque[itemIdx].saldo=Number((saldo-qtd).toFixed(2));
+  saveEstoque(estoque);
+  const movs=getMovEstoque();
+  movs.push({
+    id:'mv'+Date.now()+Math.floor(Math.random()*1000),
+    itemId:estoque[itemIdx].id,
+    tipo:'saida',
+    qtd,
+    responsavel:SESSION?.nome||'Sistema',
+    doc:sr.id,
+    obs:`Atendimento SR automática da OS ${sr.osId||''}`,
+    data:new Date().toISOString(),
+  });
+  saveMovEstoque(movs);
+
+  srData[idx].itemId=estoque[itemIdx].id;
+  srData[idx].itemDesc=srData[idx].itemDesc||estoque[itemIdx].descricao;
+  srData[idx].saldoDisponivel=Number(estoque[itemIdx].saldo||0);
+  srData[idx].status='atendida';
+  srData[idx].atendidaEm=new Date().toISOString();
+  srData[idx].atendidaPor=SESSION?.nome||'Sistema';
+  saveSR(srData);
+
+  renderSR();
+  renderOS();
+  renderKanban();
+  renderEstoque?.();
+  renderEstoqueKPIs?.();
+  renderMovimentacoes?.();
+  renderEstoqueAlertas?.();
+  toast(`SR ${sr.id} atendida com baixa de estoque`,'green');
 }
 
 function registrarNF(srId){
@@ -5381,7 +5846,20 @@ function criarOSManut(){
     if(fidx>=0){frota[fidx].status='MANUT';saveFrota(frota);}
   }
   const data=getOSManut();data.push(os);saveOSManut(data);
-  closeModal(document.getElementById('modal-nova-os-manut'));renderOSManut();renderAtivos();initDashboard();toast(`${os.id} criada`);
+  syncManutOSIntoServicos({
+    id: os.id,
+    assunto: os.tipo==='preventiva' ? `Preventiva — ${os.ativoNome}` : `Manutenção — ${os.ativoNome}`,
+    descricao: os.descricao,
+    status: os.status,
+    prazo: os.prazo,
+    executor: os.responsavel,
+    ativo_id: os.ativoId,
+    dataAbertura: os.dataCriacao || new Date().toISOString(),
+    criadoPor: os.criadoPor,
+    origem: 'manutencao',
+    modulo_origem: 'manutencao',
+  });
+  closeModal(document.getElementById('modal-nova-os-manut'));renderOSManut();renderAtivos();renderKpiServicos();renderOS();renderKanban();initDashboard();toast(`${os.id} criada`);
 }
 
 function renderOSManut(){
@@ -5423,6 +5901,20 @@ function avancarOSManut(id,status){
     if(fidx>=0&&frota[fidx].status==='MANUT'){frota[fidx].status='P';saveFrota(frota);}
   }
   saveOSManut(data);renderOSManut();renderAtivos();initDashboard();toast(`OS ${id} → ${status}`);
+  syncManutOSIntoServicos({
+    id: os.id,
+    status: os.status,
+    assunto: os.tipo==='preventiva' ? `Preventiva — ${os.ativoNome}` : `Manutenção — ${os.ativoNome}`,
+    descricao: os.descricao,
+    prazo: os.prazo,
+    executor: os.responsavel,
+    ativo_id: os.ativoId,
+    dataAbertura: os.dataCriacao || new Date().toISOString(),
+    dataConclusao: os.dataConclusao || '',
+    origem: 'manutencao',
+    modulo_origem: 'manutencao',
+  });
+  renderKpiServicos();renderOS();renderKanban();
 }
 
 function renderPreventiva(){
