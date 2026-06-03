@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .db_core import CoreDB
+from .catalogo import router as catalogo_router
 from .grama import router as grama_router, init_grama
 from .sync import router as sync_router
 
@@ -170,6 +171,113 @@ _COLAB_SEED_ANNOUNCEMENTS = [
     },
 ]
 
+_MANUT_TIPOS_PLANOS = {
+    "FS220": {
+        "nome": "Rocadeira STIHL FS 220",
+        "categoria": "maquinas_corte",
+        "plano": [
+            {"id": "p01", "iv": 8, "n": "Inspecao geral + nivel de oleo", "its": []},
+            {"id": "p02", "iv": 25, "n": "Limpar filtro de ar", "its": ["Filtro de ar FS220"]},
+            {"id": "p03", "iv": 25, "n": "Lubrificar caixa de transmissao", "its": ["Graxa STIHL engrenagem"]},
+            {"id": "p04", "iv": 25, "n": "Inspecionar/trocar nylon ou lamina", "its": ["Carretel nylon", "Lamina 2 pontas"]},
+            {"id": "p05", "iv": 100, "n": "Trocar vela de ignicao", "its": ["Vela NGK BPMR7A"]},
+            {"id": "p06", "iv": 150, "n": "Trocar filtro de combustivel", "its": ["Filtro combustivel"]},
+            {"id": "p07", "iv": 300, "n": "Verificar/trocar mangueira combustivel", "its": ["Mangueira combustivel"]},
+            {"id": "p08", "iv": 500, "n": "Revisao geral do motor", "its": ["Kit juntas", "Kit pistao/aneis"]},
+        ],
+    },
+    "GAR": {
+        "nome": "Cortador Garthen PRO-3500S",
+        "categoria": "maquinas_corte",
+        "plano": [
+            {"id": "p01", "iv": 8, "n": "Inspecao geral + nivel de oleo", "its": []},
+            {"id": "p02", "iv": 50, "n": "Trocar oleo do motor 4T", "its": ["Oleo SAE 30 / 10W-30"]},
+            {"id": "p03", "iv": 50, "n": "Limpar filtro de ar", "its": ["Filtro de ar Garthen"]},
+            {"id": "p04", "iv": 100, "n": "Trocar vela de ignicao", "its": ["Vela NGK Cg420"]},
+            {"id": "p05", "iv": 100, "n": "Trocar filtro de oleo", "its": ["Filtro de oleo"]},
+            {"id": "p06", "iv": 100, "n": "Inspecionar laminas e rodas", "its": ["Lamina 2 pontas", "Roda dianteira", "Roda traseira"]},
+            {"id": "p07", "iv": 150, "n": "Trocar filtro de combustivel", "its": ["Filtro combustivel"]},
+            {"id": "p08", "iv": 500, "n": "Revisao geral", "its": ["Kit juntas motor"]},
+        ],
+    },
+    "MS650": {
+        "nome": "Motosserra STIHL MS650",
+        "categoria": "maquinas_corte",
+        "plano": [
+            {"id": "p01", "iv": 8, "n": "Inspecao geral", "its": []},
+            {"id": "p02", "iv": 25, "n": "Limpar filtro de ar", "its": ["Filtro de ar MS650"]},
+            {"id": "p03", "iv": 25, "n": "Lubrificar corrente (oleo corrente)", "its": ["Oleo corrente motosserra"]},
+            {"id": "p04", "iv": 50, "n": "Afiar ou trocar corrente", "its": ["Corrente 36 RM 63cm", "Lima afiar"]},
+            {"id": "p05", "iv": 100, "n": "Trocar vela de ignicao", "its": ["Vela NGK MS650"]},
+            {"id": "p06", "iv": 150, "n": "Trocar filtro de combustivel", "its": ["Filtro combustivel"]},
+            {"id": "p07", "iv": 500, "n": "Revisao geral do motor", "its": ["Kit juntas", "Carburador"]},
+        ],
+    },
+    "COY": {
+        "nome": "Tobata Coyote CT151",
+        "categoria": "maquinas_corte",
+        "plano": [
+            {"id": "p01", "iv": 8, "n": "Inspecao geral + nivel de oleo", "its": []},
+            {"id": "p02", "iv": 50, "n": "Trocar oleo do motor", "its": ["Oleo SAE 30"]},
+            {"id": "p03", "iv": 50, "n": "Limpar filtro de ar", "its": ["Filtro de ar Coyote"]},
+            {"id": "p04", "iv": 100, "n": "Trocar vela + filtro de oleo", "its": ["Vela de ignicao", "Filtro de oleo"]},
+            {"id": "p05", "iv": 100, "n": "Inspecionar correias", "its": ["Correia principal Tobata"]},
+            {"id": "p06", "iv": 150, "n": "Trocar filtro de combustivel", "its": ["Filtro combustivel"]},
+            {"id": "p07", "iv": 200, "n": "Trocar correia principal", "its": ["Correia principal Tobata"]},
+            {"id": "p08", "iv": 500, "n": "Revisao geral", "its": ["Kit carburador", "Filtro hidraulico"]},
+        ],
+    },
+    "LGT": {
+        "nome": "Husqvarna LGT2654",
+        "categoria": "maquinas_corte",
+        "plano": [
+            {"id": "p01", "iv": 8, "n": "Inspecao geral + nivel de oleo", "its": []},
+            {"id": "p02", "iv": 50, "n": "Trocar oleo + filtro de oleo", "its": ["Oleo SAE 30", "Filtro de oleo LGT"]},
+            {"id": "p03", "iv": 50, "n": "Limpar filtro de ar", "its": ["Filtro de ar LGT2654"]},
+            {"id": "p04", "iv": 100, "n": "Trocar velas (2 cilindros)", "its": ["Vela de ignicao x2"]},
+            {"id": "p05", "iv": 150, "n": "Trocar correia do deck", "its": ["Correia deck LGT2654"]},
+            {"id": "p06", "iv": 150, "n": "Trocar filtro de combustivel", "its": ["Filtro combustivel"]},
+            {"id": "p07", "iv": 250, "n": "Trocar correia de transmissao", "its": ["Correia transmissao LGT2654"]},
+            {"id": "p08", "iv": 500, "n": "Revisao geral", "its": ["Kit carburador", "Mola governador"]},
+        ],
+    },
+    "TS114": {
+        "nome": "Husqvarna TS114",
+        "categoria": "maquinas_corte",
+        "plano": [
+            {"id": "p01", "iv": 8, "n": "Inspecao geral + nivel de oleo", "its": []},
+            {"id": "p02", "iv": 25, "n": "Limpar filtro de ar", "its": ["Filtro de ar LTH1738"]},
+            {"id": "p03", "iv": 25, "n": "Lubrificar pontos de graxeiro (4 pts.)", "its": ["Graxa NLGI 2"]},
+            {"id": "p04", "iv": 25, "n": "Inspecionar/afiar ou trocar lamina", "its": ["Lamina de corte Husqvarna TS114"]},
+            {"id": "p05", "iv": 50, "n": "Trocar oleo do motor (~0,6 L)", "its": ["Oleo SAE 30"]},
+            {"id": "p06", "iv": 50, "n": "Trocar filtro de ar", "its": ["Filtro de ar LTH1738"]},
+            {"id": "p07", "iv": 100, "n": "Trocar vela de ignicao", "its": ["Vela HQT-9"]},
+            {"id": "p08", "iv": 100, "n": "Inspecionar correias (visual)", "its": []},
+            {"id": "p09", "iv": 100, "n": "Revisao geral + aperto de torque", "its": []},
+            {"id": "p10", "iv": 150, "n": "Trocar filtro de combustivel", "its": ["Filtro combustivel"]},
+            {"id": "p11", "iv": 200, "n": "Trocar correia de deck", "its": ["Correia A-78"]},
+            {"id": "p12", "iv": 250, "n": "Trocar correia de transmissao", "its": ["Correia A-78"]},
+            {"id": "p13", "iv": 300, "n": "Kit reparo carburador (membranas)", "its": ["Kit carburador HS452AE"]},
+            {"id": "p14", "iv": 500, "n": "Trocar rolamentos de roda", "its": ["Rolamento 6202-2RS"]},
+        ],
+    },
+    "SOL": {
+        "nome": "Trator Agricola Solis 90",
+        "categoria": "maquinas_corte",
+        "plano": [
+            {"id": "p01", "iv": 8, "n": "Inspecao geral + nivel de oleo", "its": []},
+            {"id": "p02", "iv": 50, "n": "Trocar oleo + filtro de oleo (diesel)", "its": ["Oleo 15W-40 diesel", "Filtro oleo Solis"]},
+            {"id": "p03", "iv": 50, "n": "Limpar filtro de ar primario", "its": ["Filtro ar primario Solis"]},
+            {"id": "p04", "iv": 150, "n": "Trocar filtro de combustivel diesel", "its": ["Filtro combustivel diesel"]},
+            {"id": "p05", "iv": 250, "n": "Trocar filtro hidraulico", "its": ["Filtro hidraulico Solis"]},
+            {"id": "p06", "iv": 250, "n": "Trocar filtro de ar completo", "its": ["Filtro ar primario Solis", "Filtro ar safety"]},
+            {"id": "p07", "iv": 500, "n": "Trocar correia alternador", "its": ["Correia alternador Solis"]},
+            {"id": "p08", "iv": 500, "n": "Trocar filtro de transmissao", "its": ["Filtro transmissao Solis"]},
+            {"id": "p09", "iv": 1000, "n": "Revisao geral motor diesel", "its": ["Kit juntas cabecote", "Glow plugs x4"]},
+        ],
+    },
+}
+
 app = FastAPI(title="xCore API", version="1.0.0", docs_url="/docs")
 app.add_middleware(
     CORSMiddleware,
@@ -181,6 +289,7 @@ app.add_middleware(
 db = CoreDB(DB_PATH)
 app.include_router(grama_router)
 app.include_router(sync_router)
+app.include_router(catalogo_router)
 
 # Serve xCore frontend files (HTMLs, JS, CSS, assets)
 _FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..")
@@ -265,6 +374,84 @@ async def _seed_colab_if_empty() -> None:
             )
             for item in _COLAB_SEED_ANNOUNCEMENTS
         ],
+    )
+
+
+def _derive_catalogo_seed() -> tuple[list[tuple], list[tuple]]:
+    servicos: list[tuple] = []
+    planos: list[tuple] = []
+    for tipo_codigo, tipo in _MANUT_TIPOS_PLANOS.items():
+        for plano in tipo["plano"]:
+            servico_id = f"svc-plano-{tipo_codigo.lower()}-{plano['id']}"
+            servicos.append(
+                (
+                    servico_id,
+                    f"{tipo_codigo}_{plano['id'].upper()}",
+                    plano["n"],
+                    f"Plano preventivo por horimetro para {tipo['nome']}.",
+                    "central",
+                    1,
+                    None,
+                    max(30, 20 + len(plano.get("its", [])) * 15),
+                    None,
+                    '{"categorias":["%s"],"tipos":["%s"]}' % (tipo["categoria"], tipo_codigo),
+                    "manutencao",
+                )
+            )
+            planos.append(
+                (
+                    f"plan-{tipo_codigo.lower()}-{plano['id']}",
+                    servico_id,
+                    None,
+                    None,
+                    tipo_codigo,
+                    '{"tipo":"por_uso","valor":%s,"unidade":"h"}' % plano["iv"],
+                    None,
+                    None,
+                    None,
+                    None,
+                    "manutencao",
+                    f"Plano derivado automaticamente de {tipo['nome']}.",
+                    "manutencao",
+                )
+            )
+    return servicos, planos
+
+
+async def _seed_catalogo_manut_if_empty() -> None:
+    servicos, planos = _derive_catalogo_seed()
+    await db.executemany(
+        "INSERT OR IGNORE INTO catalogo_servicos (id, codigo, nome, descricao, escopo, versao, pop_doc_id, tempo_estimado_min, servico_pai_id, aplicavel_a, criado_por_modulo) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        servicos,
+    )
+
+    await db.execute(
+        "DELETE FROM catalogo_servico_materiais WHERE servico_id LIKE 'svc-plano-%'"
+    )
+
+    materiais_rows = []
+    for tipo_codigo, tipo in _MANUT_TIPOS_PLANOS.items():
+        for plano in tipo["plano"]:
+            servico_id = f"svc-plano-{tipo_codigo.lower()}-{plano['id']}"
+            for material in plano.get("its", []):
+                materiais_rows.append((
+                    servico_id,
+                    None,
+                    material,
+                    1,
+                    "un",
+                    1,
+                    None,
+                ))
+    if materiais_rows:
+        await db.executemany(
+            "INSERT OR IGNORE INTO catalogo_servico_materiais (servico_id, material_id, nome_livre, qtd, unidade, obrigatorio, obs) VALUES (?,?,?,?,?,?,?)",
+            materiais_rows,
+        )
+
+    await db.executemany(
+        "INSERT OR IGNORE INTO planos_manutencao (id, servico_id, servico_versao_pin, ativo_id, tipo_codigo, frequencia, criticidade_override, janela_permitida, proxima_execucao, ultima_execucao, responsavel_pmoc, obs, criado_por_modulo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        planos,
     )
 
 
@@ -372,6 +559,7 @@ async def startup():
     await db.init()
     init_grama(db)
     await _seed_colab_if_empty()
+    await _seed_catalogo_manut_if_empty()
 
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────

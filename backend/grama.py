@@ -288,7 +288,7 @@ async def create_area(body: AreaIn):
         """INSERT INTO grama_areas
            (id,nome,descricao,tipo,area_m2,localizacao_gps,coords_json,
                         flora,inclinacao,limpeza,maquinas_compativeis,grupo_nome,visivel,cor_hex,opacidade)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (aid, body.nome, body.descricao, body.tipo, body.area_m2,
          body.localizacao_gps, body.coords_json,
                  body.flora, body.inclinacao, body.limpeza, compat,

@@ -86,11 +86,26 @@ Cada item abaixo é uma **seção interna** do PMOC único (não um repo).
 
 ## 🟠 P1 — Núcleo: melhorias de Serviços / Estoque / Manutenção
 
-### Serviços (PS → OS → SR)
+### Serviços (PS → OS → SR) — Fase 2 da proposta_servicos_executiva.md
+
+- [ ] Classificação múltipla: interna CMASM + CATSER/CATMAT + SINAPI
+- [ ] Catálogo de serviços versionado (cada edição gera nova `versao`, imutável) — aproveitar `schema_catalogo.sql`
+- [ ] Documentos e instruções versionadas vinculadas a OS
+- [ ] Integração com Estoque: materiais em OS disparam `reservado → separado → consumido/devolvido`; falta de item obrigatório bloqueia execução
+- [ ] Integração com Manutenção: planos preventivos/corretivos geram OS automaticamente por gatilho (tempo/uso/horímetro/odômetro)
 - [ ] Origens: aceitar criação de OS via push do PMOC (`modulo_origem = <categoria>`, `origem_id = uuid`)
 - [ ] Vínculo SR ↔ Estoque ↔ Transportes ↔ Predial usando o catálogo
 - [ ] Notificação ao solicitante quando status muda (polling 5min)
 - [ ] Exportar histórico de OS de um ativo (PDF)
+
+### Serviços — Fase 3 da proposta_servicos_executiva.md
+
+- [ ] Dependências avançadas entre OS e caminho crítico
+- [ ] Integração plena com Transportes: reserva de veículo/motorista, custo de transporte consolidado na OS
+- [ ] Integração com Vegetal: demandas sazonais geram lotes de OS por área; insumos/máquinas como requisitos padrão
+- [ ] Integração com Predial: inspeções/laudos geram OS corretivas/preventivas com prioridade por criticidade
+- [ ] Governança de custo avançada: custo comprometido, teto de aprovação, nova baseline ao mudar escopo
+- [ ] Dashboards de custo e desempenho (custo real × planejado por tipo; desvio médio por módulo; lead time por etapa; reincidência)
 
 ### Estoque
 - [ ] Marcar materiais como "relevantes para categoria X" — filtra no manifest
@@ -156,7 +171,6 @@ Cada item abaixo é uma **seção interna** do PMOC único (não um repo).
 
 - [ ] `cmasm_erp.html` está em 4281 linhas — dividir em arquivos quando passar para módulos ES (`<script type="module">`) sem build step
 - [ ] `Date.now()` como ID em módulos legados — migrar para `crypto.randomUUID()`
-- [ ] `exportBackup()` / `importBackup()` não conhecem schema novo
 - [ ] `clearAllData()` não limpa stores de módulos novos
 - [ ] `populateUserSelect()` usa nome como `value` — inconsistente com IDs
 - [ ] Remover arquivos órfãos em `referencias/` (duplicatas)
@@ -165,6 +179,9 @@ Cada item abaixo é uma **seção interna** do PMOC único (não um repo).
 
 ## ✅ Concluído recente
 
+- [x] 2026-06-02 — **Transportes / Viagem** (`cmasm_erp.html`): frota continua derivada de `ativos`, agenda migrou para o store `viagens`, formulário ganhou regras de VTR interna/externa, sobreaviso, retorno previsto e autorizador; fluxo validado no navegador com criação, atribuição, início, conclusão, incremento de uso, sumário e Papeleta 6.
+- [x] 2026-06-02 — **Serviços — Fase 1** (`cmasm_erp.html`): hierarquia pai/filho, requisitos obrigatórios/opcionais, gate de execução, custo planejado × real, KPI bar, tabs Dados/Requisitos/Custos em `verOS`, badges de bloqueio na tabela e Kanban. Ver `proposta_servicos_executiva.md` para detalhes.
+- [x] 2026-06-02 — Usuário `admin`/`admin` adicionado ao SEED_USERS
 - [x] 2026-05-22 — **Consolidação arquitetural**: docs atualizadas para "núcleo + PMOC único categorizado". `TEMPLATE_PMOC.md` removido. `MODULOS_EXTERNOS.md` enxugado para módulos *realmente* externos. `Regras de Negocio e Fluxos.md` copiado para o repo do núcleo.
 - [x] 2026-05-18 — Reestruturação dos `.md`: `Rules.md`, `MODULOS_EXTERNOS.md`, `TEMPLATE_PMOC.md`, `REQUISITOS.md`, `todo.md`
 - [x] 2026-05-17 — Endpoints `POST` e `DELETE /api/pmoc/refrigeracao`

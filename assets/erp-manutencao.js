@@ -12,10 +12,10 @@
   const state = {
     cats: new Set(),            // categorias selecionadas
     catsAvailable: [],          // derivado dos ativos carregados
-    cache: { ativos: null, os: null, estoque: null },
+    cache: { ativos: null, os: null, estoque: null, catalogo_servicos: null, planos_manutencao: null },
     activeTab: 'dashboard',
     tabDirty: { dashboard: true, ativos: true, os: true, planos: true,
-                catalogo: true, estoque: true, calgantt: true, config: true },
+                catalogo: true, estoque: true, calgantt: true, config: true, eam: true },
   };
 
   const TAB_DEFS = [
@@ -27,10 +27,152 @@
     { id: 'estoque',   icon: '🗄️', label: 'Estoque' },
     { id: 'calgantt',  icon: '📅', label: 'Cal+Gantt' },
     { id: 'config',    icon: '📄', label: 'Configuração' },
+    { id: 'eam',       icon: '🏭', label: 'EAM' },
   ];
 
-  // ── persistência ─────────────────────────────────────────────────────────
+  // ── persistência filtros ─────────────────────────────────────────────────
   const LS_KEY = 'xerp_manut_cats';
+
+  // ── persistência histórico por unidade ───────────────────────────────────
+  // Estrutura: { uid: { hor: number, regs: [...], manut: [...], ulm: {pid: hor} } }
+  function getMH() {
+    try { return JSON.parse(localStorage.getItem('xcmasm_manut_hist') || '{}'); }
+    catch (_) { return {}; }
+  }
+  function saveMH(d) { try { localStorage.setItem('xcmasm_manut_hist', JSON.stringify(d)); } catch (_) {} }
+  function getHistUnit(uid) {
+    const mh = getMH(); return mh[uid] || { hor: 0, regs: [], manut: [], ulm: {} };
+  }
+  function saveHistUnit(uid, hist) {
+    const mh = getMH(); mh[uid] = hist; saveMH(mh);
+  }
+
+  // ── engine de planos preventivos (horímetro-based) ───────────────────────
+  function calcProxManut(ativo) {
+    const tipos = window.ERP_MANUT_MOCKS?.TIPOS || {};
+    const tipo = tipos[ativo.tipo];
+    if (!tipo) return [];
+    const hist = getHistUnit(ativo.id);
+    const hor = hist.hor || (ativo.horimetro || 0);
+    return tipo.plano.map(m => {
+      const ult = hist.ulm?.[m.id] || 0;
+      const prox = ult === 0 ? m.iv : (Math.floor(ult / m.iv) + 1) * m.iv;
+      const falt = prox - hor;
+      const pct = Math.min(100, Math.max(0, ((hor - ult) / m.iv) * 100));
+      const st = falt <= 0 ? 'danger' : falt <= m.iv * 0.15 ? 'warn' : falt <= m.iv * 0.30 ? 'proximo' : 'ok';
+      return { ...m, ult, prox, falt, pct, st, hor };
+    });
+  }
+
+  function derivePlanoServico(tipoCodigo, planoItem) {
+    if (!tipoCodigo || !planoItem) return null;
+    const tipo = window.ERP_MANUT_MOCKS?.TIPOS?.[tipoCodigo];
+    const materiais = (planoItem.its || []).map(nome => ({
+      nome_livre: nome,
+      qtd: 1,
+      unidade: 'un',
+      obrigatorio: 1,
+    }));
+    return {
+      id: `svc-plano-${String(tipoCodigo).toLowerCase()}-${planoItem.id}`,
+      codigo: `${String(tipoCodigo).toUpperCase()}_${String(planoItem.id).toUpperCase()}`,
+      nome: planoItem.n,
+      descricao: `Plano preventivo por horímetro para ${tipo?.nome || tipoCodigo}.`,
+      escopo: 'central',
+      versao: 1,
+      tempo_estimado_min: Math.max(30, 20 + (materiais.length * 15)),
+      aplicavel_a: {
+        categorias: tipo?.categoria ? [tipo.categoria] : [],
+        tipos: [tipoCodigo],
+      },
+      criado_por_modulo: 'manutencao',
+      ativo: 1,
+      materiais,
+      ferramentas: [],
+      pessoal: [{ qualificacao_codigo: 'operador_corte', qtd: 1, opcional: 0 }],
+    };
+  }
+
+  function resolvePlanoServico(plano) {
+    if (!plano) return null;
+    if (plano._svc) return plano._svc;
+    const fromCache = (state.cache.catalogo_servicos?.data || []).find(s => s.id === plano.servico_id);
+    if (fromCache) return fromCache;
+    const fromCatalog = (window.ERP_MANUT_MOCKS?.catalogo_servicos || []).find(s => s.id === plano.servico_id);
+    if (fromCatalog) return fromCatalog;
+    return derivePlanoServico(plano.tipo_codigo, plano._planoItem || plano);
+  }
+
+  function getManutServicos(record) {
+    if (Array.isArray(record?.servicos) && record.servicos.length) return record.servicos;
+    return (record?.itens || []).map((nome, idx) => ({
+      id: `${record?.id || 'm'}-svc-${idx}`,
+      nome,
+      materiais: [],
+    }));
+  }
+
+  function getManutMateriais(record) {
+    if (Array.isArray(record?.materiais) && record.materiais.length) return record.materiais;
+    return getManutServicos(record)
+      .flatMap(servico => servico.materiais || [])
+      .filter(Boolean);
+  }
+
+  function getManutServicoLabels(record) {
+    return getManutServicos(record).map(servico => servico.nome).filter(Boolean);
+  }
+
+  function getManutMaterialLabels(record) {
+    const seen = new Set();
+    return getManutMateriais(record)
+      .map(material => material?.nome_livre || material?.nome)
+      .filter(nome => {
+        if (!nome || seen.has(nome)) return false;
+        seen.add(nome);
+        return true;
+      });
+  }
+
+  function getDerivedPlanRows() {
+    const cachedPlanos = state.cache.planos_manutencao?.data || [];
+    const byServicoTipo = new Map(
+      cachedPlanos
+        .filter(plano => plano?.servico_id && plano?.tipo_codigo)
+        .map(plano => [`${plano.tipo_codigo}::${plano.servico_id}`, plano])
+    );
+    return filteredAtivos().flatMap(ativo => calcProxManut(ativo).map(planoItem => ({
+      ...(byServicoTipo.get(`${ativo.tipo}::svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`) || {}),
+      id: (byServicoTipo.get(`${ativo.tipo}::svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`) || {}).id || `plano-${ativo.id}-${planoItem.id}`,
+      ativo_id: ativo.id,
+      tipo_codigo: ativo.tipo,
+      servico_id: `svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`,
+      frequencia: { tipo: 'por_uso', valor: planoItem.iv, unidade: 'h' },
+      ultima_execucao: planoItem.ult > 0 ? fH(planoItem.ult) : 'Nunca',
+      proxima_execucao: fH(planoItem.prox),
+      responsavel_pmoc: (byServicoTipo.get(`${ativo.tipo}::svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`) || {}).responsavel_pmoc || '',
+      _status: planoItem.st,
+      _planoItem: planoItem,
+      _ativo: ativo,
+      _svc: resolvePlanoServico({
+        ...(byServicoTipo.get(`${ativo.tipo}::svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`) || {}),
+        tipo_codigo: ativo.tipo,
+        servico_id: `svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`,
+        _planoItem: planoItem,
+      }),
+    })));
+  }
+
+  function getCatalogoServicos() {
+    const staticServices = window.ERP_MANUT_MOCKS?.catalogo_servicos || [];
+    const cachedServices = state.cache.catalogo_servicos?.data || [];
+    const derivedServices = getDerivedPlanRows().map(row => row._svc).filter(Boolean);
+    const byId = new Map();
+    [...staticServices, ...cachedServices, ...derivedServices].forEach(servico => {
+      if (servico?.id && !byId.has(servico.id)) byId.set(servico.id, servico);
+    });
+    return [...byId.values()];
+  }
 
   function loadFilter() {
     const url = new URLSearchParams(location.search).get('cats');
@@ -63,6 +205,8 @@
       root.innerHTML = '<div style="padding:24px;color:#ef4444">Erro: pmoc-engine não carregado.</div>';
       return;
     }
+    // Migra dados de PMOCs legados (maq-corte, refrigeracao) na primeira execução
+    migrarDadosLegados();
     fetchAll().finally(() => { render(root); });
   }
 
@@ -119,8 +263,15 @@
       el('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' } },
         el('h2', { style: { margin: 0, fontSize: '18px' } }, 'Manutenção'),
         el('div', { style: { flex: 1 } }),
-        el('button', { class: 'pe-btn', onclick: () => alert('Em breve: criar plano') }, '+ Plano'),
-        el('button', { class: 'pe-btn pe-btn--primary', onclick: () => alert('Em breve: nova OS') }, '+ OS'),
+        el('button', { class: 'pe-btn', onclick: () => {
+          state.activeTab = 'planos';
+          if (state._updateTabStyles) state._updateTabStyles();
+          renderActiveTab();
+        } }, '+ Plano'),
+        el('button', { class: 'pe-btn pe-btn--primary', onclick: () => {
+          if (typeof window.novaOSManut === 'function') window.novaOSManut('');
+          else toast('Abra Serviços → Nova OS', 'amber');
+        } }, '+ OS'),
       ),
       el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
         el('span', { style: { fontSize: '12px', color: 'var(--ink-3)' } }, 'Categorias:'),
@@ -300,6 +451,10 @@
       cont.replaceChildren(wrap);
       window.engine.table(wrap, {
         cols: [
+          { key: 'id', label: '', format: v => {
+            const st = statusManutAtivo(v);
+            return st === 'danger' ? '🔴' : st === 'warn' ? '🟡' : st === 'ok' ? '🟢' : '';
+          }},
           { key: 'nome', label: 'Nome' },
           { key: 'tipo', label: 'Tipo', filter: true },
           { key: 'categoria', label: 'Categoria', filter: true },
@@ -311,6 +466,7 @@
           { key: 'responsavel_pmoc', label: 'PMOC dono', filter: true },
         ],
         rows,
+        pageSize: Math.max(rows.length, 25),
         onRowClick: openAtivoDrawer,
       });
     },
@@ -333,6 +489,568 @@
 
       if (view === 'kanban') renderOsKanban(body);
       else renderOsLista(body);
+    },
+
+    planos(cont) {
+      const { el } = window.engine.utils;
+      const rows = getDerivedPlanRows();
+      const wrap = el('div');
+      cont.replaceChildren(wrap);
+      if (!rows.length) {
+        wrap.appendChild(el('div', { style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center' } },
+          'Nenhum ativo com plano preventivo disponível no filtro atual.'));
+        return;
+      }
+      window.engine.table(wrap, {
+        cols: [
+          { key: '_status', label: '', format: v =>
+            v === 'danger' ? '🔴' : v === 'warn' ? '🟡' : v === 'ok' ? '🟢' : '—' },
+          { key: '_svc', label: 'Serviço', format: v => v?.nome || '—' },
+          { key: '_ativo', label: 'Ativo / Tipo', format: (v, row) =>
+            v?.nome || row.tipo_codigo || 'Todos da categoria' },
+          { key: 'frequencia', label: 'Frequência', format: v => {
+            if (!v) return '—';
+            if (v.tipo === 'por_uso') return `A cada ${v.valor} ${v.unidade}`;
+            if (v.tipo === 'periodica') return 'Periódica';
+            return '—';
+          }},
+          { key: 'ultima_execucao', label: 'Última execução' },
+          { key: '_planoItem', label: 'Próxima execução', format: v => {
+            if (!v) return '—';
+            const color = v.st === 'danger' ? 'red' : v.st === 'warn' ? 'amber' : v.st === 'proximo' ? 'blue' : 'green';
+            const label = v.st === 'danger'
+              ? `Vencida há ${Math.abs(v.falt).toFixed(0)} h`
+              : `Em ${Math.max(0, v.falt).toFixed(0)} h`;
+            return window.engine.badge(label, color);
+          }},
+          { key: '_svc', label: 'Materiais', format: v => `${(v?.materiais || []).length} item(ns)` },
+        ],
+        rows,
+        onRowClick: row => openPlanoDrawer(row),
+      });
+    },
+
+    catalogo(cont) {
+      const { el } = window.engine.utils;
+      const servicos = getCatalogoServicos();
+      const wrap = el('div');
+      cont.replaceChildren(wrap);
+      window.engine.table(wrap, {
+        cols: [
+          { key: 'codigo', label: 'Código' },
+          { key: 'nome', label: 'Nome' },
+          { key: 'aplicavel_a', label: 'Categorias', format: v =>
+            (v?.categorias || []).join(', ') || '—' },
+          { key: 'tempo_estimado_min', label: 'Tempo (min)',
+            format: v => v ? `${v} min` : '—' },
+          { key: 'versao', label: 'Versão',
+            format: v => window.engine.badge(`v${v}`, 'blue') },
+          { key: 'materiais', label: 'Materiais',
+            format: v => `${(v || []).length} itens` },
+        ],
+        rows: servicos,
+        onRowClick: row => openCatalogoDrawer(row),
+      });
+    },
+
+    estoque(cont) {
+      const { el, fmt } = window.engine.utils;
+      const all = state.cache.estoque?.data || [];
+      const relevancia = window.ERP_MANUT_MOCKS?.estoque_relevancia || {};
+      const cats = [...state.cats];
+      let rows = all;
+      if (cats.length > 0) {
+        const rel = new Set(cats.flatMap(c => relevancia[c] || []));
+        if (rel.size > 0) rows = all.filter(i => rel.has(i.codigo) || rel.has(i.id) || (i.qtd_atual ?? 0) < (i.qtd_minima ?? 0));
+      }
+      const wrap = el('div');
+      cont.replaceChildren(wrap);
+      if (!rows.length) {
+        wrap.appendChild(el('div', { style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center' } },
+          cats.length > 0 ? 'Nenhum item relevante para as categorias selecionadas.' : 'Estoque vazio ou API indisponível.'));
+        return;
+      }
+      window.engine.table(wrap, {
+        cols: [
+          { key: 'nome', label: 'Item' },
+          { key: 'codigo', label: 'Código' },
+          { key: 'unidade', label: 'Un' },
+          { key: 'qtd_atual', label: 'Atual', format: (v, row) => {
+            const low = (v ?? 0) < (row.qtd_minima ?? 0);
+            return el('span', { style: { color: low ? 'var(--red)' : 'var(--ink)', fontFamily: 'var(--font-mono)', fontWeight: low ? '700' : '400' } }, fmt.num(v ?? 0, 0));
+          }},
+          { key: 'qtd_minima', label: 'Mínimo', format: v => fmt.num(v ?? 0, 0) },
+          { key: 'qtd_atual', label: 'Status', format: (v, row) =>
+            (v ?? 0) < (row.qtd_minima ?? 0) ?
+              window.engine.badge('Baixo', 'red') :
+              window.engine.badge('OK', 'green') },
+        ],
+        rows,
+      });
+    },
+
+    calgantt(cont) {
+      const { el } = window.engine.utils;
+      const upcoming = getDerivedPlanRows()
+        .map(p => ({ ...p, _diff: p._planoItem?.falt ?? null, _svc: p._svc }))
+        .sort((a, b) => (a._diff ?? Number.POSITIVE_INFINITY) - (b._diff ?? Number.POSITIVE_INFINITY));
+
+      cont.replaceChildren(
+        el('div', { style: { padding: '4px 0 12px', fontWeight: '600', fontSize: '15px' } }, 'Próximas manutenções por horímetro'),
+        el('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
+          ...upcoming.slice(0, 20).map(p => {
+            const color = p._diff < 0 ? 'var(--red)' : p._diff <= (p._planoItem?.iv || 0) * 0.15 ? 'var(--amber)' : p._diff <= (p._planoItem?.iv || 0) * 0.30 ? 'var(--acc)' : 'var(--green)';
+            const label = p._diff < 0 ? `Vencida há ${Math.abs(p._diff).toFixed(0)} h` : `Em ${Math.max(0, p._diff).toFixed(0)} h`;
+            return el('div', { style: {
+              display: 'flex', gap: '12px', alignItems: 'center',
+              padding: '8px 12px', background: 'var(--panel)',
+              border: `1px solid ${color}30`, borderLeft: `3px solid ${color}`,
+              borderRadius: '6px', fontSize: '13px',
+            } },
+              el('div', { style: { minWidth: '120px', fontFamily: 'var(--font-mono)', fontSize: '11px', color } }, label),
+              el('div', { style: { flex: 1 } }, p._svc?.nome || p.servico_id),
+              el('div', { style: { fontSize: '11px', color: 'var(--ink-3)' } }, p._ativo?.nome || '—'),
+            );
+          }),
+          ...(upcoming.length === 0 ? [el('div', { style: { color: 'var(--ink-3)', padding: '12px' } }, 'Nenhum plano preventivo disponível no filtro atual.')] : []),
+        ),
+      );
+    },
+
+    eam(cont) {
+      const mocks = window.ERP_MANUT_MOCKS || {};
+      const ITENS = mocks.ITENS_EAM || [];
+      const VALS  = mocks.VALORES_EAM || {};
+
+      // Persistent state across re-renders
+      const es = state._eamSt || (state._eamSt = { tipo: 'TS114', nivel: 'O', perIdx: 2, sub: 'matriz' });
+
+      // Dynamic periods from today
+      const hoje = new Date();
+      const yr   = hoje.getFullYear();
+      const jun  = new Date(yr, 5, 30);
+      const dez  = new Date(yr, 11, 31);
+      const diff = d => Math.max(7, Math.round((d - hoje) / 86400000));
+      const H_SEM = 40; // 8h/dia × 5 dias
+      const hMaq  = d => Math.round((d / 7) * H_SEM * 10) / 10;
+      const PERS  = [
+        { id: '1sem', label: '1 Semana', dias: 7 },
+        { id: '1mes', label: '1 Mês',    dias: 30 },
+        { id: 'jun',  label: '→ Jun',    dias: diff(jun) },
+        { id: 'dez',  label: '→ Dez',    dias: diff(dez) },
+      ];
+
+      const per   = PERS[es.perIdx];
+      const H     = hMaq(per.dias);
+      const ativos = filteredAtivos();
+      const nMaq  = Math.max(1, ativos.filter(a => a.tipo === es.tipo).length);
+      const hasEAM = ITENS.length > 0;
+
+      const TIPOS_LIST = Object.keys(mocks.TIPOS || {});
+
+      const fR = v => 'R$ ' + Number(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      const fH2 = h => Number(h).toFixed(1) + ' h';
+      const CAT_C = { corte: '#f59e0b', motor: '#3b82f6', rodagem: '#ef4444', eletrico: '#14b8a6', fixador: '#6b7280' };
+
+      function calcQtd(it, h) {
+        if (it.iv >= 9999) return nMaq;
+        return Math.max(1, Math.ceil((h / it.iv) * (it.qe || 1))) * nMaq;
+      }
+      function calcNivel(niv, h) {
+        const fn = { E: i => i.E, R: i => i.R, O: i => i.O }[niv];
+        const items = ITENS.filter(fn);
+        let total = 0;
+        const itens = items.map(it => {
+          const q = calcQtd(it, h); const c = Math.round(q * it.p * 100) / 100;
+          total += c; return { ...it, q, c };
+        });
+        return { total: Math.round(total * 100) / 100, itens };
+      }
+
+      // ── sub-tab renderers ─────────────────────────────────────────────────
+      function subMatriz() {
+        if (!hasEAM) return `<div style="padding:20px;color:var(--ink-3)">Dados EAM disponíveis apenas para TS114.</div>`;
+        const rows = PERS.map((p, i) => {
+          const h = hMaq(p.dias);
+          const E = calcNivel('E', h), R = calcNivel('R', h), O = calcNivel('O', h);
+          return { p, i, h, E, R, O };
+        });
+        const NL = { E: 'Essencial', R: 'Regular', O: 'Ótimo' };
+        const NC = { E: 'var(--amber)', R: 'var(--acc)', O: 'var(--green)' };
+        const cur = rows[es.perIdx];
+        let kpis = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+          ${['E','R','O'].map(n => `<div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;border-left:3px solid ${NC[n]}">
+            <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px">${NL[n]} · ${per.label}</div>
+            <div style="font-family:var(--font-mono);font-size:20px;color:${NC[n]};font-weight:700">${fR(cur[n].total)}</div>
+            <div style="font-size:11px;color:var(--ink-3)">${cur[n].itens.length} itens · ${nMaq} máq</div>
+          </div>`).join('')}
+        </div>`;
+
+        let matTable = `<div style="overflow-x:auto;margin-bottom:14px"><table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--panel)">
+            <th style="padding:7px 10px;text-align:left;font-size:10px;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line)">Período</th>
+            <th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line)">h/máq</th>
+            <th style="padding:7px 10px;text-align:right;color:var(--amber);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--line)">Essencial</th>
+            <th style="padding:7px 10px;text-align:right;color:var(--acc);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--line)">Regular</th>
+            <th style="padding:7px 10px;text-align:right;color:var(--green);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--line)">Ótimo</th>
+            <th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line)">R$/h frota</th>
+          </tr></thead><tbody>`;
+        rows.forEach(({ p, i, h, E, R, O }) => {
+          const sel = i === es.perIdx;
+          const bg = sel ? 'background:var(--bg2)' : '';
+          const cph = O.total / (h * nMaq);
+          matTable += `<tr style="${bg}" onclick="_eam.setPer(${i})" style="cursor:pointer">
+            <td style="padding:7px 10px;border-bottom:1px solid var(--line);font-weight:${sel?'700':'400'};cursor:pointer" onclick="_eam.setPer(${i})">${p.label} <span style="font-size:10px;color:var(--ink-3)">(${p.dias}d)</span></td>
+            <td style="padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono)">${fH2(h)}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--amber)">${fR(E.total)}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--acc)">${fR(R.total)}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--green);font-weight:${sel?'700':'400'}">${fR(O.total)}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--ink-3)">R$ ${cph.toFixed(2).replace('.',',')}</td>
+          </tr>`;
+        });
+        matTable += `</tbody></table></div>`;
+
+        const detNiv = es.nivel;
+        const det = calcNivel(detNiv, H);
+        const detTable = `<div style="font-size:13px;font-weight:600;margin-bottom:8px">Detalhamento · ${NL[detNiv]} · ${per.label}</div>
+          <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--panel)">
+            ${['Item','Cat.','UN','Intervalo','Qtd.','Pr.Unit.','Subtotal','% total'].map(h =>
+              `<th style="padding:6px 9px;text-align:${h==='Item'?'left':'right'};font-size:9px;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line)">${h}</th>`).join('')}
+          </tr></thead><tbody>
+          ${det.itens.sort((a,b)=>b.c-a.c).map(it => {
+            const pct = det.total > 0 ? Math.round(it.c / det.total * 100) : 0;
+            const cc = CAT_C[it.cat] || 'var(--ink-3)';
+            return `<tr>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line)">${it.d}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right"><span style="font-size:9px;padding:1px 5px;border-radius:4px;background:${cc}20;color:${cc}">${it.cat}</span></td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono)">${it.un}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--ink-3)">${it.iv >= 9999 ? 'fixo' : it.iv + 'h'}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);font-weight:700">${it.q}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--ink-2)">${fR(it.p)}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);font-weight:700">${fR(it.c)}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right"><div style="height:4px;background:var(--bg3);border-radius:2px;min-width:40px"><div style="height:100%;width:${pct}%;background:${NC[detNiv]};border-radius:2px"></div></div><span style="font-size:9px;color:var(--ink-3)">${pct}%</span></td>
+            </tr>`;
+          }).join('')}
+          <tr style="border-top:2px solid var(--line)">
+            <td colspan="6" style="padding:7px 9px;font-weight:700">TOTAL</td>
+            <td style="padding:7px 9px;text-align:right;font-family:var(--font-mono);font-weight:700;color:${NC[detNiv]}">${fR(det.total)}</td>
+            <td></td>
+          </tr></tbody></table></div>`;
+
+        return kpis + matTable + detTable;
+      }
+
+      function subDepreciacao() {
+        const tipo = es.tipo;
+        const vEAM = VALS[tipo];
+        if (!vEAM) return `<div style="padding:20px;color:var(--ink-3)">Sem dados de aquisição para ${tipo}.</div>`;
+        const { vAcq, vRes, vidaH } = vEAM;
+        const depH = (vAcq - vRes) / vidaH;
+        const H_ANO = H_SEM * 52;
+        const anosVida = Math.round(vidaH / H_ANO * 10) / 10;
+        const kpis = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+          ${[
+            ['Valor aquisição', fR(vAcq * nMaq), `${nMaq} × ${fR(vAcq)}`, 'var(--amber)'],
+            ['Dep./hora/máq',   `R$ ${depH.toFixed(2).replace('.',',')}`, 'por hora operada', 'var(--acc)'],
+            ['Vida útil',       `${vidaH} h`,  `≈ ${anosVida} anos`, 'var(--ink-2)'],
+            ['Valor residual',  fR(vRes * nMaq), `${nMaq} × ${fR(vRes)}`, 'var(--green)'],
+          ].map(([l,v,s,c]) => `<div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;border-left:3px solid ${c}">
+            <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px">${l}</div>
+            <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:${c}">${v}</div>
+            <div style="font-size:11px;color:var(--ink-3)">${s}</div>
+          </div>`).join('')}
+        </div>`;
+
+        const rows = PERS.map((p, i) => {
+          const h = hMaq(p.dias);
+          const dep = depH * h;
+          const vResAtual = Math.max(0, vAcq - dep);
+          const pct = Math.min(100, Math.round(h / vidaH * 100));
+          const depFrota = dep * nMaq;
+          const manut = hasEAM ? calcNivel('O', h).total : 0;
+          return { p, h, dep, vResAtual, pct, depFrota, manut, total: depFrota + manut };
+        });
+
+        const table = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--panel)">
+            ${['Período','h/máq','% Vida','Dep./máq','Val.Residual','Dep. frota','Manutenção (Ótimo)','Total c/Dep'].map(h =>
+              `<th style="padding:7px 9px;text-align:${h==='Período'?'left':'right'};font-size:9px;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line)">${h}</th>`).join('')}
+          </tr></thead><tbody>
+          ${rows.map(({ p, h, dep, vResAtual, pct, depFrota, manut, total }) => {
+            const c = pct > 50 ? 'var(--red)' : pct > 25 ? 'var(--amber)' : 'var(--green)';
+            return `<tr>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);font-weight:600;color:var(--acc)">${p.label}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono)">${fH2(h)}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right"><div style="height:4px;background:var(--bg3);border-radius:2px;min-width:40px"><div style="height:100%;width:${pct}%;background:${c};border-radius:2px"></div></div><span style="font-size:9px;color:${c}">${pct}%</span></td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--amber)">${fR(dep)}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono)">${fR(vResAtual)}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--red)">${fR(depFrota)}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--green)">${manut > 0 ? fR(manut) : '—'}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);font-weight:700;color:var(--purple)">${fR(total)}</td>
+            </tr>`;
+          }).join('')}
+          </tbody></table></div>`;
+        return kpis + table;
+      }
+
+      function subEstoque() {
+        if (!hasEAM) return `<div style="padding:20px;color:var(--ink-3)">Dados EAM disponíveis apenas para TS114.</div>`;
+        const det = calcNivel(es.nivel, H);
+        const NL = { E: 'Essencial', R: 'Regular', O: 'Ótimo' };
+        const NC = { E: 'var(--amber)', R: 'var(--acc)', O: 'var(--green)' };
+
+        const kpis = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+          ${[
+            ['Total necessário', fR(det.total), `${det.itens.length} itens`, NC[es.nivel]],
+            ['Item mais caro',   det.itens.sort((a,b)=>b.c-a.c)[0]?.d || '—', fR(det.itens[0]?.c || 0), 'var(--amber)'],
+            ['Custo/h frota',   `R$ ${(det.total / (H * nMaq)).toFixed(2).replace('.',',')}`, `${fH2(H)} × ${nMaq} máq`, 'var(--acc)'],
+          ].map(([l,v,s,c]) => `<div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;border-left:3px solid ${c}">
+            <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px">${l}</div>
+            <div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:${c};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v}</div>
+            <div style="font-size:11px;color:var(--ink-3)">${s}</div>
+          </div>`).join('')}
+        </div>`;
+
+        const table = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--panel)">
+            ${['Item','UN','Qtd.Nec.','Est.Seg.20%','Pto.Repos.','Pr.Unit.','Total','Urgência'].map(h =>
+              `<th style="padding:6px 9px;text-align:${h==='Item'?'left':'right'};font-size:9px;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line)">${h}</th>`).join('')}
+          </tr></thead><tbody>
+          ${det.itens.sort((a,b)=>b.c-a.c).map(it => {
+            const seg = Math.ceil(it.q * 0.2);
+            const pr = it.q + seg;
+            const pct = det.total > 0 ? Math.round(it.c / det.total * 100) : 0;
+            const urg = pct >= 15 ? `<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:var(--red)20;color:var(--red)">ALTO ${pct}%</span>`
+                       : pct >= 5  ? `<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:var(--amber)20;color:var(--amber)">MED ${pct}%</span>`
+                       :             `<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:var(--acc)20;color:var(--acc)">BAIXO ${pct}%</span>`;
+            return `<tr>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line)">${it.d}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono)">${it.un}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);font-weight:700;color:${NC[es.nivel]}">${it.q}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--amber)">${seg}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--acc)">${pr}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--ink-2)">${fR(it.p)}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);font-weight:700">${fR(it.c)}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right">${urg}</td>
+            </tr>`;
+          }).join('')}
+          </tbody></table></div>`;
+        return kpis + table;
+      }
+
+      function subCronograma() {
+        const tipo = es.tipo;
+        const tipoObj = (mocks.TIPOS || {})[tipo];
+        if (!tipoObj) return `<div style="padding:20px;color:var(--ink-3)">Tipo não encontrado.</div>`;
+        const hoje2 = new Date();
+        const H_TOT = hMaq(PERS[3].dias); // até Dez
+        const eventos = [];
+        (tipoObj.plano || []).forEach(m => {
+          let h = m.iv;
+          while (h <= H_TOT) {
+            const diasOffset = Math.round((h / H_SEM) * 7);
+            const dt = new Date(hoje2.getTime() + diasOffset * 86400000);
+            eventos.push({ m, h, dt, sem: Math.ceil(h / H_SEM) });
+            h += m.iv;
+          }
+        });
+        eventos.sort((a, b) => a.h - b.h);
+        const bySem = {};
+        eventos.forEach(e => { if (!bySem[e.sem]) bySem[e.sem] = []; bySem[e.sem].push(e); });
+
+        const ST_C = { 'danger':'var(--red)', 'warn':'var(--amber)', 'proximo':'var(--acc)', 'ok':'var(--green)' };
+        const allAtivos = ativos.filter(a => a.tipo === tipo);
+
+        // Frota status summary
+        let frotaHtml = '';
+        if (allAtivos.length > 0) {
+          frotaHtml = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">` +
+            allAtivos.map(a => {
+              const pr = calcProxManut(a);
+              const danger = pr.filter(p => p.st === 'danger').length;
+              const warn   = pr.filter(p => p.st === 'warn').length;
+              const hist   = getHistUnit(a.id);
+              return `<div style="background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:8px 12px;font-size:12px;min-width:140px">
+                <div style="font-weight:600">${a.nome || a.cod}</div>
+                <div style="font-family:var(--font-mono);font-size:11px;color:var(--acc)">${fH2(hist.hor)}</div>
+                ${danger > 0 ? `<span style="font-size:9px;background:var(--red)20;color:var(--red);padding:1px 5px;border-radius:3px">${danger} vencida</span>` : ''}
+                ${warn   > 0 ? `<span style="font-size:9px;background:var(--amber)20;color:var(--amber);padding:1px 5px;border-radius:3px;margin-left:3px">${warn} urgente</span>` : ''}
+              </div>`;
+            }).join('') + `</div>`;
+        }
+
+        const cronTable = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--panel)">
+            ${['Horímetro','Data aprox.','Semana','Manutenção','Intervalo'].map(h =>
+              `<th style="padding:6px 9px;text-align:left;font-size:9px;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line)">${h}</th>`).join('')}
+          </tr></thead><tbody>
+          ${eventos.slice(0, 60).map(e => {
+            const dtStr = e.dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            const hEAM = hasEAM ? ITENS.find(it => e.m.its?.some(s => it.d.includes(s.split(' ')[0]))) : null;
+            return `<tr>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);font-family:var(--font-mono);color:var(--amber)">${e.h} h</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);font-family:var(--font-mono)">${dtStr}/${yr}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);color:var(--ink-3)">S${e.sem}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);font-weight:500">${e.m.n}</td>
+              <td style="padding:6px 9px;border-bottom:1px solid var(--line);font-family:var(--font-mono);color:var(--ink-3)">${e.m.iv} h</td>
+            </tr>`;
+          }).join('')}
+          ${eventos.length > 60 ? `<tr><td colspan="5" style="padding:6px 9px;color:var(--ink-3);font-size:11px">... e mais ${eventos.length - 60} eventos</td></tr>` : ''}
+          </tbody></table></div>`;
+
+        const semBars = Object.entries(bySem).sort((a,b)=>Number(a[0])-Number(b[0])).slice(0,16);
+        const maxSem = Math.max(1, ...semBars.map(([,v])=>v.length));
+        const barChart = `<div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px">Eventos por semana (1 máquina)</div>
+          ${semBars.map(([s, evs]) => {
+            const pct = Math.round(evs.length / maxSem * 100);
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <div style="font-size:10px;color:var(--ink-2);width:60px;flex-shrink:0">Sem.${s}</div>
+              <div style="flex:1;height:12px;background:var(--panel);border-radius:3px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:var(--acc)66;border-radius:3px;display:flex;align-items:center;padding-left:4px">
+                  <span style="font-size:9px;color:var(--acc);font-weight:700">${evs.length}</span>
+                </div>
+              </div>
+              <div style="font-size:9px;color:var(--ink-3);width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${evs.map(e=>e.m.n.split(' ')[0]).join(', ')}</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+
+        return frotaHtml + barChart + cronTable;
+      }
+
+      function subMetricas() {
+        const MTBF = 150, MTTR = 2.5;
+        const disp = (MTBF / (MTBF + MTTR) * 100).toFixed(1);
+        const kpis = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+          ${[
+            ['MTBF estimado','~150 h','Entre falhas não programadas','var(--green)'],
+            ['MTTR estimado','~2,5 h','Tempo médio de reparo','var(--amber)'],
+            ['Disponibilidade',disp+'%','MTBF/(MTBF+MTTR)×100','var(--acc)'],
+            ['OEE estimado','≥ 85%','Com manutenção preventiva ótima','var(--ink-2)'],
+          ].map(([l,v,s,c]) => `<div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;border-left:3px solid ${c}">
+            <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px">${l}</div>
+            <div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:${c}">${v}</div>
+            <div style="font-size:11px;color:var(--ink-3)">${s}</div>
+          </div>`).join('')}
+        </div>`;
+
+        // Cost per hour by period and level
+        if (!hasEAM) return kpis + `<div style="color:var(--ink-3);font-size:13px">Adicione ITENS_EAM para análise de custo por hora.</div>`;
+        const catTotals = {};
+        const detO = calcNivel('O', H);
+        detO.itens.forEach(it => { catTotals[it.cat] = (catTotals[it.cat] || 0) + it.c; });
+        const grandTotal = Object.values(catTotals).reduce((a,b)=>a+b, 0);
+        const cats = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+        const maxCat = cats.length ? cats[0][1] : 1;
+
+        const distBar = `<div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:14px">
+          <div style="font-weight:600;margin-bottom:10px;font-size:13px">Distribuição de custo por categoria · ${per.label} · Ótimo</div>
+          ${cats.map(([cat, v]) => {
+            const pct = Math.round(v / maxCat * 100);
+            const ptot = grandTotal > 0 ? Math.round(v / grandTotal * 100) : 0;
+            const cc = CAT_C[cat] || 'var(--ink-3)';
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+              <div style="font-size:11px;color:var(--ink-2);width:80px;text-transform:capitalize;flex-shrink:0">${cat}</div>
+              <div style="flex:1;height:14px;background:var(--bg3);border-radius:3px;overflow:hidden">
+                <div style="width:${pct}%;height:100%;background:${cc}88;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px">
+                  <span style="font-size:9px;color:#fff;font-weight:700">${ptot}%</span>
+                </div>
+              </div>
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--ink-3);width:90px;text-align:right;flex-shrink:0">${fR(v)}</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+
+        const cphTable = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--panel)">
+            ${['Período','Dias','h/máq','Essencial','Regular','Ótimo','R$/h (frota,Ótimo)'].map(h =>
+              `<th style="padding:7px 9px;text-align:${h==='Período'?'left':'right'};font-size:9px;color:var(--ink-3);text-transform:uppercase;border-bottom:1px solid var(--line)">${h}</th>`).join('')}
+          </tr></thead><tbody>
+          ${PERS.map(p => {
+            const h = hMaq(p.dias);
+            const E = calcNivel('E',h), R = calcNivel('R',h), O = calcNivel('O',h);
+            const cph = (O.total / (h * nMaq)).toFixed(2).replace('.',',');
+            return `<tr>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);font-weight:600;color:var(--acc)">${p.label}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;color:var(--ink-3)">${p.dias}d</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono)">${fH2(h)}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--amber)">${fR(E.total)}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--acc)">${fR(R.total)}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--green)">${fR(O.total)}</td>
+              <td style="padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--ink-2)">R$ ${cph}/h</td>
+            </tr>`;
+          }).join('')}
+          </tbody></table></div>`;
+
+        return kpis + distBar + cphTable;
+      }
+
+      const SUBS_EAM = {
+        matriz: subMatriz, depreciacao: subDepreciacao, estoque: subEstoque, cronograma: subCronograma, metricas: subMetricas,
+      };
+      const SUB_TABS = [
+        { id: 'matriz',      label: '🗂 Matriz' },
+        { id: 'depreciacao', label: '📉 Depreciação' },
+        { id: 'estoque',     label: '📦 Estoque' },
+        { id: 'cronograma',  label: '📅 Cronograma' },
+        { id: 'metricas',    label: '📊 Métricas' },
+      ];
+
+      // Bridge for onclick in innerHTML
+      window._eam = {
+        setPer:    i  => { es.perIdx = i;  RENDERERS.eam(cont); },
+        setNivel:  n  => { es.nivel = n;   RENDERERS.eam(cont); },
+        setTipo:   t  => { es.tipo = t;    RENDERERS.eam(cont); },
+        setSub:    s  => { es.sub = s;     RENDERERS.eam(cont); },
+      };
+
+      const NL = { E: 'Essencial', R: 'Regular', O: 'Ótimo' };
+      const NC = { E: 'var(--amber)', R: 'var(--acc)', O: 'var(--green)' };
+
+      const ctrl = `
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px">
+          <select onchange="_eam.setTipo(this.value)" style="padding:5px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:12px">
+            ${TIPOS_LIST.map(t => `<option value="${t}" ${t===es.tipo?'selected':''}>${t}${VALS[t]?' ★':''}</option>`).join('')}
+          </select>
+          <span style="font-size:11px;color:var(--ink-3)">${nMaq} máquina(s) no filtro</span>
+          <div style="display:flex;gap:3px;flex-shrink:0">
+            ${PERS.map((p,i) => `<button onclick="_eam.setPer(${i})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:${i===es.perIdx?'var(--acc)':'var(--panel)'};color:${i===es.perIdx?'#fff':'var(--ink-2)'};cursor:pointer;font-size:11px">${p.label}</button>`).join('')}
+          </div>
+          <div style="display:flex;gap:3px;flex-shrink:0">
+            ${['E','R','O'].map(n => `<button onclick="_eam.setNivel('${n}')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:${n===es.nivel?NC[n]:'var(--panel)'};color:${n===es.nivel?'#fff':'var(--ink-2)'};cursor:pointer;font-size:11px">${NL[n]}</button>`).join('')}
+          </div>
+        </div>
+        <div style="display:flex;gap:3px;margin-bottom:14px">
+          ${SUB_TABS.map(t => `<button onclick="_eam.setSub('${t.id}')" style="padding:5px 12px;border-radius:6px;border:none;background:${t.id===es.sub?'var(--panel)':'transparent'};color:${t.id===es.sub?'var(--ink)':'var(--ink-2)'};box-shadow:${t.id===es.sub?'inset 0 -2px 0 var(--acc)':'none'};cursor:pointer;font-size:12px">${t.label}</button>`).join('')}
+        </div>`;
+
+      const subContent = SUBS_EAM[es.sub]?.() || '';
+      const { el } = window.engine.utils;
+      const wrap = el('div');
+      wrap.innerHTML = ctrl + subContent;
+      cont.replaceChildren(wrap);
+    },
+
+    config(cont) {
+      const { el } = window.engine.utils;
+      const quals = window.ERP_MANUT_MOCKS?.qualificacoes_catalogo || [];
+      cont.replaceChildren(
+        el('div', { style: { fontWeight: '600', fontSize: '15px', marginBottom: '12px' } }, 'Qualificações requeridas'),
+        el('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: '10px' } },
+          ...quals.map(q => el('div', { style: {
+            padding: '10px 14px', background: 'var(--panel)',
+            border: '1px solid var(--line)', borderRadius: '8px', fontSize: '13px',
+          } },
+            el('div', { style: { fontWeight: '600', marginBottom: '4px' } }, q.nome),
+            el('div', { style: { color: 'var(--ink-3)', fontSize: '11px' } }, `Código: ${q.codigo}`),
+            el('div', { style: { fontSize: '11px', marginTop: '4px', display: 'flex', gap: '4px', flexWrap: 'wrap' } },
+              window.engine.badge(`${q.usuarios} usuário(s)`, 'blue'),
+              ...(q.requer_validade ? [window.engine.badge('validade', 'amber')] : []),
+            ),
+          ))),
+      );
     },
   };
 
@@ -417,16 +1135,54 @@
 
   function openOsDrawer(os) {
     const { el } = window.engine.utils;
+    const statusColor = { concluida: 'green', cancelada: 'red', em_execucao: 'blue', pronto: 'blue' };
+    const campos = [
+      ['Código', os.codigo || os.id],
+      ['Tipo', os.tipo || '—'],
+      ['Status', os.status],
+      ['Prioridade', os.prioridade || 'normal'],
+      ['Ativo vinculado', os.ativo_id || os.ativoId || '—'],
+      ['Responsável', os.responsavel || '—'],
+      ['Abertura', os.data_abertura || os.abertura || '—'],
+      ['Conclusão', os.data_conclusao || os.dataConclusao || '—'],
+      ['Origem', os.origem || os.modulo_origem || 'manual'],
+      ['Plano vinculado', os.planoId || os.plano_id || '—'],
+      ['Materiais/Peças', os.pecas || os.materiais || '—'],
+    ];
+    const trans = (OS_TRANSICOES[os.status] || []);
     const m = window.engine.modal({
-      title: `${os.codigo || os.id} · ${os.titulo || ''}`,
+      title: `${os.codigo || os.id} — ${os.titulo || os.descricao?.slice(0, 50) || ''}`,
       body: el('div', {},
-        ...Object.entries(os).map(([k, v]) =>
-          el('div', { style: { display: 'flex', gap: '8px', padding: '4px 0', borderBottom: '1px solid var(--line)' } },
-            el('div', { style: { color: 'var(--ink-3)', minWidth: '140px' } }, k),
-            el('div', {}, v == null ? '—' : String(v)),
-          )),
+        el('div', { style: { marginBottom: '10px' } },
+          window.engine.badge(os.status, statusColor[os.status] || 'amber'),
+          os.prioridade === 'urgente' || os.prioridade === 'alta' ? el('span', { style: { marginLeft: '6px' } }, window.engine.badge(os.prioridade, 'red')) : null,
+        ),
+        os.titulo || os.descricao ? el('div', { style: { padding: '8px 10px', background: 'var(--bg3)', borderRadius: '6px', fontSize: '13px', marginBottom: '12px' } }, os.titulo || os.descricao) : null,
+        el('div', { style: { fontSize: '13px' } },
+          ...campos.filter(([, v]) => v && v !== '—').map(([k, v]) => el('div', {
+            style: { display: 'flex', gap: '8px', padding: '5px 0', borderBottom: '1px solid var(--line)' },
+          }, el('div', { style: { color: 'var(--ink-3)', minWidth: '160px', flexShrink: 0 } }, k),
+             el('div', {}, String(v))))),
       ),
-      footer: [el('button', { class: 'pe-btn pe-btn--primary', onclick: () => m.close() }, 'Fechar')],
+      footer: [
+        ...trans.map(t => el('button', { class: 'pe-btn pe-btn--primary', onclick: async () => {
+          try {
+            const r = await fetch(`/api/os/${os.id}/status`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: t }),
+            });
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            os.status = t;
+            const cached = state.cache.os?.data;
+            if (cached) { const idx = cached.findIndex(x => x.id === os.id); if (idx >= 0) cached[idx].status = t; }
+            toast(`OS → ${t}`, 'green');
+            m.close();
+            state.tabDirty.os = true;
+            if (state.activeTab === 'os') RENDERERS.os(document.getElementById('manut-tab-content'));
+          } catch (e) { toast(`Falha: ${e.message}`, 'red'); }
+        } }, `→ ${t}`)),
+        el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Fechar'),
+      ],
     });
     m.open();
   }
@@ -445,112 +1201,630 @@
     setTimeout(() => t.remove(), 5000);
   }
 
+  // ── helpers de formatação local ─────────────────────────────────────────
+  const fH = h => `${Number(h || 0).toFixed(1)} h`;
+  const fD = iso => iso ? new Date(iso).toLocaleDateString('pt-BR') : '–';
+  const fDT = iso => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–';
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+
+  const SC = { danger: 'var(--red)', warn: 'var(--amber)', proximo: 'var(--acc)', ok: 'var(--green)' };
+  const SC2 = { danger: 'rd', warn: 'am', proximo: 'bl', ok: 'gn' };
+  const SL = { danger: 'VENCIDA', warn: 'URGENTE', proximo: 'PRÓXIMA', ok: 'EM DIA' };
+
+  function badgeHtml(st, txt) {
+    const colors = { danger: '#ef4444', warn: '#f59e0b', proximo: '#00b4d8', ok: '#22c55e' };
+    const c = colors[st] || colors.ok;
+    return `<span style="display:inline-flex;align-items:center;padding:2px 7px;border-radius:9999px;font-size:9px;font-weight:700;font-family:var(--font-mono);background:${c}22;color:${c};border:1px solid ${c}55">${txt || SL[st] || st}</span>`;
+  }
+
+  // ── Drawer de ativo: 5 abas (Status / Uso / Manutenção / Histórico / Combustível) ──
   function openAtivoDrawer(ativo) {
-    const { el, fmt } = window.engine.utils;
-    const planos = (window.ERP_MANUT_MOCKS?.planos_manutencao || [])
-      .filter(p => p.ativo_id === ativo.id || (p.tipo_codigo && p.tipo_codigo === ativo.tipo));
-    const osDoAtivo = (state.cache.os?.data || []).filter(o => o.ativo_id === ativo.id);
-    // Frota vinculada: veículo com ativoId === ativo.id
-    const frotaVin = (window.getFrota?.() || []).find(f => f.ativoId === ativo.id);
+    const { el } = window.engine.utils;
+    const tipo = window.ERP_MANUT_MOCKS?.TIPOS?.[ativo.tipo];
+    let pr = calcProxManut(ativo);
+    let activeSub = 'status';
+    const subBody = el('div', { style: { marginTop: '10px', maxHeight: '60vh', overflowY: 'auto' } });
 
-    function dadosView() {
-      const rows = [
-        ['Código', ativo.codigo || ativo.id],
-        ['Nome', ativo.nome],
-        ['Categoria', ativo.categoria || '—'],
-        ['Tipo', ativo.tipo || '—'],
-        ['Fabricante', ativo.fabricante || '—'],
-        ['Modelo', ativo.modelo || '—'],
-        ['Série', ativo.serie || '—'],
-        ['Ano', ativo.ano || '—'],
-        ['Uso atual', `${fmt.num(ativo.uso_atual, 1)} ${ativo.unidade_uso || 'h'}`],
-        ['Criticidade', ativo.criticidade || '—'],
-        ['Responsável PMOC', ativo.responsavel_pmoc || '—'],
-        ['Status', ativo.status || '—'],
-        ['Observações', ativo.observacoes || '—'],
-      ];
-      const tbl = el('div', { style: { fontSize: '13px' } },
-        ...rows.map(([k, v]) => el('div', {
-          style: { display: 'flex', gap: '8px', padding: '5px 0', borderBottom: '1px solid var(--line)' },
-        }, el('div', { style: { color: 'var(--ink-3)', minWidth: '160px', flexShrink: 0 } }, k),
-           el('div', { style: { color: 'var(--ink)' } }, String(v || '—')))),
-      );
-      // Frota vinculada
-      if (frotaVin) {
-        const badge = { P: '🟢 Pronto', OR: '🔵 Em uso', INOP: '🔴 Inoperante', MANUT: '🟡 Em manutenção' };
-        tbl.appendChild(el('div', {
-          style: { marginTop: '12px', padding: '10px', background: 'var(--bg3)',
-            borderRadius: '8px', border: '1px solid var(--line)' },
-        },
-          el('div', { style: { fontSize: '11px', color: 'var(--ink-3)', textTransform: 'uppercase',
-            letterSpacing: '.6px', marginBottom: '6px' } }, 'Veículo vinculado'),
-          el('div', { style: { fontWeight: '600', color: 'var(--ink)' } }, frotaVin.nome),
-          el('div', { style: { fontSize: '12px', color: 'var(--ink-2)', marginTop: '2px' } },
-            `${frotaVin.placa || frotaVin.id} · ${frotaVin.modelo || ''} · Km/Hr: ${(frotaVin.km || 0).toLocaleString()}`),
-          el('div', { style: { fontSize: '12px', marginTop: '4px' } },
-            badge[frotaVin.status] || frotaVin.status),
-        ));
-      }
-      return tbl;
+    // ── Bridge global para os onclick handlers no innerHTML ─────────────────
+    window._manutD = {
+      uid: ativo.id,
+      getHist: () => getHistUnit(ativo.id),
+      saveHist: h => { saveHistUnit(ativo.id, h); pr = calcProxManut(ativo); },
+      refresh: () => { refreshTabBar(); renderSub(); state.tabDirty.ativos = state.tabDirty.dashboard = true; },
+      regUso: () => {
+        const h_in = parseFloat(document.getElementById('_md-h')?.value);
+        const op = document.getElementById('_md-op')?.value;
+        const c = parseFloat(document.getElementById('_md-c')?.value) || 0;
+        const obs = document.getElementById('_md-obs')?.value || '';
+        const data = document.getElementById('_md-data')?.value || todayISO();
+        if (!h_in || h_in <= 0) { toast('Informe as horas trabalhadas', 'amber'); return; }
+        if (!op) { toast('Selecione o operador', 'amber'); return; }
+        const hist = window._manutD.getHist();
+        hist.regs.push({ id: 'r' + Date.now(), dt: new Date().toISOString(), h: h_in, c, op, obs, data });
+        hist.hor = Math.round((hist.hor + h_in) * 10) / 10;
+        // Sync horimetro ao ativo no ERP
+        if (typeof window.getAtivos === 'function' && typeof window.saveAtivos === 'function') {
+          const ativos = window.getAtivos();
+          const idx = ativos.findIndex(a => a.id === ativo.id);
+          if (idx >= 0) { ativos[idx].horimetro = hist.hor; window.saveAtivos(ativos); }
+        }
+        window._manutD.saveHist(hist);
+        window._manutD.refresh();
+        toast(`Uso registrado: +${h_in}h | Horímetro: ${fH(hist.hor)}`, 'green');
+      },
+      regManut: () => {
+        const resp = document.getElementById('_md-resp')?.value;
+        const data = document.getElementById('_md-mdata')?.value || todayISO();
+        const obs = document.getElementById('_md-mobs')?.value || '';
+        const sels = [...document.querySelectorAll('._md-mc:checked')].map(c => c.value);
+        if (!sels.length) { toast('Selecione ao menos um serviço', 'amber'); return; }
+        if (!resp) { toast('Informe o responsável', 'amber'); return; }
+        const hist = window._manutD.getHist();
+        const ulm = { ...hist.ulm };
+        sels.forEach(pid => { ulm[pid] = hist.hor; });
+        hist.ulm = ulm;
+        const servicos = sels
+          .map(pid => tipo?.plano?.find(p => p.id === pid))
+          .filter(Boolean)
+          .map(planoItem => {
+            const svc = derivePlanoServico(ativo.tipo, planoItem) || { nome: planoItem.n, materiais: [] };
+            return {
+              id: svc.id,
+              plano_id: planoItem.id,
+              nome: svc.nome,
+              intervalo_h: planoItem.iv,
+              materiais: (svc.materiais || []).map(material => ({ ...material })),
+            };
+          });
+        const materiais = servicos.flatMap(servico => servico.materiais || []);
+        const nomes = servicos.map(servico => servico.nome).filter(Boolean);
+        hist.manut.push({
+          id: 'm' + Date.now(),
+          data,
+          h: hist.hor,
+          resp,
+          itens: nomes,
+          servicos,
+          materiais,
+          obs,
+        });
+        window._manutD.saveHist(hist);
+        window._manutD.refresh();
+        toast(`Manutenção registrada: ${nomes.slice(0, 2).join(', ')}${nomes.length > 2 ? '…' : ''}`, 'green');
+      },
+      delReg: (rid) => {
+        if (!confirm('Remover este registro de uso?')) return;
+        const hist = window._manutD.getHist();
+        const r = hist.regs.find(x => x.id === rid);
+        if (r) { hist.hor = Math.round((hist.hor - r.h) * 10) / 10; hist.regs = hist.regs.filter(x => x.id !== rid); }
+        window._manutD.saveHist(hist);
+        window._manutD.refresh();
+      },
+      delManut: (mid) => {
+        if (!confirm('Remover este registro de manutenção?')) return;
+        const hist = window._manutD.getHist();
+        hist.manut = hist.manut.filter(x => x.id !== mid);
+        window._manutD.saveHist(hist);
+        window._manutD.refresh();
+      },
+    };
+
+    function subStatus() {
+      const hist = getHistUnit(ativo.id);
+      const vc = pr.filter(p => p.st === 'danger').length;
+      const ur = pr.filter(p => p.st === 'warn' || p.st === 'proximo').length;
+      const cT = (hist.regs || []).reduce((s, r) => s + (r.c || 0), 0);
+      return `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px">
+            <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Horímetro</div>
+            <div style="font-family:var(--font-mono);font-size:22px;color:var(--acc);font-weight:700">${fH(hist.hor)}</div>
+          </div>
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px">
+            <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Alertas</div>
+            <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:${vc > 0 ? 'var(--red)' : ur > 0 ? 'var(--amber)' : 'var(--green)'}">${vc + ur}</div>
+          </div>
+        </div>
+        ${pr.length === 0 ? `<div style="color:var(--ink-3);font-size:13px;padding:12px">Sem plano de manutenção para tipo "${ativo.tipo || '—'}".<br>Cadastre o tipo do ativo para ativar o plano preventivo.</div>` : pr.map(p => {
+          const barC = SC[p.st] || 'var(--green)';
+          return `<div style="padding:9px 11px;border-radius:7px;border:1px solid ${barC}33;background:${p.st === 'danger' ? 'rgba(239,68,68,.08)' : p.st === 'warn' ? 'rgba(245,158,11,.08)' : 'var(--panel)'};margin-bottom:7px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:12px;font-weight:600">${p.n}</span>
+              ${badgeHtml(p.st)}
+            </div>
+            <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:4px">
+              <div style="width:${p.pct}%;height:100%;background:${barC};border-radius:3px;transition:width .4s"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);font-family:var(--font-mono)">
+              <span>Última: ${p.ult > 0 ? fH(p.ult) : 'Nunca'} · A cada ${p.iv} h</span>
+              <span style="color:${barC};font-weight:600">${p.st === 'danger' ? `⚠ Vencida há ${Math.abs(p.falt).toFixed(0)} h` : `Próx. ${p.prox.toFixed(0)} h (faltam ${p.falt.toFixed(0)} h)`}</span>
+            </div>
+          </div>`;
+        }).join('')}
+        ${hist.manut.length > 0 ? `<div style="margin-top:12px;font-size:12px;font-weight:600;margin-bottom:6px;color:var(--ink-3)">Últimas manutenções</div>
+        ${[...hist.manut].reverse().slice(0, 3).map(m => `
+          <div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:12px">
+            <div style="font-weight:600">${fD(m.data)} — ${m.resp}</div>
+            <div style="color:var(--ink-3);margin-top:1px">${getManutServicoLabels(m).slice(0, 3).join(', ')}${getManutServicoLabels(m).length > 3 ? '…' : ''}</div>
+            ${getManutMaterialLabels(m).length ? `<div style="color:var(--ink-3);margin-top:2px;font-size:11px">Materiais: ${getManutMaterialLabels(m).slice(0, 3).join(', ')}${getManutMaterialLabels(m).length > 3 ? '…' : ''}</div>` : ''}
+          </div>`).join('')}` : ''}`;
     }
 
-    function planosView() {
-      if (!planos.length) return el('div', { style: { color: 'var(--ink-3)', fontSize: '13px' } }, 'Sem planos vinculados.');
-      return el('ul', { style: { paddingLeft: '18px', fontSize: '13px', lineHeight: '1.8' } },
-        ...planos.map(p => el('li', {}, `${p.servico_id} · ${JSON.stringify(p.frequencia)} · próx ${p.proxima_execucao}`)));
+    function subUso() {
+      const hist = getHistUnit(ativo.id);
+      const recent = [...(hist.regs || [])].reverse().slice(0, 8);
+      const vc = pr.filter(p => p.st === 'danger' || p.st === 'warn').length;
+      return `
+        <div style="margin-bottom:13px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px">
+            <div><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Data *</label>
+              <input class="form-inp" id="_md-data" type="date" value="${todayISO()}" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink)"></div>
+            <div><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Horas trabalhadas *</label>
+              <input class="form-inp" id="_md-h" type="number" min="0.1" step="0.1" placeholder="0.0" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink)"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:9px">
+            <div><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Combustível (L)</label>
+              <input class="form-inp" id="_md-c" type="number" min="0" step="0.5" placeholder="0.0" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink)"></div>
+            <div><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Operador *</label>
+              <select id="_md-op" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink)">
+                <option value="">Selecionar…</option>
+                <option>Luciano Ferreira</option><option>Carlos Silva</option>
+                <option>João Mendes</option><option>Pedro Santos</option><option>Maria Oliveira</option><option>[Outro]</option>
+              </select></div>
+          </div>
+          <div style="margin-bottom:9px"><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Observações / Área trabalhada</label>
+            <textarea id="_md-obs" rows="2" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink);resize:vertical"></textarea></div>
+          ${vc > 0 ? `<div style="padding:8px 12px;border-radius:6px;background:rgba(245,158,11,.12);border:1px solid var(--amber);color:var(--amber);font-size:11px;margin-bottom:9px">⚠️ Esta unidade tem ${vc} manutenção(ões) vencida(s)/urgente(s). Verifique antes de operar.</div>` : ''}
+          <button class="btn btn-primary" onclick="_manutD.regUso()" style="padding:7px 16px;font-size:12px">➕ Registrar Uso</button>
+        </div>
+        ${recent.length > 0 ? `<div style="font-size:12px;font-weight:600;color:var(--ink-3);margin-bottom:6px">Registros recentes</div>
+        ${recent.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px">
+          <div><span style="font-weight:600">${fD(r.data || r.dt?.slice(0,10))}</span><span style="color:var(--ink-3);margin-left:7px">${r.op}</span></div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <span style="color:var(--acc);font-family:var(--font-mono);font-weight:700">${fH(r.h)}</span>
+            ${r.c ? `<span style="color:var(--amber);font-family:var(--font-mono)">${r.c} L</span>` : ''}
+            <button onclick="_manutD.delReg('${r.id}')" style="background:none;border:none;cursor:pointer;color:var(--ink-3);font-size:12px;padding:2px 6px" title="Remover">✕</button>
+          </div>
+        </div>`).join('')}` : ''}`;
     }
 
-    function osView() {
-      if (!osDoAtivo.length) return el('div', { style: { color: 'var(--ink-3)', fontSize: '13px' } }, 'Sem OS para este ativo.');
-      return el('div', { style: { fontSize: '13px' } },
-        ...osDoAtivo.map(o => {
-          const pecasText = o.pecas || o.materiais || '';
-          return el('div', {
-            style: { padding: '10px', marginBottom: '8px', background: 'var(--bg3)',
-              borderRadius: '8px', border: '1px solid var(--line)' },
-          },
-            el('div', { style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px' } },
-              el('span', { style: { fontWeight: '600', fontFamily: 'var(--font-mono)' } }, o.codigo || o.id),
-              window.engine.badge(o.status, o.status === 'concluida' ? 'green' : o.status === 'cancelada' ? 'red' : 'amber'),
-            ),
-            el('div', { style: { color: 'var(--ink)' } }, o.titulo || '—'),
-            o.data_abertura ? el('div', { style: { fontSize: '11px', color: 'var(--ink-3)', marginTop: '3px' } },
-              `Aberta: ${fmt.date(o.data_abertura)}${o.data_conclusao ? ' · Concluída: ' + fmt.date(o.data_conclusao) : ''}`) : null,
-            o.responsavel ? el('div', { style: { fontSize: '11px', color: 'var(--ink-3)' } },
-              `Responsável: ${o.responsavel}`) : null,
-            pecasText ? el('div', { style: { fontSize: '11px', color: 'var(--ink-2)',
-              marginTop: '4px', padding: '4px 8px', background: 'var(--bg2)',
-              borderRadius: '4px', borderLeft: '2px solid var(--amber)' } },
-              `Materiais/Peças: ${pecasText}`) : null,
-          );
-        }),
-      );
+    function subManut() {
+      const hist = getHistUnit(ativo.id);
+      if (!tipo) return `<div style="color:var(--ink-3);font-size:13px;padding:12px">Tipo "${ativo.tipo || '—'}" não tem plano cadastrado.<br>Edite o ativo e defina o tipo correto para ativar o plano preventivo.</div>`;
+      const urgentes = [...new Set(pr.filter(p => p.st === 'danger' || p.st === 'warn').flatMap(p => p.its))];
+      return `
+        <div style="padding:8px 12px;border-radius:6px;background:rgba(0,180,216,.12);border:1px solid var(--acc);font-size:12px;margin-bottom:11px">
+          Horímetro atual: <strong style="color:var(--acc);font-family:var(--font-mono)">${fH(hist.hor)}</strong> — Marque os serviços executados
+        </div>
+        ${pr.map(p => `<label id="_ml-${p.id}" style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:7px;cursor:pointer;border:2px solid var(--line);background:var(--panel);margin-bottom:6px;transition:all .1s" onclick="const cb=document.getElementById('_mc-${p.id}');const lb=document.getElementById('_ml-${p.id}');lb.style.borderColor=cb.checked?'var(--acc)':'var(--line)';lb.style.background=cb.checked?'rgba(0,180,216,.08)':'var(--panel)'">
+          <input type="checkbox" id="_mc-${p.id}" class="_md-mc" value="${p.id}" style="width:14px;height:14px;accent-color:var(--acc);pointer-events:none">
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:600">${p.n}</div>
+            <div style="font-size:10px;color:var(--ink-3)">A cada ${p.iv} h · ${p.its.length > 0 ? p.its.slice(0, 2).join(', ') : 'sem materiais'}</div>
+          </div>
+          ${badgeHtml(p.st)}
+        </label>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px;margin-bottom:9px">
+          <div><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Responsável *</label>
+            <select id="_md-resp" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink)">
+              <option value="">Selecionar…</option>
+              <option>Luciano Ferreira</option><option>Carlos Silva</option>
+              <option>João Mendes</option><option>Pedro Santos</option><option>Maria Oliveira</option>
+            </select></div>
+          <div><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Data</label>
+            <input id="_md-mdata" type="date" value="${todayISO()}" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink)"></div>
+        </div>
+        <div style="margin-bottom:9px"><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Observações / Materiais utilizados</label>
+          <textarea id="_md-mobs" rows="2" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink);resize:vertical"></textarea></div>
+        ${urgentes.length > 0 ? `<div style="padding:8px 12px;border-radius:6px;background:rgba(239,68,68,.1);border:1px solid var(--red);font-size:11px;margin-bottom:9px;color:var(--red)">
+          <strong>Materiais urgentes:</strong> ${urgentes.join(', ')}
+        </div>` : ''}
+        <button class="btn btn-primary" onclick="_manutD.regManut()" style="background:var(--green);padding:7px 16px;font-size:12px">✓ Registrar Manutenção</button>`;
     }
 
-    let activeSub = 'dados';
-    const subBody = el('div', { style: { marginTop: '10px' } });
+    function subHist() {
+      const hist = getHistUnit(ativo.id);
+      const manut = [...(hist.manut || [])].reverse();
+      if (!manut.length) return `<div style="color:var(--ink-3);font-size:13px;padding:12px">Nenhuma manutenção registrada para este ativo.</div>`;
+      return `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:var(--panel)">
+          <th style="padding:7px 9px;text-align:left;font-size:10px;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line)">Data</th>
+          <th style="padding:7px 9px;text-align:right;font-size:10px;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line)">Horímetro</th>
+          <th style="padding:7px 9px;text-align:left;font-size:10px;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line)">Responsável</th>
+          <th style="padding:7px 9px;text-align:left;font-size:10px;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line)">Serviços realizados</th>
+          <th style="padding:7px 9px;text-align:left;font-size:10px;font-weight:600;color:var(--ink-3);border-bottom:1px solid var(--line)">Materiais</th>
+          <th style="padding:7px 9px;border-bottom:1px solid var(--line)"></th>
+        </tr></thead><tbody>
+        ${manut.map(m => `<tr>
+          <td style="padding:6px 9px;border-bottom:1px solid var(--line);font-weight:600">${fD(m.data)}</td>
+          <td style="padding:6px 9px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-mono);color:var(--acc)">${fH(m.h)}</td>
+          <td style="padding:6px 9px;border-bottom:1px solid var(--line)">${m.resp}</td>
+          <td style="padding:6px 9px;border-bottom:1px solid var(--line);max-width:220px">${getManutServicoLabels(m).map(i => `<span style="display:inline-flex;align-items:center;padding:1px 5px;border-radius:4px;font-size:9px;background:var(--panel);border:1px solid var(--line);margin:1px">${i}</span>`).join(' ')}</td>
+          <td style="padding:6px 9px;border-bottom:1px solid var(--line);max-width:220px">${getManutMaterialLabels(m).length ? getManutMaterialLabels(m).map(i => `<span style="display:inline-flex;align-items:center;padding:1px 5px;border-radius:4px;font-size:9px;background:rgba(0,180,216,.08);border:1px solid var(--line);margin:1px">${i}</span>`).join(' ') : '<span style="color:var(--ink-3)">—</span>'}</td>
+          <td style="padding:6px 9px;border-bottom:1px solid var(--line)">
+            <button onclick="_manutD.delManut('${m.id}')" style="background:none;border:1px solid var(--line);cursor:pointer;color:var(--ink-3);font-size:10px;padding:2px 7px;border-radius:4px" title="Remover">🗑</button>
+          </td>
+        </tr>`).join('')}
+        </tbody></table>`;
+    }
+
+    function subComb() {
+      const hist = getHistUnit(ativo.id);
+      const regs = (hist.regs || []).filter(r => r.c > 0);
+      const tC = regs.reduce((s, r) => s + r.c, 0);
+      const tH = regs.reduce((s, r) => s + r.h, 0);
+      const byOp = {};
+      regs.forEach(r => { if (!byOp[r.op]) byOp[r.op] = { c: 0, h: 0 }; byOp[r.op].c += r.c; byOp[r.op].h += r.h; });
+      const ops = Object.entries(byOp).sort((a, b) => b[1].c - a[1].c);
+      const mx = ops.length ? Math.max(...ops.map(o => o[1].c)) : 1;
+      return `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px">
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px">
+            <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px">Total consumido</div>
+            <div style="font-family:var(--font-mono);font-size:20px;color:var(--amber);font-weight:700">${tC.toFixed(1)} L</div>
+          </div>
+          <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px">
+            <div style="font-size:10px;color:var(--ink-3);text-transform:uppercase;margin-bottom:4px">Média L/hora</div>
+            <div style="font-family:var(--font-mono);font-size:20px;color:var(--acc);font-weight:700">${tH > 0 ? (tC / tH).toFixed(2) : '–'} L/h</div>
+          </div>
+        </div>
+        ${regs.length === 0 ? '<div style="color:var(--ink-3);font-size:13px">Nenhum registro com combustível.</div>' : ''}
+        ${ops.length > 0 ? `<div style="font-size:12px;font-weight:600;color:var(--ink-3);margin-bottom:8px">Por operador</div>
+        ${ops.map(([op, d], i) => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+          <div style="font-size:11px;color:var(--ink-2);width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">${op}</div>
+          <div style="flex:1;height:12px;background:var(--panel);border-radius:3px;overflow:hidden">
+            <div style="width:${Math.round(d.c / mx * 100)}%;height:100%;background:hsl(${40 + i * 40},74%,55%);border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:4px">
+              <span style="font-size:9px;font-weight:700;color:#fff">${d.c.toFixed(1)}L</span>
+            </div>
+          </div>
+          <div style="font-size:10px;font-family:var(--font-mono);color:var(--ink-3);width:60px;text-align:right;flex-shrink:0">${d.h.toFixed(1)}h</div>
+        </div>`).join('')}` : ''}`;
+    }
+
+    const SUBS = { status: subStatus, uso: subUso, manut: subManut, hist: subHist, comb: subComb };
+    const TABS = [
+      { id: 'status', label: '📊 Status' },
+      { id: 'uso',    label: '⏱ Uso' },
+      { id: 'manut',  label: '🔧 Manutenção' },
+      { id: 'hist',   label: '📋 Histórico' },
+      { id: 'comb',   label: '⛽ Combustível' },
+    ];
+
     function renderSub() {
-      subBody.replaceChildren(({ dados: dadosView, planos: planosView, os: osView }[activeSub])());
-    }
-    function tabBtn(id, label) {
-      return el('button', {
-        class: 'pe-btn ' + (activeSub === id ? 'pe-btn--primary' : 'pe-btn--ghost'),
-        style: { marginRight: '4px' },
-        onclick: () => { activeSub = id; renderSub(); refreshSubTabs(); },
-      }, label);
-    }
-    const subTabs = el('div', {}, tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', `OS (${osDoAtivo.length})`));
-    function refreshSubTabs() {
-      subTabs.replaceChildren(tabBtn('dados', 'Dados'), tabBtn('planos', 'Planos'), tabBtn('os', `OS (${osDoAtivo.length})`));
+      subBody.innerHTML = SUBS[activeSub]?.() || '';
     }
 
+    const tabBar = el('div', { style: { display: 'flex', gap: '3px', padding: '4px', background: 'var(--panel)', borderRadius: '8px', flexWrap: 'wrap' } });
+    function refreshTabBar() {
+      tabBar.replaceChildren(...TABS.map(t => el('button', {
+        class: 'pe-btn ' + (activeSub === t.id ? 'pe-btn--primary' : 'pe-btn--ghost'),
+        style: { fontSize: '11px', padding: '4px 10px', minHeight: '28px' },
+        onclick: () => { activeSub = t.id; refreshTabBar(); renderSub(); },
+      }, t.label)));
+    }
+
+    const tipo_info = tipo ? `${tipo.emoji} ${tipo.nome}` : (ativo.tipo || '');
     const m = window.engine.modal({
-      title: ativo.nome,
-      body: el('div', {}, subTabs, subBody),
+      title: `${tipo_info ? tipo_info + ' · ' : ''}${ativo.nome}`,
+      body: el('div', {}, tabBar, subBody),
       footer: [el('button', { class: 'pe-btn pe-btn--primary', onclick: () => m.close() }, 'Fechar')],
     });
     m.open();
+    refreshTabBar();
     renderSub();
+  }
+
+  // ── helpers de manutenção ───────────────────────────────────────────────
+
+  function statusManutAtivo(ativoId) {
+    const ativo = (state.cache.ativos?.data || []).find(a => a.id === ativoId);
+    if (!ativo) return null;
+    const pr = calcProxManut(ativo);
+    if (!pr.length) return null;
+    if (pr.some(p => p.st === 'danger')) return 'danger';
+    if (pr.some(p => p.st === 'warn')) return 'warn';
+    return 'ok';
+  }
+
+  function openPlanoDrawer(plano) {
+    const { el } = window.engine.utils;
+    const svc = resolvePlanoServico(plano);
+    const ativo = (state.cache.ativos?.data || []).find(a => a.id === plano.ativo_id);
+    const planoItem = plano._planoItem || null;
+    const campos = [
+      ['Ativo', ativo?.nome || plano.ativo_id || '—'],
+      ['Tipo aplicável', plano.tipo_codigo || '—'],
+      ['Frequência', plano.frequencia?.tipo === 'por_uso' ? `A cada ${plano.frequencia.valor} ${plano.frequencia.unidade}` : 'Periódica'],
+      ['Última execução', planoItem ? (planoItem.ult > 0 ? `${fH(planoItem.ult)} no horímetro` : 'Nunca') : (plano.ultima_execucao || '—')],
+      ['Próxima execução', planoItem
+        ? (planoItem.st === 'danger'
+          ? `Vencida há ${Math.abs(planoItem.falt).toFixed(0)} h`
+          : `${fH(planoItem.prox)} (${Math.max(0, planoItem.falt).toFixed(0)} h restantes)`)
+        : (plano.proxima_execucao || '—')],
+      ['Responsável PMOC', plano.responsavel_pmoc || '—'],
+    ];
+    const m = window.engine.modal({
+      title: svc?.nome || plano.servico_id,
+      body: el('div', {},
+        el('div', { style: { fontSize: '13px', marginBottom: '12px' } },
+          ...campos.map(([k, v]) => el('div', {
+            style: { display: 'flex', gap: '8px', padding: '5px 0', borderBottom: '1px solid var(--line)' },
+          }, el('div', { style: { color: 'var(--ink-3)', minWidth: '160px', flexShrink: 0 } }, k),
+             el('div', {}, String(v))))),
+        svc?.materiais?.length ? el('div', { style: { marginTop: '10px' } },
+          el('div', { style: { fontWeight: '600', marginBottom: '6px', fontSize: '13px' } }, 'Materiais'),
+          el('ul', { style: { paddingLeft: '18px', fontSize: '12px', lineHeight: '1.8' } },
+            ...svc.materiais.map(mat => el('li', {}, `${mat.nome_livre} — ${mat.qtd} ${mat.unidade}${mat.obrigatorio ? ' (obrigatório)' : ''}`)))) : null,
+      ),
+      footer: [
+        el('button', { class: 'pe-btn pe-btn--primary', onclick: () => { abrirOSPreventiva(plano, plano.ativo_id); m.close(); } },
+          plano._status === 'danger' ? '🔴 Abrir OS (vencida)' : '+ Abrir OS Preventiva'),
+        el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Fechar'),
+      ],
+    });
+    m.open();
+  }
+
+  function openCatalogoDrawer(svc) {
+    const { el } = window.engine.utils;
+    const m = window.engine.modal({
+      title: `${svc.codigo} — ${svc.nome}`,
+      body: el('div', { style: { fontSize: '13px' } },
+        svc.descricao ? el('div', { style: { marginBottom: '10px', color: 'var(--ink-2)' } }, svc.descricao) : null,
+        el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' } },
+          el('div', {}, el('span', { style: { color: 'var(--ink-3)', fontSize: '11px' } }, 'Tempo estimado'),
+            el('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '18px', color: 'var(--acc)', marginTop: '2px' } }, `${svc.tempo_estimado_min || '—'} min`)),
+          el('div', {}, el('span', { style: { color: 'var(--ink-3)', fontSize: '11px' } }, 'Versão'),
+            el('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '18px', color: 'var(--acc)', marginTop: '2px' } }, `v${svc.versao || 1}`))),
+        svc.materiais?.length ? el('div', { style: { marginBottom: '10px' } },
+          el('div', { style: { fontWeight: '600', marginBottom: '4px' } }, 'Materiais'),
+          el('ul', { style: { paddingLeft: '18px', lineHeight: '1.8' } },
+            ...svc.materiais.map(mat => el('li', {}, `${mat.nome_livre} — ${mat.qtd} ${mat.unidade}${mat.obrigatorio ? ' *' : ''}`)))) : null,
+        svc.ferramentas?.length ? el('div', { style: { marginBottom: '10px' } },
+          el('div', { style: { fontWeight: '600', marginBottom: '4px' } }, 'Ferramentas'),
+          el('ul', { style: { paddingLeft: '18px', lineHeight: '1.8' } },
+            ...svc.ferramentas.map(f => el('li', {}, f.nome)))) : null,
+        svc.pessoal?.length ? el('div', { style: { marginBottom: '10px' } },
+          el('div', { style: { fontWeight: '600', marginBottom: '4px' } }, 'Pessoal qualificado'),
+          el('ul', { style: { paddingLeft: '18px', lineHeight: '1.8' } },
+            ...svc.pessoal.map(p => {
+              const q = (window.ERP_MANUT_MOCKS?.qualificacoes_catalogo || []).find(q => q.codigo === p.qualificacao_codigo);
+              return el('li', {}, `${q?.nome || p.qualificacao_codigo} ×${p.qtd}${p.opcional ? ' (opcional)' : ''}`);
+            }))) : null,
+      ),
+      footer: [el('button', { class: 'pe-btn pe-btn--primary', onclick: () => m.close() }, 'Fechar')],
+    });
+    m.open();
+  }
+
+  function abrirOSPreventiva(plano, ativoId) {
+    const ativo = (state.cache.ativos?.data || []).find(a => a.id === (ativoId || plano.ativo_id));
+    const svc = resolvePlanoServico(plano);
+    const osId = 'OSM-' + Date.now().toString(36).toUpperCase();
+    const abertura = new Date().toISOString();
+
+    // 1. Salva em os_manut (store legado — mantém retrocompatibilidade)
+    if (typeof window.getOSManut === 'function' && typeof window.saveOSManut === 'function') {
+      const osManutData = window.getOSManut();
+      osManutData.push({
+        id: osId,
+        ativoId: ativoId || plano.ativo_id || '',
+        ativoNome: ativo?.nome || plano.tipo_codigo || '—',
+        tipo: 'preventiva',
+        descricao: svc?.nome || plano.servico_id,
+        responsavel: plano.responsavel_pmoc || '',
+        abertura: abertura.slice(0, 10),
+        prazo: '',
+        pecas: (svc?.materiais || []).map(m => m.nome_livre).join(', '),
+        status: 'aberta',
+        planoId: plano.id,
+        servicoId: plano.servico_id,
+        criadoPor: 'sistema (PMOC)',
+        dataCriacao: abertura,
+      });
+      window.saveOSManut(osManutData);
+    }
+
+    // 2. Salva também em PS (Serviços — visibilidade cross-módulo, Fase 1)
+    if (typeof window.getPS === 'function' && typeof window.savePS === 'function') {
+      const psId = 'PS-' + Date.now().toString(36).toUpperCase();
+      const requisitos = (svc?.materiais || []).filter(mat => mat.obrigatorio).map(mat => ({
+        id: 'r-' + Math.random().toString(36).slice(2, 8),
+        descricao: `${mat.nome_livre} — ${mat.qtd} ${mat.unidade}`,
+        obrigatorio: true,
+        atendido: false,
+        tipo: 'material',
+      }));
+      const ps = window.getPS();
+      ps.push({
+        id: psId,
+        assunto: svc?.nome || plano.servico_id,
+        descricao: `Preventiva automática — ${ativo?.nome || ativoId || 'ativo não especificado'}\nOS Manutenção: ${osId} | Plano: ${plano.id}`,
+        prioridade: 'normal',
+        status: 'autorizada',
+        abertura,
+        executor: plano.responsavel_pmoc || '',
+        executorOrg: '',
+        modulo_origem: 'manutencao',
+        ativo_id: ativoId || plano.ativo_id || '',
+        plano_id: plano.id,
+        servico_id: plano.servico_id,
+        osPai: null,
+        osFilhos: [],
+        requisitos,
+        custoPlanejado: 0,
+        custoReal: 0,
+        origem: 'manutencao',
+      });
+      window.savePS(ps);
+    }
+
+    // Atualiza cache local para refletir na UI sem reload
+    if (state.cache.os?.data) {
+      state.cache.os.data.push({
+        id: osId, codigo: osId, titulo: svc?.nome || plano.servico_id,
+        tipo: 'preventiva', status: 'aberta', prioridade: 'normal',
+        ativo_id: ativoId || plano.ativo_id,
+        data_abertura: abertura.slice(0, 10), modulo_origem: 'manutencao',
+      });
+    }
+
+    toast(`OS preventiva ${osId} criada (Manutenção + Serviços)`, 'green');
+    state.tabDirty.os = true;
+    state.tabDirty.planos = true;
+    if (state.activeTab === 'os' || state.activeTab === 'planos') {
+      const cont = document.getElementById('manut-tab-content');
+      if (cont) RENDERERS[state.activeTab](cont);
+    }
+  }
+
+  function migrarDadosLegados() {
+    const LS_FLAG = 'xcmasm_manut_migrado_v1';
+    if (localStorage.getItem(LS_FLAG)) return;
+
+    const corteRaw = localStorage.getItem('cmasm_v2_state');
+    const refrigRaw = localStorage.getItem('refrigeracao_state');
+    if (!corteRaw && !refrigRaw) { localStorage.setItem(LS_FLAG, '1'); return; }
+
+    if (typeof window.getAtivos !== 'function' || typeof window.saveAtivos !== 'function') return;
+    if (typeof window.getOSManut !== 'function' || typeof window.saveOSManut !== 'function') return;
+
+    let ativos = window.getAtivos();
+    let osManut = window.getOSManut();
+    let changed = false;
+
+    function mergeAtivo(novo) {
+      const idx = ativos.findIndex(a => a.id === novo.id);
+      if (idx < 0) { ativos.push(novo); changed = true; }
+      else if ((novo.horimetro || 0) > (ativos[idx].horimetro || 0)) {
+        ativos[idx].horimetro = novo.horimetro; changed = true;
+      }
+    }
+    function mergeOS(novo) {
+      if (!osManut.find(o => o.id === novo.id)) { osManut.push(novo); changed = true; }
+    }
+
+    if (corteRaw) {
+      try {
+        const st = JSON.parse(corteRaw);
+        for (const u of (st.units || st.equips || [])) {
+          mergeAtivo({
+            id: `leg-corte-${u.id}`, cod: String(u.id).toUpperCase(),
+            nome: u.nome || u.id, categoria: 'maquinas_corte', tipo: u.tipo || '',
+            horimetro: u.horimetro || 0, status: u.ativo !== false ? 'P' : 'INOP', obs: u.obs || '',
+          });
+        }
+        for (const m of (st.manutList || [])) {
+          mergeOS({
+            id: `LEG-CRT-${m.id || m.ts || Math.random().toString(36).slice(2)}`,
+            ativoId: `leg-corte-${m.uid}`, ativoNome: m.uid || '—', tipo: 'preventiva',
+            descricao: m.desc || m.n || 'Manutenção legada (corte vegetal)',
+            responsavel: m.resp || m.op || '', abertura: m.data || '',
+            status: 'concluida', dataConclusao: m.data || '', origem: 'legado_corte',
+          });
+        }
+      } catch (e) { console.warn('[manut] Migração corte falhou:', e); }
+    }
+
+    if (refrigRaw) {
+      try {
+        const st = JSON.parse(refrigRaw);
+        for (const u of (st.units || st.equips || [])) {
+          mergeAtivo({
+            id: `leg-refrig-${u.id}`, cod: String(u.id).toUpperCase(),
+            nome: u.nome || u.id, categoria: 'climatizacao', tipo: u.tipo || 'AC_SPLIT',
+            horimetro: u.horimetro || 0, status: u.ativo !== false ? 'P' : 'INOP',
+            local: u.local || '', marca: u.marca || '', obs: u.obs || '',
+          });
+        }
+        for (const m of (st.manutList || [])) {
+          mergeOS({
+            id: `LEG-REF-${m.id || m.ts || Math.random().toString(36).slice(2)}`,
+            ativoId: `leg-refrig-${m.uid}`, ativoNome: m.uid || '—', tipo: 'preventiva',
+            descricao: m.desc || m.n || 'Manutenção legada (refrigeração)',
+            responsavel: m.resp || m.op || '', abertura: m.data || '',
+            status: 'concluida', dataConclusao: m.data || '', origem: 'legado_refrigeracao',
+          });
+        }
+      } catch (e) { console.warn('[manut] Migração refrigeração falhou:', e); }
+    }
+
+    // Migrar historico de horímetro / manutenções do cmasm_v2_state para xcmasm_manut_hist
+    if (corteRaw) {
+      try {
+        const st = JSON.parse(corteRaw);
+        const mhAll = getMH();
+        let mhChanged = false;
+        for (const u of (st.unidades || st.units || [])) {
+          const hSrc = st.hist?.[u.id];
+          if (!hSrc) continue;
+          const targetId = u.id; // IDs iguais: u01, u02...
+          if (!mhAll[targetId] || mhAll[targetId].hor < hSrc.hor) {
+            mhAll[targetId] = {
+              hor: hSrc.hor || 0,
+              regs: (hSrc.regs || []).map(r => ({ ...r })),
+              manut: (hSrc.manut || []).map(m => ({ ...m })),
+              ulm: { ...(hSrc.ulm || {}) },
+            };
+            mhChanged = true;
+          }
+        }
+        if (mhChanged) { saveMH(mhAll); }
+      } catch (e) { console.warn('[manut] Migração hist corte falhou:', e); }
+    }
+
+    if (changed) {
+      window.saveAtivos(ativos);
+      window.saveOSManut(osManut);
+      const nAtivos = ativos.filter(a => a.id.startsWith('leg-')).length;
+      const nOS = osManut.filter(o => o.origem?.startsWith('legado')).length;
+      toast(`Dados legados importados: ${nAtivos} ativos + ${nOS} OS históricas`, 'green');
+    }
+    localStorage.setItem(LS_FLAG, '1');
+
+    // ── Migração adicional: cmasm_manut_v3 (app React TS114) ─────────────────
+    const LS_FLAG_TS3 = 'xcmasm_manut_migrado_ts114v3';
+    if (!localStorage.getItem(LS_FLAG_TS3)) {
+      const ts3Raw = localStorage.getItem('cmasm_manut_v3');
+      if (ts3Raw) {
+        try {
+          const ts3 = JSON.parse(ts3Raw);
+          // IDs React: M1→u24, M2→u25, M3→u26, M4→u27
+          const idMap = { M1: 'u24', M2: 'u25', M3: 'u26', M4: 'u27' };
+          // Plan IDs: m01-m14 → p01-p14 (direto após atualização TS114 plano 14 itens)
+          const pidMap = id => id.replace(/^m(\d+)$/, (_, n) => 'p' + String(parseInt(n, 10)).padStart(2, '0'));
+          const mhAll = getMH();
+          let mhTs3Changed = false;
+          for (const maq of (ts3.maquinas || [])) {
+            const targetId = idMap[maq.id];
+            if (!targetId) continue;
+            const existing = mhAll[targetId] || { hor: 0, regs: [], manut: [], ulm: {} };
+            if ((maq.horasTotais || 0) > (existing.hor || 0)) {
+              mhAll[targetId] = {
+                hor: maq.horasTotais || 0,
+                regs: (maq.registros || []).map(r => ({
+                  id: r.id || ('r' + Date.now()), dt: r.dt || new Date().toISOString(),
+                  h: r.h || 0, c: r.comb || 0, op: r.usr || '', obs: r.obs || '', data: r.data || '',
+                })),
+                manut: (maq.manutencoes || []).map(m => ({
+                  id: m.id || ('m' + Date.now()), data: m.data || '',
+                  h: m.h || 0, resp: m.tec || '', itens: m.itens || [], obs: m.obs || '',
+                })),
+                ulm: Object.fromEntries(
+                  Object.entries(maq.ultimasManut || {}).map(([k, v]) => [pidMap(k), v])
+                ),
+              };
+              mhTs3Changed = true;
+            }
+          }
+          if (mhTs3Changed) {
+            saveMH(mhAll);
+            toast('TS114 v3: histórico de horímetros importado', 'green');
+          }
+        } catch (e) { console.warn('[manut] Migração TS114 v3 falhou:', e); }
+      }
+      localStorage.setItem(LS_FLAG_TS3, '1');
+    }
   }
 
   // ── data fetch ──────────────────────────────────────────────────────────
@@ -560,14 +1834,23 @@
     if (banner) banner.remove();
     const work = (async () => {
       try {
-        const [ativos, os, estoque] = await Promise.all([
+        const [ativos, os, estoque, servicosBase, planos] = await Promise.all([
           fetch('/api/ativos').then(r => { if (!r.ok) throw new Error('ativos ' + r.status); return r.json(); }),
           fetch('/api/os').then(r => { if (!r.ok) throw new Error('os ' + r.status); return r.json(); }),
           fetch('/api/estoque').then(r => { if (!r.ok) throw new Error('estoque ' + r.status); return r.json(); }),
+          fetch('/api/catalogo/servicos').then(r => { if (!r.ok) throw new Error('catalogo/servicos ' + r.status); return r.json(); }),
+          fetch('/api/catalogo/planos').then(r => { if (!r.ok) throw new Error('catalogo/planos ' + r.status); return r.json(); }),
         ]);
+        const servicos = await Promise.all((servicosBase || []).map(servico =>
+          fetch(`/api/catalogo/servicos/${encodeURIComponent(servico.id)}`)
+            .then(r => (r.ok ? r.json() : servico))
+            .catch(() => servico)
+        ));
         state.cache.ativos   = { data: ativos,   ts: Date.now() };
         state.cache.os       = { data: os,       ts: Date.now() };
         state.cache.estoque  = { data: estoque,  ts: Date.now() };
+        state.cache.catalogo_servicos = { data: servicos, ts: Date.now() };
+        state.cache.planos_manutencao = { data: planos, ts: Date.now() };
         state.catsAvailable = [...new Set(ativos.map(a => a.categoria).filter(Boolean))].sort();
         if (state._renderChips) state._renderChips();
       } catch (e) {
@@ -593,6 +1876,8 @@
           state.cache.ativos  = { data: lsAtivos,  ts: Date.now(), fromLS: true };
           state.cache.os      = { data: lsOS,      ts: Date.now(), fromLS: true };
           state.cache.estoque = { data: lsEstoque, ts: Date.now(), fromLS: true };
+          state.cache.catalogo_servicos = { data: window.ERP_MANUT_MOCKS?.catalogo_servicos || [], ts: Date.now(), fromLS: true };
+          state.cache.planos_manutencao = { data: window.ERP_MANUT_MOCKS?.planos_manutencao || [], ts: Date.now(), fromLS: true };
           state.catsAvailable = [...new Set(lsAtivos.map(a => a.categoria).filter(Boolean))].sort();
           if (state._renderChips) state._renderChips();
           showErrorBanner(e.message, true);
