@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Arquitetura: núcleo + PMOC único categorizado.** O sistema é composto por (1) o **núcleo** (`cmasm.erp`) — backend FastAPI + ERP web (`cmasm_erp.html`) com módulo Manutenção categorizado por `tipo` de ativo; e (2) um **PMOC único offline-first** (`cmasm.erp/pmoc/`), app HTML de campo com categorias internas (refrigeração, predial, paióis, transportes, grama, elétrica, calibração) que sincroniza com o núcleo via API.
 
-Ver `REQUISITOS.md` para a visão; `Regras de Negocio e Fluxos.md` para o **modelo de domínio canônico** (categorias, planos, OS, NECs, transportes, estoque); `Rules.md` para regras técnicas/operacionais do núcleo; `MODULOS_EXTERNOS.md` para o contrato com módulos *realmente* externos (hardware/Postgres próprio — `aguada-web`, `xSeguranca`, `xCFTV`, `xFonoclama`).
+Ver `REQUISITOS.md` para a visão; `.docs_cmasm/Regras de Negocio e Fluxos.md` para o **modelo de domínio canônico** (categorias, planos, OS, NECs, transportes, estoque); `Rules.md` para regras técnicas/operacionais do núcleo; `MODULOS_EXTERNOS.md` para o contrato com módulos *realmente* externos (hardware/Postgres próprio — `aguada-web`, `xSeguranca`, `xCFTV`, `xFonoclama`).
 
 O núcleo cobre: **usuários, organização, ativos, estoque, OS/serviços, manutenção (painel categorizado), documentos**. **PMOCs não são módulos externos** — são categorias internas do app único de campo.
 
@@ -47,11 +47,16 @@ cmasm.erp/                       ← este repo (NÚCLEO + PMOC ÚNICO)
 ├── docs/                        # Specs internas (skill: superpowers)
 │
 ├── REQUISITOS.md                # Visão, princípios arquiteturais, roadmap
-├── Regras de Negocio e Fluxos.md # ★ Modelo de domínio canônico
 ├── Rules.md                     # Regras técnicas/operacionais do núcleo
 ├── MODULOS_EXTERNOS.md          # Contrato com módulos realmente externos
 ├── todo.md                      # Backlog ativo
-└── .docs_cmasm/                 # Documentos de referência (CSV, OSM, PDFs)
+│
+├── docs/                        # Specs internas + propostas + demos
+│   ├── CMASM.ERP_leanERP.md     # Visão arquitetural de hub
+│   ├── propostas/               # Propostas funcionais (serviços, etc.)
+│   └── demos/                   # Resumos de demos e apresentações
+└── .docs_cmasm/                 # Documentos autoritativos (CSV, OSM, PDFs)
+    └── Regras de Negocio e Fluxos.md # ★ Modelo de domínio canônico
 ```
 
 **Módulos *realmente* externos** (sistemas com hardware/Postgres próprio — detalhes em `MODULOS_EXTERNOS.md`):
@@ -218,7 +223,7 @@ Reference CSS: `assets/erp-module-shell.css` (module shell layout).
 | File | Purpose |
 |------|---------|
 | `REQUISITOS.md` | Visão, princípios arquiteturais, roadmap, decisões registradas |
-| `Regras de Negocio e Fluxos.md` | **Modelo de domínio canônico** — categorias de ativos, planos, OS/PS/SR/NEC, transportes, estoque |
+| `.docs_cmasm/Regras de Negocio e Fluxos.md` | **Modelo de domínio canônico** — categorias de ativos, planos, OS/PS/SR/NEC, transportes, estoque |
 | `Rules.md` | Regras técnicas/operacionais do núcleo: schema, lifecycle, sync, catálogo |
 | `MODULOS_EXTERNOS.md` | Contrato com módulos *realmente* externos (aguada-web, xSeguranca, xCFTV, xFonoclama) |
 | `todo.md` | Backlog ativo, organizado por prioridade |

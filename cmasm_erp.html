@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
@@ -137,23 +137,88 @@ table{border-collapse:collapse;width:100%}
 
 /* ═══ TOPBAR ═════════════════════════════════════════════════ */
 .topbar{grid-column:1/-1;background:var(--topbar-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px 0 0;z-index:100}
-.topbar-logo{display:flex;align-items:center;gap:10px;padding:0 20px;width:220px}
+.topbar-logo{display:flex;align-items:center;gap:10px;padding:0 12px 0 20px;width:auto;flex:0 0 auto;cursor:pointer;border-radius:10px;transition:background .18s ease,box-shadow .18s ease}
+.topbar-logo:hover{background:var(--bg3)}
+.topbar-logo:focus-visible{outline:none;background:var(--bg3);box-shadow:0 0 0 2px rgba(59,130,246,.35)}
 .topbar-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(59,130,246,.25)}
-.topbar-logo-text{font-size:14px;font-weight:700;letter-spacing:-.3px;color:var(--text1)}
+.topbar-logo-text{font-size:22px;font-weight:700;letter-spacing:-.5px;color:var(--text1);line-height:1}
 .topbar-module{padding:0 20px;font-size:12px;color:var(--text3);font-family:'IBM Plex Mono',monospace;flex:1}
 .topbar-actions{display:flex;align-items:center;gap:8px}
+.topbar-user-wrap{position:relative}
 .topbar-user{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
 .topbar-user:hover{background:var(--bg3)}
+.topbar-user-wrap:hover .topbar-user{background:var(--bg3)}
 .topbar-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
 .topbar-uname{font-size:13px;font-weight:500;color:var(--text2)}
+.topbar-user-menu{
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  min-width:160px;
+  display:none;
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:10px;
+  padding:6px;
+  box-shadow:0 12px 24px rgba(0,0,0,.18);
+  z-index:120;
+}
+.topbar-user-wrap:hover .topbar-user-menu,
+.topbar-user-wrap.open .topbar-user-menu{display:block}
+.topbar-user-menu-item{
+  width:100%;
+  text-align:left;
+  border:none;
+  background:transparent;
+  color:var(--text2);
+  font-size:13px;
+  font-weight:500;
+  padding:8px 10px;
+  border-radius:8px;
+  cursor:pointer;
+}
+.topbar-user-menu-item:hover{background:var(--bg3);color:var(--text1)}
+.topbar-user-menu-item.danger:hover{background:rgba(239,68,68,.12);color:var(--danger)}
 .btn-icon{background:none;border:1px solid var(--border);border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:all .2s}
 .btn-icon:hover{background:var(--bg3);color:var(--text1);border-color:var(--border2)}
 .sidebar-toggle-icon{transition:transform .2s ease}
 #app.sidebar-collapsed #sidebar-toggle .sidebar-toggle-icon{transform:rotate(180deg)}
-#sidebar-toggle{margin-left:10px;margin-right:4px}
-.topbar-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-family:'IBM Plex Mono',monospace}
-.topbar-badge.ok{background:rgba(34,197,94,.15);color:var(--ok);border:1px solid rgba(34,197,94,.2)}
-.topbar-badge.warn{background:rgba(245,158,11,.12);color:var(--warn);border:1px solid rgba(245,158,11,.2)}
+#sidebar-toggle{margin-left:4px;margin-right:10px}
+.topbar-alert{
+  position:relative;
+  width:32px;
+  height:32px;
+  border-radius:999px;
+  border:1px solid var(--border2);
+  background:var(--bg2);
+  color:var(--text3);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:all .18s ease;
+}
+.topbar-alert:hover{transform:translateY(-1px);color:var(--text1);border-color:var(--acc);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.topbar-alert.has-alert{color:var(--warn);border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.12)}
+[data-theme="light"] .topbar-alert.has-alert{color:#8a4b00;border-color:#f0cd87;background:#fff2d8}
+.topbar-alert svg{width:15px;height:15px;display:block}
+.topbar-alert-count{
+  position:absolute;
+  top:-5px;
+  right:-5px;
+  min-width:16px;
+  height:16px;
+  padding:0 4px;
+  border-radius:999px;
+  background:var(--danger);
+  color:#fff;
+  font-size:10px;
+  line-height:16px;
+  text-align:center;
+  font-family:'IBM Plex Mono',monospace;
+  border:1px solid rgba(255,255,255,.6);
+}
+.topbar-alert:not(.has-alert) .topbar-alert-count{display:none}
 
 /* ═══ SIDEBAR ════════════════════════════════════════════════ */
 .sidebar{background:var(--sidebar-bg);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
@@ -180,15 +245,93 @@ table{border-collapse:collapse;width:100%}
 .page{display:none;padding:24px;min-height:100%}
 .page.active{display:block}
 
-#page-dashboard{padding:12px 14px 16px}
-#page-dashboard .page-hdr{margin-bottom:10px;align-items:center}
-#page-dashboard .page-hdr-left h1{font-size:18px}
-#page-dashboard .page-hdr-left p{font-size:12px}
-#page-dashboard .kpi-grid{gap:8px;margin-bottom:10px}
-#page-dashboard .kpi{padding:10px 11px;border-radius:10px}
-#page-dashboard .kpi-label{font-size:10px;margin-bottom:5px}
-#page-dashboard .kpi-value{font-size:19px}
-#page-dashboard .kpi-sub{font-size:10px;margin-top:2px}
+#page-dashboard{padding:16px 18px 24px}
+#page-dashboard .page-hdr{
+  margin-bottom:14px;
+  align-items:flex-end;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  padding:14px 16px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:
+    linear-gradient(135deg, rgba(59,130,246,.10), rgba(6,182,212,.06)),
+    var(--bg2);
+}
+#page-dashboard .page-hdr-left{flex:1 1 340px;min-width:280px}
+#page-dashboard .page-hdr-left h1{font-size:22px;letter-spacing:-.5px}
+#page-dashboard .page-hdr-left p{
+  font-size:12px;
+  max-width:70ch;
+  white-space:normal;
+  word-break:normal;
+  overflow-wrap:normal;
+}
+#page-dashboard .page-hdr-right{flex:0 0 auto;white-space:nowrap;align-self:flex-end}
+#page-dashboard .kpi-grid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+#page-dashboard .kpi{padding:12px;border-radius:12px;background:var(--bg2);box-shadow:0 1px 0 rgba(255,255,255,.02) inset}
+#page-dashboard .kpi-label{font-size:10px;margin-bottom:6px}
+#page-dashboard .kpi-value{font-size:22px}
+#page-dashboard .kpi-sub{font-size:10px;margin-top:3px}
+
+#page-dashboard .portal-main-grid{
+  display:grid;
+  grid-template-columns:minmax(300px,1.05fr) minmax(340px,1.2fr) minmax(300px,.9fr);
+  gap:12px;
+  align-items:start;
+}
+#page-dashboard .portal-col3{display:grid;gap:12px}
+#page-dashboard .portal-main-grid .card{height:100%}
+
+#page-dashboard .qa-grid{display:grid;grid-template-columns:repeat(2,minmax(130px,1fr));gap:10px}
+#page-dashboard .qa-btn{
+  border:1px solid var(--border2);
+  border-radius:12px;
+  background:linear-gradient(180deg,var(--bg3),var(--bg2));
+  padding:12px 10px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:8px;
+  cursor:pointer;
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+#page-dashboard .qa-btn:hover{
+  transform:translateY(-2px);
+  border-color:var(--acc);
+  box-shadow:0 8px 20px rgba(2,6,23,.16);
+}
+#page-dashboard .qa-btn svg{color:var(--acc);opacity:.92}
+#page-dashboard .qa-btn-label{font-size:12px;font-weight:600;color:var(--text1)}
+
+#page-dashboard #dash-os-table thead th{position:sticky;top:0;z-index:1}
+#page-dashboard #dash-os-table tbody td{font-size:12px}
+#page-dashboard #dash-os-table .tbl-empty{padding:22px}
+#page-dashboard #dash-comunicados-body,
+#page-dashboard #dash-calendario-body{min-height:190px}
+
+#page-dashboard .status-grid.portal-mod-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:11px}
+#page-dashboard .status-card.module-tile{min-height:145px}
+
+@media (max-width: 1280px){
+  #page-dashboard .portal-main-grid{grid-template-columns:1fr 1fr}
+  #page-dashboard .portal-col3{grid-column:1 / -1;grid-template-columns:1fr 1fr}
+}
+@media (max-width: 980px){
+  #page-dashboard{padding:12px}
+  #page-dashboard .page-hdr{padding:12px;align-items:flex-start;justify-content:flex-start;gap:8px}
+  #page-dashboard .page-hdr-left{min-width:0}
+  #page-dashboard .page-hdr-right{width:auto;justify-content:flex-start;white-space:normal;align-self:flex-start}
+  #page-dashboard .portal-main-grid{grid-template-columns:1fr}
+  #page-dashboard .portal-col3{grid-template-columns:1fr}
+  #page-dashboard .kpi-grid{grid-template-columns:repeat(2,minmax(150px,1fr))}
+}
+@media (max-width: 680px){
+  #page-dashboard .kpi-grid{grid-template-columns:1fr}
+  #page-dashboard .qa-grid{grid-template-columns:1fr}
+  #page-dashboard .page-hdr-left h1{font-size:20px}
+  #page-dashboard .status-grid.portal-mod-grid{grid-template-columns:1fr}
+}
 
 /* ═══ PAGE HEADER ════════════════════════════════════════════ */
 .page-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px}
@@ -474,25 +617,37 @@ table{border-collapse:collapse;width:100%}
 
 <!-- TOPBAR -->
 <header class="topbar">
+  <div class="topbar-logo" role="button" tabindex="0" title="Ir para o Portal" aria-label="Ir para o Portal" onclick="showPage('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showPage('dashboard')}">
+    <div class="topbar-logo-icon">⚓</div>
+    <span class="topbar-logo-text">cmasm.erp</span>
+  </div>
   <button id="sidebar-toggle" class="btn-icon" title="Recolher menu lateral" aria-label="Recolher menu lateral" aria-pressed="false" onclick="toggleSidebar()">
     <svg class="sidebar-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <line x1="8" y1="4" x2="8" y2="20"></line>
       <polyline points="16 7 11 12 16 17"></polyline>
     </svg>
   </button>
-  <div class="topbar-logo">
-    <div class="topbar-logo-icon">⚓</div>
-    <span class="topbar-logo-text">cmasm.erp</span>
-  </div>
   <div class="topbar-module" id="topbar-module">Portal integrado</div>
   <div class="topbar-actions">
-    <span id="topbar-badge" class="topbar-badge ok" title="Abrir serviços" onclick="showPage('servicos');showSvcTab('os')" style="cursor:pointer">● Sistema OK</span>
+    <button id="topbar-badge" class="topbar-alert" title="Abrir serviços" onclick="showPage('servicos');showSvcTab('os')" aria-label="Sem alertas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/>
+        <path d="M10 17a2 2 0 0 0 4 0"/>
+      </svg>
+      <span class="topbar-alert-count" aria-hidden="true">0</span>
+    </button>
     <button class="btn-icon" title="Alternar tema" onclick="toggleTheme()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
-    <div class="topbar-user" onclick="showPage('perfil')">
-      <div class="topbar-avatar" id="topbar-avatar">?</div>
-      <span class="topbar-uname" id="topbar-uname">Usuário</span>
+    <div class="topbar-user-wrap" id="topbar-user-wrap">
+      <div class="topbar-user" id="topbar-user-trigger" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" title="Menu do usuário" onclick="toggleTopbarUserMenu(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTopbarUserMenu(event)}">
+        <div class="topbar-avatar" id="topbar-avatar">?</div>
+        <span class="topbar-uname" id="topbar-uname">Usuário</span>
+      </div>
+      <div class="topbar-user-menu" id="topbar-user-menu" role="menu" aria-label="Menu do usuário">
+        <button class="topbar-user-menu-item" role="menuitem" onclick="closeTopbarUserMenu();showPage('perfil')">Perfil</button>
+        <button class="topbar-user-menu-item danger" role="menuitem" onclick="closeTopbarUserMenu();doLogout()">Sair</button>
+      </div>
     </div>
   </div>
 </header>
@@ -622,10 +777,6 @@ table{border-collapse:collapse;width:100%}
     <div class="ni admin-only" data-page="colab-policies" onclick="showPage('colab-policies',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Normas &amp; Regulamento
-    </div>
-    <div class="ni admin-only" data-page="colab-home" onclick="showPage('colab-home',this)">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5L12 3l9 6.5"/><path d="M5 10v10h14V10"/></svg>
-      Início do Colaborador
     </div>
     <div class="ni admin-only" data-page="colab-announcements" onclick="showPage('colab-announcements',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11v2a2 2 0 0 0 2 2h1l3 4V5L6 9H5a2 2 0 0 0-2 2z"/><path d="M14 7a5 5 0 0 1 0 10"/></svg>
@@ -766,9 +917,33 @@ table{border-collapse:collapse;width:100%}
       <div class="sc-header"><div><div class="sc-name">Paiois</div><div class="sc-code">CMASM-ERP/PAI</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Controle</span><span class="sc-row-value">Material e munições</span></div></div>
     </div>
-    <div class="status-card module-tile" onclick="showPage('colab-home')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Portal do Colaborador</div><div class="sc-code">CMASM-ERP/COLAB</div></div><span class="badge badge-ok">● Ativo</span></div>
+    <div class="status-card module-tile" onclick="showPage('dashboard')" style="cursor:pointer">
+      <div class="sc-header"><div><div class="sc-name">Colaborador (integrado)</div><div class="sc-code">CMASM-ERP/COLAB</div></div><span class="badge badge-ok">● Ativo</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">CPs abertas</span><span id="mod-colab-tickets">0</span></div></div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:24px">Painel do Colaborador</div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header">
+      <span class="card-title">Comunicação interna, agenda e solicitações</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="showPage('colab-announcements')">Comunicados</button>
+        <button class="btn btn-primary btn-sm" onclick="showPage('colab-tickets')">+ Abrir CP</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="ch-stats" id="colab-home-stats"></div>
+      <div class="grid-2" style="gap:16px;margin-top:14px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Próximos Eventos</span></div>
+          <div class="card-body" id="colab-home-events"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Comunicados Recentes</span></div>
+          <div class="card-body" id="colab-home-announcements"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -798,28 +973,6 @@ table{border-collapse:collapse;width:100%}
     <div class="status-card module-tile" onclick="toast('Módulo CFTV em integração','warning')" style="cursor:pointer;border-color:rgba(245,158,11,.25)">
       <div class="sc-header"><div><div class="sc-name">CFTV</div><div class="sc-code">Integração em progresso</div></div><span class="badge badge-warn">◐ Integração</span></div>
       <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Videomonitoramento corporativo</span></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- ════ PORTAL COLABORADOR · INÍCIO ═════════════════════════ -->
-<div id="page-colab-home" class="page">
-  <div class="page-hdr">
-    <div class="page-hdr-left"><h1>Portal do Colaborador</h1><p>Painel de comunicação interna, agenda e solicitações</p></div>
-    <div class="page-hdr-right">
-      <button class="btn btn-secondary" onclick="showPage('colab-announcements')">Comunicados</button>
-      <button class="btn btn-primary" onclick="showPage('colab-tickets')">+ Abrir CP</button>
-    </div>
-  </div>
-  <div class="ch-stats" id="colab-home-stats"></div>
-  <div class="grid-2" style="gap:16px">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Próximos Eventos</span></div>
-      <div class="card-body" id="colab-home-events"></div>
-    </div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">Comunicados Recentes</span></div>
-      <div class="card-body" id="colab-home-announcements"></div>
     </div>
   </div>
 </div>
@@ -2764,12 +2917,37 @@ function loginVisitante(){
 function togglePw(id,btn){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';btn.textContent=el.type==='password'?'👁':'🙈';}
 
 function doLogout(){
+  closeTopbarUserMenu();
   SESSION=null;DB.del('session');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('lg-id').value='';
   document.getElementById('lg-pw').value='';
   document.getElementById('lg-err').textContent='';
+}
+
+function openTopbarUserMenu(){
+  const wrap = document.getElementById('topbar-user-wrap');
+  const trigger = document.getElementById('topbar-user-trigger');
+  if(!wrap || !trigger) return;
+  wrap.classList.add('open');
+  trigger.setAttribute('aria-expanded','true');
+}
+
+function closeTopbarUserMenu(){
+  const wrap = document.getElementById('topbar-user-wrap');
+  const trigger = document.getElementById('topbar-user-trigger');
+  if(!wrap || !trigger) return;
+  wrap.classList.remove('open');
+  trigger.setAttribute('aria-expanded','false');
+}
+
+function toggleTopbarUserMenu(ev){
+  if(ev) ev.stopPropagation();
+  const wrap = document.getElementById('topbar-user-wrap');
+  if(!wrap) return;
+  if(wrap.classList.contains('open')) closeTopbarUserMenu();
+  else openTopbarUserMenu();
 }
 
 /* ════ APP INIT ═══════════════════════════════════════════ */
@@ -2871,7 +3049,6 @@ async function checkModulosExternos(){
 
 const PAGE_TITLES = {
   dashboard:'Portal · cmasm.erp',
-  'colab-home':'Portal do Colaborador · Início',
   'colab-calendar':'Portal do Colaborador · Calendário',
   'colab-policies':'Portal do Colaborador · Políticas',
   'colab-executives':'Portal do Colaborador · Executivos',
@@ -2912,7 +3089,6 @@ function showPage(page, el){
   // Re-render page content on navigation to keep data fresh
   const renders = {
     dashboard: ()=>initDashboard(),
-    'colab-home': ()=>renderColaboradorInicio(),
     'colab-calendar': ()=>renderColaboradorCalendario(),
     'colab-policies': ()=>renderColaboradorPoliticas(),
     'colab-executives': ()=>renderColaboradorExecutivos(),
@@ -3164,20 +3340,24 @@ function initDashboard(){
       ? '<div class="tbl-empty" style="padding:16px 0">Calendário vazio</div>'
       : `<table class="tbl"><thead><tr><th>Data</th><th>Agenda</th></tr></thead><tbody>${calendar.map(ev=>`<tr><td class="text-mono text-xs">${fmtDateSimple(ev.event_date)||ev.event_date}</td><td><div style="font-weight:600">${ev.title}</div><div class="text-xs text-muted">${colabTypeLabel(ev.type)} · ${ev.location||'Local a definir'}</div></td></tr>`).join('')}</tbody></table>`;
   }
+  renderColaboradorInicio();
   // Estoque count
   const estoque=DB.get('estoque',[]);
   setText('mod-estoque-count',`${estoque.length} itens`);
   // Health check dos módulos externos (non-blocking)
   checkModulosExternos();
-  // Topbar badge — sistema OK vs alertas
+  // Topbar alerta no sino
   const badge=document.getElementById('topbar-badge');
   if(badge){
+    const badgeCount = badge.querySelector('.topbar-alert-count');
     const osPendAut = os.filter(o=>o.status==='pendente_autorizacao').length;
     const osPendAvalAut = os.filter(o=>o.status==='concluida' && !o.avaliacaoAutorizador).length;
     const osPendAvalSol = os.filter(o=>o.status==='concluida' && o.avaliacaoAutorizador?.resultado==='aprovado' && !o.avaliacaoSolicitante).length;
     const alertas=ativosProblema+osPendAut+osPendAvalAut+osPendAvalSol;
-    if(alertas>0){badge.className='topbar-badge warn';badge.textContent=`⚠ ${alertas} alerta${alertas>1?'s':''}`;}
-    else{badge.className='topbar-badge ok';badge.textContent='● Sistema OK';}
+    badge.classList.toggle('has-alert', alertas>0);
+    badge.title = alertas>0 ? `${alertas} alerta${alertas>1?'s':''} · Abrir serviços` : 'Sem alertas · Abrir serviços';
+    badge.setAttribute('aria-label', alertas>0 ? `${alertas} alerta${alertas>1?'s':''}` : 'Sem alertas');
+    if(badgeCount) badgeCount.textContent = String(alertas);
   }
   // KPI color update
   const elKpiManut=document.getElementById('kpi-manut');
@@ -3269,7 +3449,6 @@ async function colabHydrateFromBackend(){
   _colabHydrated = true;
   initDashboard();
   const active = document.querySelector('.page.active');
-  if(active?.id==='page-colab-home') renderColaboradorInicio();
   if(active?.id==='page-colab-calendar') renderColaboradorCalendario();
   if(active?.id==='page-colab-policies') renderColaboradorPoliticas();
   if(active?.id==='page-colab-executives') renderColaboradorExecutivos();
@@ -6701,10 +6880,10 @@ let VEG_FOCUS_GROUP = '';
 let VEG_GROUP_FILTER = '';
 let VEG_SELECTED_AREA_ID = '';
 const VEG_DEFAULT_BOUNDS = {
-  north: -22.8195,
-  south: -22.8295,
-  west: -43.1245,
-  east: -43.1085,
+  north: -22.8294,
+  south: -22.8392,
+  west: -43.1142,
+  east: -43.1037,
 };
 const VEG_SERVICE_CATALOG = {
   limpeza_pre: { nome: 'Limpeza preliminar', tipo: 'manual', fator_h_m2: 0.00016, custo_fixo: 25 },
@@ -8418,8 +8597,15 @@ function showPaiolTab(name,el){
 
 /* ════ BOOT ═══════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded',()=>{
+  document.addEventListener('click',(ev)=>{
+    const wrap = document.getElementById('topbar-user-wrap');
+    if(wrap && !wrap.contains(ev.target)) closeTopbarUserMenu();
+  });
+  document.addEventListener('keydown',(ev)=>{
+    if(ev.key==='Escape') closeTopbarUserMenu();
+  });
   // restore theme
-  const theme=DB.get('theme','dark');
+  const theme=DB.get('theme','light');
   document.documentElement.setAttribute('data-theme',theme);
   // restore session
   const saved=DB.get('session',null);

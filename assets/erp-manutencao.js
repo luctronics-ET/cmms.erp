@@ -41,10 +41,44 @@
     const mh = getMH(); mh[uid] = hist; saveMH(mh);
   }
 
+  function resolveTipoCodigo(ativo) {
+    const tipos = window.ERP_MANUT_MOCKS?.TIPOS || {};
+    const byKey = Object.keys(tipos);
+    const raw = [
+      ativo?.tipo_codigo,
+      ativo?.tipo,
+      ativo?.cod,
+      ativo?.codigo,
+      ativo?.nome,
+      ativo?.modelo,
+      ativo?.fabricante,
+    ]
+      .filter(Boolean)
+      .map(v => String(v).trim());
+
+    for (const value of raw) {
+      const upper = value.toUpperCase();
+      if (tipos[upper]) return upper;
+    }
+
+    const clue = raw.join(' ').toLowerCase();
+    if (/\bfs\s*[- ]?220\b|stihl\s*fs\s*220/.test(clue)) return 'FS220';
+    if (/garthen|pro\s*[- ]?3500s|\bgar\b/.test(clue)) return 'GAR';
+    if (/\bms\s*[- ]?650\b|motosserra/.test(clue)) return 'MS650';
+    if (/coyote|\bct\s*[- ]?151\b|\bcoy\b/.test(clue)) return 'COY';
+    if (/\blgt\s*[- ]?2654\b/.test(clue)) return 'LGT';
+    if (/\bts\s*[- ]?114\b/.test(clue)) return 'TS114';
+    if (/solis\s*90|\bsol\b/.test(clue)) return 'SOL';
+
+    const fuzzy = byKey.find(k => clue.includes(k.toLowerCase()));
+    return fuzzy || null;
+  }
+
   // ── engine de planos preventivos (horímetro-based) ───────────────────────
   function calcProxManut(ativo) {
     const tipos = window.ERP_MANUT_MOCKS?.TIPOS || {};
-    const tipo = tipos[ativo.tipo];
+    const tipoCodigo = resolveTipoCodigo(ativo);
+    const tipo = tipoCodigo ? tipos[tipoCodigo] : null;
     if (!tipo) return [];
     const hist = getHistUnit(ativo.id);
     const hor = hist.hor || (ativo.horimetro || 0);
@@ -54,7 +88,7 @@
       const falt = prox - hor;
       const pct = Math.min(100, Math.max(0, ((hor - ult) / m.iv) * 100));
       const st = falt <= 0 ? 'danger' : falt <= m.iv * 0.15 ? 'warn' : falt <= m.iv * 0.30 ? 'proximo' : 'ok';
-      return { ...m, ult, prox, falt, pct, st, hor };
+      return { ...m, ult, prox, falt, pct, st, hor, tipoCodigo };
     });
   }
 
@@ -135,26 +169,32 @@
         .filter(plano => plano?.servico_id && plano?.tipo_codigo)
         .map(plano => [`${plano.tipo_codigo}::${plano.servico_id}`, plano])
     );
-    return filteredAtivos().flatMap(ativo => calcProxManut(ativo).map(planoItem => ({
-      ...(byServicoTipo.get(`${ativo.tipo}::svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`) || {}),
-      id: (byServicoTipo.get(`${ativo.tipo}::svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`) || {}).id || `plano-${ativo.id}-${planoItem.id}`,
+    return filteredAtivos().flatMap(ativo => calcProxManut(ativo).map(planoItem => {
+      const tipoCodigo = planoItem.tipoCodigo || resolveTipoCodigo(ativo);
+      if (!tipoCodigo) return null;
+      const svcId = `svc-plano-${String(tipoCodigo).toLowerCase()}-${planoItem.id}`;
+      const cacheKey = `${tipoCodigo}::${svcId}`;
+      return {
+      ...(byServicoTipo.get(cacheKey) || {}),
+      id: (byServicoTipo.get(cacheKey) || {}).id || `plano-${ativo.id}-${planoItem.id}`,
       ativo_id: ativo.id,
-      tipo_codigo: ativo.tipo,
-      servico_id: `svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`,
+      tipo_codigo: tipoCodigo,
+      servico_id: svcId,
       frequencia: { tipo: 'por_uso', valor: planoItem.iv, unidade: 'h' },
       ultima_execucao: planoItem.ult > 0 ? fH(planoItem.ult) : 'Nunca',
       proxima_execucao: fH(planoItem.prox),
-      responsavel_pmoc: (byServicoTipo.get(`${ativo.tipo}::svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`) || {}).responsavel_pmoc || '',
+      responsavel_pmoc: (byServicoTipo.get(cacheKey) || {}).responsavel_pmoc || '',
       _status: planoItem.st,
       _planoItem: planoItem,
       _ativo: ativo,
       _svc: resolvePlanoServico({
-        ...(byServicoTipo.get(`${ativo.tipo}::svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`) || {}),
-        tipo_codigo: ativo.tipo,
-        servico_id: `svc-plano-${String(ativo.tipo).toLowerCase()}-${planoItem.id}`,
+        ...(byServicoTipo.get(cacheKey) || {}),
+        tipo_codigo: tipoCodigo,
+        servico_id: svcId,
         _planoItem: planoItem,
       }),
-    })));
+    };
+    }).filter(Boolean));
   }
 
   function getCatalogoServicos() {
@@ -185,6 +225,21 @@
   }
 
   function markAllDirty() { for (const k of Object.keys(state.tabDirty)) state.tabDirty[k] = true; }
+
+  function resolveApiBase() {
+    if (window.XCMASM_API_BASE && typeof window.XCMASM_API_BASE === 'string') {
+      return window.XCMASM_API_BASE.replace(/\/$/, '');
+    }
+    if (location.protocol === 'file:') {
+      return 'http://localhost:8010';
+    }
+    return '';
+  }
+
+  function apiUrl(path) {
+    const base = resolveApiBase();
+    return `${base}${path}`;
+  }
 
   function boot() {
     if (initialized) return;
@@ -487,41 +542,97 @@
 
     planos(cont) {
       const { el } = window.engine.utils;
-      const rows = getDerivedPlanRows();
+      const allRows = getDerivedPlanRows();
       const wrap = el('div');
       cont.replaceChildren(wrap);
-      if (!rows.length) {
+      
+      if (!allRows.length) {
         wrap.appendChild(el('div', { style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center' } },
           'Nenhum ativo com plano preventivo disponível no filtro atual.'));
         return;
       }
-      window.engine.table(wrap, {
-        cols: [
-          { key: '_status', label: '', format: v =>
-            v === 'danger' ? '🔴' : v === 'warn' ? '🟡' : v === 'ok' ? '🟢' : '—' },
-          { key: '_svc', label: 'Serviço', format: v => v?.nome || '—' },
-          { key: '_ativo', label: 'Ativo / Tipo', format: (v, row) =>
-            v?.nome || row.tipo_codigo || 'Todos da categoria' },
-          { key: 'frequencia', label: 'Frequência', format: v => {
-            if (!v) return '—';
-            if (v.tipo === 'por_uso') return `A cada ${v.valor} ${v.unidade}`;
-            if (v.tipo === 'periodica') return 'Periódica';
-            return '—';
-          }},
-          { key: 'ultima_execucao', label: 'Última execução' },
-          { key: '_planoItem', label: 'Próxima execução', format: v => {
-            if (!v) return '—';
-            const color = v.st === 'danger' ? 'red' : v.st === 'warn' ? 'amber' : v.st === 'proximo' ? 'blue' : 'green';
-            const label = v.st === 'danger'
-              ? `Vencida há ${Math.abs(v.falt).toFixed(0)} h`
-              : `Em ${Math.max(0, v.falt).toFixed(0)} h`;
-            return window.engine.badge(label, color);
-          }},
-          { key: '_svc', label: 'Materiais', format: v => `${(v?.materiais || []).length} item(ns)` },
-        ],
-        rows,
-        onRowClick: row => openPlanoDrawer(row),
+
+      // Agrupar por ativo
+      const porAtivo = new Map();
+      allRows.forEach(row => {
+        const ativoId = row.ativo_id || row._ativo?.id || 'sem-ativo';
+        if (!porAtivo.has(ativoId)) {
+          porAtivo.set(ativoId, { ativo: row._ativo, planos: [] });
+        }
+        porAtivo.get(ativoId).planos.push(row);
       });
+
+      // Renderizar card por ativo
+      const container = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } });
+      
+      porAtivo.forEach(({ ativo, planos }) => {
+        const statusManut = calcProxManut(ativo);
+        const danger = statusManut.filter(p => p.st === 'danger').length;
+        const warn = statusManut.filter(p => p.st === 'warn').length;
+        
+        const badge = danger > 0 ? 'danger' : warn > 0 ? 'warn' : 'ok';
+        const badgeColor = badge === 'danger' ? 'var(--red)' : badge === 'warn' ? 'var(--amber)' : 'var(--green)';
+        const badgeEmoji = badge === 'danger' ? '🔴' : badge === 'warn' ? '🟡' : '🟢';
+        
+        const card = el('div', { style: {
+          background: 'var(--panel)', border: '1px solid var(--line)', borderLeft: `3px solid ${badgeColor}`,
+          borderRadius: '8px', padding: '14px', marginBottom: '0'
+        } },
+          el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' } },
+            el('span', { style: { fontSize: '20px' } }, badgeEmoji),
+            el('div', { style: { flex: 1 } },
+              el('div', { style: { fontWeight: '600', fontSize: '15px' } }, ativo?.nome || 'Ativo desconhecido'),
+              el('div', { style: { fontSize: '12px', color: 'var(--ink-3)' } }, 
+                `${ativo?.tipo || '—'} · ${planos.length} plano(s)`)
+            ),
+            el('div', { style: { display: 'flex', gap: '8px', flexShrink: 0 } },
+              danger > 0 ? window.engine.badge(`${danger} vencida(s)`, 'red') : null,
+              warn > 0 ? window.engine.badge(`${warn} urgente(s)`, 'amber') : null,
+            )
+          ),
+          
+          el('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
+            ...planos.map(plano => el('div', { style: {
+              padding: '10px', background: 'var(--bg3)', borderRadius: '6px', fontSize: '12px',
+              borderLeft: `2px solid ${
+                plano._status === 'danger' ? 'var(--red)' : 
+                plano._status === 'warn' ? 'var(--amber)' : 
+                plano._status === 'proximo' ? 'var(--acc)' : 
+                'var(--green)'
+              }`, cursor: 'pointer'
+            }, { onclick: () => openPlanoDrawer(plano) },
+              el('div', { style: { fontWeight: '600', marginBottom: '6px' } }, plano._svc?.nome || plano.servico_id),
+              el('div', { style: { display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 12px', fontSize: '11px', color: 'var(--ink-2)' } },
+                el('div', { style: { fontWeight: '500' } }, 'Frequência:'),
+                el('div', {}, 
+                  plano.frequencia?.tipo === 'por_uso' 
+                    ? `A cada ${plano.frequencia.valor} ${plano.frequencia.unidade}` 
+                    : 'Periódica'),
+                el('div', { style: { fontWeight: '500' } }, 'Próxima:'),
+                el('div', {}, (() => {
+                  if (!plano._planoItem) return '—';
+                  const color = plano._planoItem.st === 'danger' ? 'var(--red)' : 
+                                 plano._planoItem.st === 'warn' ? 'var(--amber)' : 
+                                 plano._planoItem.st === 'proximo' ? 'var(--acc)' : 'var(--green)';
+                  const label = plano._planoItem.st === 'danger'
+                    ? `Vencida há ${Math.abs(plano._planoItem.falt).toFixed(0)} h`
+                    : `Em ${Math.max(0, plano._planoItem.falt).toFixed(0)} h`;
+                  return el('span', { style: { color, fontWeight: '700' } }, label);
+                })()),
+                el('div', { style: { fontWeight: '500' } }, 'Materiais:'),
+                el('div', {}, 
+                  (plano._svc?.materiais || []).length > 0
+                    ? (plano._svc?.materiais || []).map(m => m.nome_livre || m.nome).join(', ')
+                    : 'Nenhum')
+              )
+            ))
+          )
+        );
+        
+        container.appendChild(card);
+      });
+      
+      wrap.appendChild(container);
     },
 
     catalogo(cont) {
@@ -1922,14 +2033,14 @@
     const work = (async () => {
       try {
         const [ativos, os, estoque, servicosBase, planos] = await Promise.all([
-          fetch('/api/ativos').then(r => { if (!r.ok) throw new Error('ativos ' + r.status); return r.json(); }),
-          fetch('/api/os').then(r => { if (!r.ok) throw new Error('os ' + r.status); return r.json(); }),
-          fetch('/api/estoque').then(r => { if (!r.ok) throw new Error('estoque ' + r.status); return r.json(); }),
-          fetch('/api/catalogo/servicos').then(r => { if (!r.ok) throw new Error('catalogo/servicos ' + r.status); return r.json(); }),
-          fetch('/api/catalogo/planos').then(r => { if (!r.ok) throw new Error('catalogo/planos ' + r.status); return r.json(); }),
+          fetch(apiUrl('/api/ativos')).then(r => { if (!r.ok) throw new Error('ativos ' + r.status); return r.json(); }),
+          fetch(apiUrl('/api/os')).then(r => { if (!r.ok) throw new Error('os ' + r.status); return r.json(); }),
+          fetch(apiUrl('/api/estoque')).then(r => { if (!r.ok) throw new Error('estoque ' + r.status); return r.json(); }),
+          fetch(apiUrl('/api/catalogo/servicos')).then(r => { if (!r.ok) throw new Error('catalogo/servicos ' + r.status); return r.json(); }),
+          fetch(apiUrl('/api/catalogo/planos')).then(r => { if (!r.ok) throw new Error('catalogo/planos ' + r.status); return r.json(); }),
         ]);
         const servicos = await Promise.all((servicosBase || []).map(servico =>
-          fetch(`/api/catalogo/servicos/${encodeURIComponent(servico.id)}`)
+          fetch(apiUrl(`/api/catalogo/servicos/${encodeURIComponent(servico.id)}`))
             .then(r => (r.ok ? r.json() : servico))
             .catch(() => servico)
         ));
@@ -1949,7 +2060,7 @@
           ativo: a.status !== 'INOP' ? 1 : 0, uso_atual: a.horimetro || 0, unidade_uso: 'h',
           criticidade: 'operacional', responsavel_pmoc: a.local || '—', status: a.status,
           observacoes: a.obs,
-        }));
+        })).map(a => ({ ...a, tipo: resolveTipoCodigo(a) || a.tipo }));
         const lsOS = (window.getOSManut?.() || []).map(o => ({
           id: o.id, codigo: o.id, titulo: o.descricao?.substring(0, 60) || o.id,
           tipo: o.tipo, status: o.status, prioridade: 'normal', ativo_id: o.ativoId,
@@ -1978,21 +2089,41 @@
     finally { state._fetching = null; }
   }
 
+  function normalizeFetchErrorMessage(msg) {
+    const raw = String(msg || '').trim();
+    if (!raw) return 'falha de conexão';
+    if (/failed to fetch/i.test(raw)) return 'falha de conexão';
+    return raw;
+  }
+
   function showErrorBanner(msg, hasCache) {
     const { el } = window.engine.utils;
     const root = document.getElementById('manut-root');
     if (!root) return;
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const tone = hasCache
+      ? {
+          bg: isLight ? 'rgba(245,158,11,.20)' : 'rgba(245,158,11,.15)',
+          border: 'var(--amber)',
+          text: isLight ? '#92400e' : 'var(--amber)',
+        }
+      : {
+          bg: isLight ? 'rgba(239,68,68,.16)' : 'rgba(239,68,68,.15)',
+          border: 'var(--red)',
+          text: isLight ? '#991b1b' : 'var(--red)',
+        };
+    const safeMsg = normalizeFetchErrorMessage(msg);
     const banner = el('div', {
       id: 'manut-banner',
       style: {
-        background: hasCache ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.15)',
-        border: '1px solid ' + (hasCache ? 'var(--amber)' : 'var(--red)'),
-        color: hasCache ? 'var(--amber)' : 'var(--red)',
+        background: tone.bg,
+        border: '1px solid ' + tone.border,
+        color: tone.text,
         padding: '8px 12px', borderRadius: '6px',
         margin: '0 0 12px', display: 'flex', gap: '12px', alignItems: 'center',
       },
     },
-      el('span', {}, hasCache ? `⚠ Dados desatualizados (${msg}).` : `⛔ Sem conexão com o núcleo (${msg}).`),
+      el('span', {}, hasCache ? `⚠ Dados desatualizados (${safeMsg}).` : `⛔ Sem conexão com o núcleo (${safeMsg}).`),
       el('div', { style: { flex: 1 } }),
       el('button', { class: 'pe-btn', onclick: () => fetchAll() }, 'Tentar novamente'),
     );
