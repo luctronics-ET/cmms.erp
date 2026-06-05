@@ -15,6 +15,7 @@
     cache: { ativos: null, os: null, estoque: null, catalogo_servicos: null, planos_manutencao: null },
     activeTab: 'dashboard',
     tabDirty: { dashboard: true, os: true, planos: true, catalogo: true },
+    _fetchError: null,          // { msg, hasCache } — consumido por _showPendingBanner()
   };
 
   const TAB_DEFS = [
@@ -243,20 +244,16 @@
 
   function boot() {
     if (initialized) return;
-    initialized = true;
     const root = document.getElementById('manut-root');
-    if (!root) {
-      console.warn('[manut] #manut-root não encontrado');
-      return;
-    }
+    if (!root) { console.warn('[manut] #manut-root não encontrado'); return; }
     if (!window.engine) {
       console.warn('[manut] pmoc-engine.js não carregado');
-      root.innerHTML = '<div style="padding:24px;color:#ef4444">Erro: pmoc-engine não carregado.</div>';
-      return;
+      return; // não seta initialized → permite nova tentativa
     }
+    initialized = true;
     // Migra dados de PMOCs legados (maq-corte, refrigeracao) na primeira execução
-    migrarDadosLegados();
-    fetchAll().finally(() => { render(root); });
+    try { migrarDadosLegados(); } catch (e) { console.warn('[manut] migração legada falhou:', e); }
+    fetchAll().finally(() => { render(root); _showPendingBanner(); });
   }
 
   // ── render principal ─────────────────────────────────────────────────────
@@ -297,7 +294,7 @@
         el('button', {
           class: 'pe-btn pe-btn--ghost', title: 'Recarregar do núcleo',
           style: { minHeight: '28px', padding: '4px 10px', fontSize: '12px' },
-          onclick: () => fetchAll().then(() => { markAllDirty(); renderActiveTab(); }),
+          onclick: () => fetchAll().finally(() => { markAllDirty(); renderActiveTab(); _showPendingBanner(); }),
         }, '↻'),
       );
     }
@@ -600,7 +597,7 @@
                 plano._status === 'proximo' ? 'var(--acc)' : 
                 'var(--green)'
               }`, cursor: 'pointer'
-            }, { onclick: () => openPlanoDrawer(plano) },
+            }, onclick: () => openPlanoDrawer(plano) },
               el('div', { style: { fontWeight: '600', marginBottom: '6px' } }, plano._svc?.nome || plano.servico_id),
               el('div', { style: { display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 12px', fontSize: '11px', color: 'var(--ink-2)' } },
                 el('div', { style: { fontWeight: '500' } }, 'Frequência:'),
@@ -2078,10 +2075,12 @@
           state.cache.planos_manutencao = { data: window.ERP_MANUT_MOCKS?.planos_manutencao || [], ts: Date.now(), fromLS: true };
           state.catsAvailable = [...new Set(lsAtivos.map(a => a.categoria).filter(Boolean))].sort();
           if (state._renderChips) state._renderChips();
-          showErrorBanner(e.message, true);
-        } else {
-          showErrorBanner(e.message, !!state.cache.ativos);
         }
+        const hasCache = lsAtivos.length > 0 || !!state.cache.ativos;
+        state._fetchError = { msg: e.message, hasCache };
+        // Se root já tem conteúdo (cenário de refresh), mostrar banner imediatamente
+        const r = document.getElementById('manut-root');
+        if (r?.firstChild) { showErrorBanner(e.message, hasCache); state._fetchError = null; }
       }
     })();
     state._fetching = work;
@@ -2134,6 +2133,18 @@
     const p = document.getElementById('page-manutencao');
     return !!(p && p.classList.contains('active'));
   }
+
+  function _showPendingBanner() {
+    if (!state._fetchError) return;
+    const { msg, hasCache } = state._fetchError;
+    state._fetchError = null;
+    showErrorBanner(msg, hasCache);
+  }
+
+  window.manutRefresh = function () {
+    if (!initialized) return;
+    fetchAll().finally(() => { markAllDirty(); renderActiveTab(); _showPendingBanner(); });
+  };
 
   // 1) Se a página já está visível na carga (caso DOMContentLoaded em deeplink),
   //    boot imediato. 2) Caso contrário, observa mudanças de classe na page.

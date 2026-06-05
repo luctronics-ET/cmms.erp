@@ -3108,7 +3108,8 @@ function showPage(page, el){
     paiois: ()=>{renderPaiois();renderInventarioPaiois();renderMovPaiois();renderPaiolKPIs();},
     usuarios: ()=>renderUsuarios(),
     perfil: ()=>renderPerfil(),
-    admin: ()=>renderAdminDB()
+    admin: ()=>renderAdminDB(),
+    manutencao: ()=>{ if(typeof window.manutRefresh==='function') window.manutRefresh(); },
   };
   if(renders[page])renders[page]();
 }
