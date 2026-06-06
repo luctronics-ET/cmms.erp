@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMASM · GeoMap v2</title>
+<!-- MapLibre v3 — compatível com MapboxDraw 1.4.3 -->
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.css"/>
+<style>
+:root{
+  --navy:#080f1e;--navy-mid:#0e1c34;--navy-lt:#162844;
+  --accent:#00d4ff;--gold:#f0c040;--success:#00cc88;
+  --warn:#ffaa00;--danger:#ff4d4d;--infra:#cc88ff;
+  --text:#dce8f5;--dim:#5a7a99;
+  --border:rgba(0,212,255,0.13);--panelbg:rgba(8,15,30,0.97);
+  --font:'Courier New',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--navy);color:var(--text);font-family:var(--font);display:flex;flex-direction:column}
+/* HEADER */
+header{height:44px;background:var(--navy-mid);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 12px;gap:9px;flex-shrink:0;z-index:300;position:relative}
+.logo-ring{width:24px;height:24px;border:1.5px solid var(--accent);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--accent)}
+.logo-main{font-size:11px;font-weight:bold;letter-spacing:.14em;color:var(--accent)}
+.logo-sub{font-size:9px;color:var(--dim);letter-spacing:.08em}
+.hsp{flex:1}
+#coordBar{font-size:10px;color:var(--dim);background:rgba(0,212,255,.05);
+  border:1px solid var(--border);padding:3px 9px;border-radius:2px;min-width:240px;text-align:center;letter-spacing:.04em}
+.hbtn{font-size:9px;padding:3px 8px;background:transparent;border:1px solid var(--border);
+  color:var(--dim);cursor:pointer;border-radius:2px;font-family:var(--font);letter-spacing:.05em;transition:all .15s}
+.hbtn:hover,.hbtn.on{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,.07)}
+.hbtn.warn:hover,.hbtn.warn.on{border-color:var(--warn);color:var(--warn);background:rgba(255,170,0,.07)}
+/* WORKSPACE */
+.ws{flex:1;display:flex;overflow:hidden;position:relative}
+/* LEFT PANEL */
+.pl{width:200px;background:var(--panelbg);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;z-index:10}
+.ptitle{font-size:9px;letter-spacing:.13em;color:var(--dim);padding:6px 10px 4px;
+  border-bottom:1px solid var(--border);text-transform:uppercase;
+  display:flex;align-items:center;justify-content:space-between}
+.layer-active-bar{padding:6px 10px;border-bottom:1px solid var(--border)}
+.layer-active-bar label{display:block;font-size:9px;color:var(--dim);letter-spacing:.07em;margin-bottom:3px}
+#activeLayerSel{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);
+  color:var(--text);font-family:var(--font);font-size:10px;padding:3px 5px;border-radius:2px;outline:none}
+#activeLayerSel:focus{border-color:var(--accent)}
+#activeLayerSel option{background:var(--navy-mid)}
+.layer-list{padding:4px 10px 6px;border-bottom:1px solid var(--border)}
+.layer-row{display:flex;align-items:center;gap:5px;padding:2px 0}
+.layer-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.layer-name{font-size:9px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.layer-vis{cursor:pointer;font-size:10px;color:var(--dim);background:none;border:none;padding:0 2px;transition:color .1s}
+.layer-vis:hover{color:var(--accent)}
+.layer-opa{width:44px;accent-color:var(--accent);cursor:pointer;vertical-align:middle}
+.sym-groups{overflow-y:auto;flex:1}
+.sg-hd{font-size:9px;letter-spacing:.09em;padding:5px 10px;color:var(--dim);cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;user-select:none;
+  border-bottom:1px solid rgba(255,255,255,.03)}
+.sg-hd:hover{background:rgba(255,255,255,.02)}
+.sg-hd.open{color:var(--accent)}
+.sg-body{display:none;padding:4px 5px 6px;flex-wrap:wrap;gap:3px}
+.sg-body.open{display:flex}
+.si{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 3px;
+  cursor:pointer;border:1px solid transparent;border-radius:2px;width:50px;
+  transition:all .15s;user-select:none}
+.si:hover{border-color:var(--accent);background:rgba(0,212,255,.07)}
+.si.on{border-color:var(--gold);background:rgba(240,192,64,.1)}
+.si svg{display:block}
+.si span{font-size:8px;color:var(--dim);text-align:center;line-height:1.2}
+/* MAP CONTAINER */
+#map{flex:1;position:relative;min-width:0}
+/* map-toolbar fica dentro de #map via position:absolute */
+.map-toolbar{position:absolute;top:10px;right:10px;z-index:100;display:flex;flex-direction:column;gap:4px;pointer-events:all}
+.mtbtn{width:30px;height:30px;background:var(--panelbg);border:1px solid var(--border);
+  color:var(--accent);cursor:pointer;border-radius:2px;font-family:var(--font);font-size:10px;
+  display:flex;align-items:center;justify-content:center;transition:all .15s}
+.mtbtn:hover,.mtbtn.on{border-color:var(--accent);background:var(--navy-lt)}
+#bearingBadge{position:absolute;bottom:30px;right:10px;z-index:100;background:var(--panelbg);
+  border:1px solid var(--border);color:var(--accent);font-size:9px;padding:3px 7px;
+  border-radius:2px;pointer-events:none}
+/* OVERLAY — dentro de #map, pointer-events:none para não bloquear o mapa */
+#ovImg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  pointer-events:none;z-index:20;display:none;
+  max-width:90%;max-height:90%;border:1px dashed rgba(0,212,255,.4)}
+/* Overlay controls panel — fora do mapa, no rodapé */
+.ov-bar{display:none;align-items:center;gap:10px;padding:6px 14px;
+  background:var(--navy-mid);border-top:1px solid var(--warn);
+  flex-shrink:0;z-index:200;flex-wrap:wrap}
+.ov-bar.show{display:flex}
+.ov-bar label{font-size:9px;color:var(--dim);white-space:nowrap}
+.ov-bar input[type=range]{width:80px;accent-color:var(--warn)}
+.ov-bar input[type=number]{width:52px;background:rgba(255,255,255,.05);border:1px solid var(--border);
+  color:var(--text);font-family:var(--font);font-size:10px;padding:2px 4px;border-radius:2px}
+.ov-close{background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;font-family:var(--font);margin-left:auto}
+/* RIGHT PANEL */
+.pr{width:220px;background:var(--panelbg);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;z-index:10}
+.pr-props{padding:9px 10px;border-bottom:1px solid var(--border);overflow-y:auto;max-height:55%}
+.pf{margin-bottom:6px}
+.pf label{display:block;font-size:9px;color:var(--dim);margin-bottom:2px;letter-spacing:.05em}
+.pf input,.pf select,.pf textarea{width:100%;background:rgba(255,255,255,.04);
+  border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:10px;
+  padding:3px 5px;border-radius:2px;outline:none;transition:border-color .15s}
+.pf input:focus,.pf select:focus,.pf textarea:focus{border-color:var(--accent)}
+.pf select option{background:var(--navy-mid)}
+.pf textarea{resize:vertical;min-height:44px}
+.pbtn{width:100%;padding:6px;border:none;font-family:var(--font);font-size:10px;font-weight:bold;
+  letter-spacing:.09em;cursor:pointer;border-radius:2px;transition:all .15s;margin-top:2px}
+.pbtn.save{background:var(--accent);color:var(--navy)}.pbtn.save:hover{background:#00eeff}
+.pbtn.modal3d{background:transparent;color:var(--infra);border:1px solid rgba(204,136,255,.3)}
+.pbtn.modal3d:hover{background:rgba(204,136,255,.08)}
+.pbtn.del{background:transparent;color:var(--danger);border:1px solid rgba(255,77,77,.3)}
+.pbtn.del:hover{background:rgba(255,77,77,.1)}
+.pr-list{overflow-y:auto;flex:1}
+.el-item{padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:background .1s}
+.el-item:hover{background:rgba(255,255,255,.025)}
+.el-item.sel{background:rgba(0,212,255,.06);border-left:2px solid var(--accent)}
+.el-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.el-info{flex:1;min-width:0}
+.el-name{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.el-meta{font-size:8px;color:var(--dim)}
+.el-ltag{font-size:8px;padding:1px 4px;border-radius:9px;border:1px solid transparent}
+/* STATUS BAR */
+.sb{height:22px;background:var(--navy-mid);border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 11px;gap:16px;flex-shrink:0;z-index:200}
+.sbi{font-size:9px;color:var(--dim);display:flex;align-items:center;gap:4px;letter-spacing:.04em}
+.sbi-dot{width:5px;height:5px;border-radius:50%;background:var(--success)}
+/* MODAL 3D */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9000;
+  display:none;align-items:center;justify-content:center}
+.modal-ov.show{display:flex}
+.modal-box{background:var(--navy-mid);border:1px solid var(--border);border-radius:3px;
+  width:580px;max-width:94vw;padding:18px;position:relative}
+.modal-title{font-size:12px;color:var(--accent);letter-spacing:.1em;margin-bottom:12px}
+.modal-close{position:absolute;top:10px;right:12px;background:none;border:none;
+  color:var(--dim);font-size:15px;cursor:pointer;font-family:var(--font)}
+.m3d-ph{height:260px;border:1px dashed var(--border);border-radius:3px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--dim);font-size:11px}
+.m3d-meta{margin-top:10px;display:flex;gap:7px}
+.m3d-cell{flex:1;padding:7px;border:1px solid var(--border);border-radius:2px}
+.m3d-cl{font-size:8px;color:var(--dim);margin-bottom:3px}
+.m3d-cv{font-size:10px}
+/* Drop overlay */
+#dropOv{position:fixed;inset:0;background:rgba(0,212,255,.07);border:2px dashed var(--accent);
+  z-index:8000;display:none;align-items:center;justify-content:center;
+  font-size:13px;color:var(--accent);letter-spacing:.1em;pointer-events:none}
+#dropOv.show{display:flex}
+/* Toast */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(12px);
+  background:var(--navy-mid);border:1px solid var(--accent);color:var(--accent);
+  padding:6px 14px;font-size:10px;letter-spacing:.09em;border-radius:2px;z-index:9999;
+  opacity:0;pointer-events:none;transition:all .2s;font-family:var(--font)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* MapLibre / Draw overrides */
+.maplibregl-ctrl-group{background:var(--panelbg)!important;border:1px solid var(--border)!important}
+.maplibregl-ctrl button{background:var(--panelbg)!important;border-bottom:1px solid var(--border)!important}
+.maplibregl-ctrl button .maplibregl-ctrl-icon{filter:brightness(.7) sepia(.5) saturate(3) hue-rotate(160deg)}
+.mapbox-gl-draw_ctrl-draw-btn{background:var(--panelbg)!important}
+.mapboxgl-ctrl-group button+button{border-top:1px solid var(--border)!important}
+/* Draw cursor mode indicator */
+.maplibregl-canvas-container.maplibregl-interactive{cursor:default}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-ring">⚓</div>
+  <div><div class="logo-main">CMASM · GEOMAP</div><div class="logo-sub">ILHA DO ENGENHO — DIV. MANUTENÇÃO</div></div>
+  <div class="hsp"></div>
+  <div id="coordBar">LAT —&nbsp;&nbsp;LON —</div>
+  <button class="hbtn on"  id="btn-osm"  onclick="setBase('osm')">OSM</button>
+  <button class="hbtn"     id="btn-sat"  onclick="setBase('sat')">SAT</button>
+  <button class="hbtn"     id="btn-topo" onclick="setBase('topo')">TOPO</button>
+  <button class="hbtn warn" id="btn-ov"  onclick="toggleOvBar()">PLANTA</button>
+  <button class="hbtn"                   onclick="exportGeoJSON()">↓ GeoJSON</button>
+</header>
+
+<div class="ws">
+  <!-- LEFT -->
+  <div class="pl">
+    <div class="ptitle">Layer Ativo <span style="color:var(--accent);font-size:8px" id="actLabel">—</span></div>
+    <div class="layer-active-bar">
+      <label>DESENHAR EM:</label>
+      <select id="activeLayerSel" onchange="setActiveLayer(this.value)">
+        <option value="eletrico">⚡ Elétrico</option>
+        <option value="hidraulico">💧 Hidráulico</option>
+        <option value="edificacoes">🏛 Edificações</option>
+        <option value="infraestrutura">📡 Infraestrutura</option>
+        <option value="anotacoes">✏ Anotações</option>
+      </select>
+    </div>
+    <div class="layer-list">
+      <div style="font-size:8px;color:var(--dim);letter-spacing:.1em;margin-bottom:3px">VISIBILIDADE</div>
+      <div id="layerVis"></div>
+    </div>
+    <div class="ptitle">Símbolos</div>
+    <div class="sym-groups" id="symGroups"></div>
+  </div>
+
+  <!-- MAP -->
+  <div id="map">
+    <div class="map-toolbar">
+      <button class="mtbtn" title="Norte" onclick="resetBearing()">N↑</button>
+      <button class="mtbtn" title="Girar ↻ 45°" onclick="rotateCW()">↻</button>
+      <button class="mtbtn" title="Girar ↺ 45°" onclick="rotateCCW()">↺</button>
+      <button class="mtbtn" id="btn3d" title="Pitch 3D" onclick="togglePitch()">3D</button>
+      <button class="mtbtn" title="Centralizar" onclick="centerIsland()">⊕</button>
+    </div>
+    <div id="bearingBadge">000°</div>
+    <!-- Overlay image — dentro do mapa, pointer-events:none -->
+    <img id="ovImg" alt="planta overlay"/>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="pr">
+    <div class="ptitle">Propriedades</div>
+    <div class="pr-props" id="propPanel">
+      <div style="font-size:10px;color:var(--dim);padding:4px 0">Selecione ou insira um elemento.</div>
+    </div>
+    <div class="ptitle">Elementos <span id="elCount" style="color:var(--accent)">0</span></div>
+    <div class="pr-list" id="elList"></div>
+  </div>
+</div>
+
+<!-- Overlay controls bar — abaixo do workspace, fora do mapa -->
+<div class="ov-bar" id="ovBar">
+  <span style="font-size:9px;color:var(--warn);letter-spacing:.1em;white-space:nowrap">PLANTA OVERLAY</span>
+  <input type="file" id="ovFile" accept="image/*,.svg" onchange="loadOverlay(event)"
+         style="font-size:9px;color:var(--dim);max-width:130px"/>
+  <label>Opac.</label><input type="range" id="ovOpa" min="0" max="100" value="55" oninput="updateOv()"/>
+  <label>Escala</label><input type="number" id="ovScale" value="100" min="5" max="500" oninput="updateOv()"/>%
+  <label>Rot.</label><input type="number" id="ovRot" value="0" min="-180" max="180" oninput="updateOv()"/>°
+  <button class="ov-close" onclick="removeOverlay()">✕ remover</button>
+</div>
+
+<div class="sb">
+  <div class="sbi"><div class="sbi-dot"></div>ONLINE</div>
+  <div class="sbi" id="sb-mode">NAVEGAR</div>
+  <div class="sbi" id="sb-layer">ELÉTRICO</div>
+  <div class="sbi" id="sb-hdg">HDG: 000°</div>
+  <div class="sbi" style="margin-left:auto" id="sb-zoom">Z: 17.0</div>
+</div>
+
+<!-- Modal 3D -->
+<div class="modal-ov" id="modal3d" onclick="if(event.target===this)closeModal3d()">
+  <div class="modal-box">
+    <div class="modal-title">▣ <span id="m3dTitle">VISUALIZAÇÃO 3D</span></div>
+    <button class="modal-close" onclick="closeModal3d()">✕</button>
+    <div class="m3d-ph">
+      <svg width="64" height="52" viewBox="0 0 64 52" fill="none">
+        <rect x="10" y="22" width="28" height="20" stroke="#5a7a99" stroke-width="1.4"/>
+        <path d="M10,22 L24,12 L38,22" fill="none" stroke="#5a7a99" stroke-width="1.4"/>
+        <path d="M38,22 L46,16 L46,42 L38,42" fill="none" stroke="#5a7a99" stroke-width="1"/>
+        <path d="M24,12 L32,6 L46,16" fill="none" stroke="#5a7a99" stroke-width="1"/>
+      </svg>
+      <span id="m3dInfo">Modelo 3D — integração futura (Three.js / IFC / glTF)</span>
+      <span style="font-size:9px;color:var(--dim)">Clique em elemento → botão 3D</span>
+    </div>
+    <div class="m3d-meta">
+      <div class="m3d-cell"><div class="m3d-cl">TAG</div><div class="m3d-cv" id="m3d-tag">—</div></div>
+      <div class="m3d-cell"><div class="m3d-cl">TIPO</div><div class="m3d-cv" id="m3d-type">—</div></div>
+      <div class="m3d-cell"><div class="m3d-cl">LAYER</div><div class="m3d-cv" id="m3d-layer">—</div></div>
+      <div class="m3d-cell"><div class="m3d-cl">STATUS</div><div class="m3d-cv" id="m3d-status">—</div></div>
+    </div>
+  </div>
+</div>
+<div id="dropOv">SOLTE A IMAGEM DA PLANTA AQUI</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js"></script>
+<script>
+// ── CONSTANTES ──
+const CENTER = [-43.10932, -22.83497];
+const BASEMAPS = {
+  osm:  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  sat:  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  topo: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+};
+
+// ── LAYERS ──
+const LAYERS = {
+  eletrico:      {label:'⚡ Elétrico',       color:'#ffcc00', visible:true, opacity:1},
+  hidraulico:    {label:'💧 Hidráulico',     color:'#44aaff', visible:true, opacity:1},
+  edificacoes:   {label:'🏛 Edificações',    color:'#88ddaa', visible:true, opacity:1},
+  infraestrutura:{label:'📡 Infraestrutura', color:'#cc88ff', visible:true, opacity:1},
+  anotacoes:     {label:'✏ Anotações',       color:'#ffffff', visible:true, opacity:0.7},
+};
+let activeLayer = 'eletrico';
+
+// ── SÍMBOLOS ──
+const SYMBOLS = {
+  'Elétrico':[
+    {id:'subestacao', abbr:'SE', color:'#ff8800', layer:'eletrico', label:'Subest.',
+     svg:'<rect x="3" y="7" width="22" height="14" fill="none" stroke="#ff8800" stroke-width="1.4"/><line x1="3" y1="11" x2="25" y2="11" stroke="#ff8800" stroke-width="1"/><text x="14" y="22" text-anchor="middle" font-size="7" fill="#ff8800" font-family="monospace">SE</text>'},
+    {id:'qd',         abbr:'QD', color:'#ffcc00', layer:'eletrico', label:'Q.Distrib.',
+     svg:'<rect x="5" y="5" width="18" height="18" fill="none" stroke="#ffcc00" stroke-width="1.4"/><line x1="5" y1="11" x2="23" y2="11" stroke="#ffcc00" stroke-width=".8"/><line x1="5" y1="17" x2="23" y2="17" stroke="#ffcc00" stroke-width=".8"/><line x1="11" y1="5" x2="11" y2="23" stroke="#ffcc00" stroke-width=".5"/>'},
+    {id:'trafo',      abbr:'TR', color:'#ffcc00', layer:'eletrico', label:'Transfor.',
+     svg:'<circle cx="10" cy="14" r="6" fill="none" stroke="#ffcc00" stroke-width="1.4"/><circle cx="18" cy="14" r="6" fill="none" stroke="#ffcc00" stroke-width="1.4"/><line x1="10" y1="4" x2="10" y2="8" stroke="#ffcc00" stroke-width="1.4"/><line x1="18" y1="4" x2="18" y2="8" stroke="#ffcc00" stroke-width="1.4"/>'},
+    {id:'gerador',    abbr:'GE', color:'#ffcc00', layer:'eletrico', label:'Gerador',
+     svg:'<circle cx="14" cy="14" r="9" fill="none" stroke="#ffcc00" stroke-width="1.4"/><text x="14" y="18" text-anchor="middle" font-size="10" fill="#ffcc00" font-family="monospace">G</text>'},
+    {id:'poste',      abbr:'PS', color:'#ffcc00', layer:'eletrico', label:'Poste',
+     svg:'<line x1="14" y1="4" x2="14" y2="24" stroke="#ffcc00" stroke-width="2"/><line x1="8" y1="9" x2="20" y2="9" stroke="#ffcc00" stroke-width="1.5"/><circle cx="14" cy="24" r="2" fill="#ffcc00"/>'},
+    {id:'luminaria',  abbr:'LM', color:'#ffee44', layer:'eletrico', label:'Luminária',
+     svg:'<circle cx="14" cy="11" r="5" fill="none" stroke="#ffee44" stroke-width="1.4"/><line x1="14" y1="16" x2="14" y2="24" stroke="#ffee44" stroke-width="1.4"/><line x1="7" y1="7" x2="4" y2="4" stroke="#ffee44" stroke-width="1"/><line x1="21" y1="7" x2="24" y2="4" stroke="#ffee44" stroke-width="1"/>'},
+    {id:'cxpassagem', abbr:'CX', color:'#ffcc00', layer:'eletrico', label:'Cx.Passag.',
+     svg:'<rect x="6" y="6" width="16" height="16" fill="none" stroke="#ffcc00" stroke-width="1.4"/><line x1="6" y1="14" x2="22" y2="14" stroke="#ffcc00" stroke-width=".8" stroke-dasharray="2,2"/><line x1="14" y1="6" x2="14" y2="22" stroke="#ffcc00" stroke-width=".8" stroke-dasharray="2,2"/><circle cx="14" cy="14" r="2" fill="#ffcc00"/>'},
+    {id:'eletroduto',  abbr:'ET', color:'#ffaa00', layer:'eletrico', label:'Eletroduto',
+     svg:'<rect x="4" y="11" width="20" height="6" rx="3" fill="none" stroke="#ffaa00" stroke-width="1.4"/><line x1="0" y1="14" x2="4" y2="14" stroke="#ffaa00" stroke-width="1.4"/><line x1="24" y1="14" x2="28" y2="14" stroke="#ffaa00" stroke-width="1.4"/>'},
+  ],
+  'Hidráulico':[
+    {id:'reservatorio',abbr:'RV',color:'#44aaff',layer:'hidraulico',label:'Reservat.',
+     svg:'<ellipse cx="14" cy="9" rx="9" ry="3.5" fill="none" stroke="#44aaff" stroke-width="1.4"/><line x1="5" y1="9" x2="5" y2="20" stroke="#44aaff" stroke-width="1.4"/><line x1="23" y1="9" x2="23" y2="20" stroke="#44aaff" stroke-width="1.4"/><ellipse cx="14" cy="20" rx="9" ry="3.5" fill="rgba(68,170,255,.18)" stroke="#44aaff" stroke-width="1.4"/>'},
+    {id:'bomba',       abbr:'BM',color:'#44aaff',layer:'hidraulico',label:'Bomba',
+     svg:'<circle cx="14" cy="14" r="7" fill="none" stroke="#44aaff" stroke-width="1.4"/><path d="M14,7 L19,14 L14,21 L9,14Z" fill="none" stroke="#44aaff" stroke-width="1"/><line x1="4" y1="14" x2="7" y2="14" stroke="#44aaff" stroke-width="1.4"/><line x1="21" y1="14" x2="24" y2="14" stroke="#44aaff" stroke-width="1.4"/>'},
+    {id:'valvula',     abbr:'VL',color:'#44aaff',layer:'hidraulico',label:'Válvula',
+     svg:'<line x1="4" y1="14" x2="24" y2="14" stroke="#44aaff" stroke-width="1.4"/><polygon points="10,8 18,8 14,14" fill="none" stroke="#44aaff" stroke-width="1.2"/><polygon points="10,20 18,20 14,14" fill="none" stroke="#44aaff" stroke-width="1.2"/>'},
+    {id:'hidrante',    abbr:'HD',color:'#ff4444',layer:'hidraulico',label:'Hidrante',
+     svg:'<rect x="9" y="10" width="10" height="14" rx="2" fill="none" stroke="#ff4444" stroke-width="1.4"/><rect x="7" y="14" width="14" height="4" rx="1" fill="none" stroke="#ff4444" stroke-width="1"/><line x1="14" y1="6" x2="14" y2="10" stroke="#ff4444" stroke-width="2"/><line x1="10" y1="6" x2="18" y2="6" stroke="#ff4444" stroke-width="2"/>'},
+    {id:'poco',        abbr:'PC',color:'#44aaff',layer:'hidraulico',label:'Poço',
+     svg:'<ellipse cx="14" cy="10" rx="7" ry="2.5" fill="none" stroke="#44aaff" stroke-width="1.4"/><line x1="7" y1="10" x2="7" y2="22" stroke="#44aaff" stroke-width="1.4"/><line x1="21" y1="10" x2="21" y2="22" stroke="#44aaff" stroke-width="1.4"/><line x1="5" y1="22" x2="23" y2="22" stroke="#44aaff" stroke-width="1.4"/>'},
+  ],
+  'Edificações':[
+    {id:'edificio',  abbr:'ED',color:'#88ddaa',layer:'edificacoes',label:'Edificação',
+     svg:'<rect x="4" y="10" width="20" height="14" fill="none" stroke="#88ddaa" stroke-width="1.4"/><polyline points="4,10 14,3 24,10" fill="none" stroke="#88ddaa" stroke-width="1.4"/><rect x="11" y="17" width="6" height="7" fill="none" stroke="#88ddaa" stroke-width="1"/>'},
+    {id:'galpao',    abbr:'GP',color:'#88ddaa',layer:'edificacoes',label:'Galpão',
+     svg:'<rect x="2" y="12" width="24" height="12" fill="none" stroke="#88ddaa" stroke-width="1.4"/><path d="M2,12 Q14,4 26,12" fill="none" stroke="#88ddaa" stroke-width="1.4"/>'},
+    {id:'paiol',     abbr:'PL',color:'#f0c040',layer:'edificacoes',label:'Paiol',
+     svg:'<rect x="4" y="10" width="20" height="14" fill="none" stroke="#f0c040" stroke-width="1.4"/><polyline points="4,10 14,3 24,10" fill="none" stroke="#f0c040" stroke-width="1.4"/><text x="14" y="20" text-anchor="middle" font-size="9" fill="#f0c040" font-family="monospace">!</text>'},
+    {id:'deposito',  abbr:'DP',color:'#88ddaa',layer:'edificacoes',label:'Depósito',
+     svg:'<rect x="4" y="8" width="20" height="16" fill="none" stroke="#88ddaa" stroke-width="1.4"/><line x1="4" y1="8" x2="8" y2="4" stroke="#88ddaa" stroke-width="1"/><line x1="24" y1="8" x2="20" y2="4" stroke="#88ddaa" stroke-width="1"/><line x1="8" y1="4" x2="20" y2="4" stroke="#88ddaa" stroke-width="1"/>'},
+  ],
+  'Infraestrutura':[
+    {id:'antena',  abbr:'AT',color:'#cc88ff',layer:'infraestrutura',label:'Antena',
+     svg:'<line x1="14" y1="24" x2="14" y2="12" stroke="#cc88ff" stroke-width="1.4"/><path d="M8,8 Q14,4 20,8" fill="none" stroke="#cc88ff" stroke-width="1.2"/><path d="M5,12 Q14,6 23,12" fill="none" stroke="#cc88ff" stroke-width="1" stroke-dasharray="2,1"/><circle cx="14" cy="12" r="1.8" fill="#cc88ff"/>'},
+    {id:'camera',  abbr:'CV',color:'#cc88ff',layer:'infraestrutura',label:'CFTV',
+     svg:'<rect x="4" y="10" width="14" height="10" rx="1" fill="none" stroke="#cc88ff" stroke-width="1.4"/><polygon points="18,11 24,8 24,22 18,19" fill="none" stroke="#cc88ff" stroke-width="1.2"/><circle cx="10" cy="15" r="2.5" fill="none" stroke="#cc88ff" stroke-width="1"/>'},
+    {id:'sensor',  abbr:'SN',color:'#cc88ff',layer:'infraestrutura',label:'Sensor',
+     svg:'<circle cx="14" cy="14" r="5" fill="none" stroke="#cc88ff" stroke-width="1.4"/><circle cx="14" cy="14" r="2" fill="#cc88ff"/><path d="M6,6 Q14,2 22,6" fill="none" stroke="#cc88ff" stroke-width="1" stroke-dasharray="2,1"/>'},
+    {id:'portao',  abbr:'PT',color:'#aaaaaa',layer:'infraestrutura',label:'Portão',
+     svg:'<line x1="4" y1="6" x2="4" y2="22" stroke="#aaa" stroke-width="2"/><line x1="24" y1="6" x2="24" y2="22" stroke="#aaa" stroke-width="2"/><line x1="4" y1="14" x2="13" y2="14" stroke="#aaa" stroke-width="1.5"/><line x1="15" y1="14" x2="24" y2="14" stroke="#aaa" stroke-width="1.5"/>'},
+  ],
+};
+
+// ── MAP ──
+const map = new maplibregl.Map({
+  container: 'map',
+  style: {
+    version: 8,
+    sources: {base:{type:'raster',tiles:[BASEMAPS.osm],tileSize:256,attribution:'© OSM'}},
+    layers:  [{id:'base-tiles',type:'raster',source:'base'}]
+  },
+  center: CENTER, zoom: 17, bearing: 0, pitch: 0,
+});
+
+map.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-left');
+map.addControl(new maplibregl.ScaleControl({unit:'metric'}), 'bottom-left');
+
+// Draw — estilos padrão do MapboxDraw (não customizar: sistema hot/cold interno quebra com IDs externos)
+const Draw = new MapboxDraw({
+  displayControlsDefault: false,
+  controls: {polygon: true, line_string: true, trash: true},
+  userProperties: true,  // permite get('user_stroke') nos estilos
+});
+map.addControl(Draw, 'top-left');
+
+// ── ELEMENTOS ──
+let elements = [], selectedEl = null, nextId = 1;
+const markerObjs = {}; // id -> {marker, lbl}
+let placingSymbol = null, activeSymBtn = null;
+
+map.on('load', () => {
+  // Contorno da ilha
+  map.addSource('island', {type:'geojson', data:{type:'Feature', geometry:{type:'Polygon', coordinates:[[
+    [-43.120,-22.845],[-43.098,-22.845],[-43.098,-22.825],[-43.120,-22.825],[-43.120,-22.845]
+  ]]}}});
+  map.addLayer({id:'island-line',type:'line',source:'island',
+    paint:{'line-color':'#00d4ff','line-width':1,'line-dasharray':[4,4],'line-opacity':0.3}});
+
+  initLayerVisUI();
+  initSymbolsUI();
+  setActiveLayer('eletrico');
+  renderElList();
+  toast('CMASM GeoMap — Ilha do Engenho');
+});
+
+map.on('mousemove', e => {
+  document.getElementById('coordBar').textContent =
+    `LAT ${e.lngLat.lat.toFixed(6)}  LON ${e.lngLat.lng.toFixed(6)}`;
+});
+map.on('zoom', () => {
+  document.getElementById('sb-zoom').textContent = `Z: ${map.getZoom().toFixed(1)}`;
+});
+map.on('rotate', () => {
+  const b = (((Math.round(map.getBearing()) % 360) + 360) % 360);
+  const s = String(b).padStart(3,'0') + '°';
+  document.getElementById('bearingBadge').textContent = s;
+  document.getElementById('sb-hdg').textContent = 'HDG: ' + s;
+});
+
+// ── INSERIR SÍMBOLO: usa mousedown para capturar lngLat antes que o Draw intercepte ──
+// Usamos 'click' normal mas verificamos se o Draw está em modo de desenho para não conflitar
+map.on('click', e => {
+  if (!placingSymbol) return;
+  // Se Draw estiver em modo ativo (desenhando), não inserir
+  const mode = Draw.getMode();
+  if (mode === 'draw_polygon' || mode === 'draw_line_string') return;
+
+  const id = 'el-' + nextId++;
+  const sym = placingSymbol;
+  elements.push({
+    id, type: sym.id, label: sym.label, abbr: sym.abbr,
+    color: sym.color, layer: sym.layer,
+    lngLat: [e.lngLat.lng, e.lngLat.lat],
+    tag: '', desc: '', status: 'operacional', drawFeatureId: null
+  });
+  refreshMarkers();
+  selectEl(id);
+  renderElList();
+  cancelPlace();
+  toast(sym.label + ' inserido');
+});
+
+// Draw events
+map.on('draw.create', e => {
+  const feat = e.features[0];
+  const lc = LAYERS[activeLayer];
+  const id = 'sh-' + nextId++;
+  const tl = feat.geometry.type === 'LineString' ? 'Linha' : 'Polígono';
+  elements.push({
+    id, type: tl.toLowerCase(), label: tl,
+    abbr: tl.substring(0,2).toUpperCase(),
+    color: lc.color, layer: activeLayer,
+    lngLat: null, tag: '', desc: '', status: 'ativo',
+    drawFeatureId: feat.id
+  });
+  selectEl(id);
+  renderElList();
+  toast(tl + ' → ' + lc.label);
+});
+
+map.on('draw.selectionchange', e => {
+  if (e.features.length > 0) {
+    const el = elements.find(x => x.drawFeatureId === e.features[0].id);
+    if (el) selectEl(el.id);
+  }
+});
+
+map.on('draw.modechange', e => {
+  const drawing = e.mode === 'draw_polygon' || e.mode === 'draw_line_string';
+  document.getElementById('sb-mode').textContent = drawing
+    ? 'DESENHANDO: ' + (e.mode === 'draw_polygon' ? 'POLÍGONO' : 'LINHA')
+    : (placingSymbol ? 'INSERIR: ' + placingSymbol.label.toUpperCase() : 'NAVEGAR');
+});
+
+// ── BASEMAP ──
+let currentBase = 'osm';
+function setBase(k) {
+  if (currentBase === k) return; currentBase = k;
+  ['osm','sat','topo'].forEach(x => document.getElementById('btn-'+x).classList.remove('on'));
+  document.getElementById('btn-'+k).classList.add('on');
+  map.getSource('base')?.setTiles([BASEMAPS[k]]);
+  toast('Basemap: ' + k.toUpperCase());
+}
+
+// ── ROTAÇÃO / PITCH ──
+function resetBearing() { map.easeTo({bearing:0, pitch:0, duration:400}); }
+function rotateCW()     { map.easeTo({bearing:map.getBearing()+45, duration:300}); }
+function rotateCCW()    { map.easeTo({bearing:map.getBearing()-45, duration:300}); }
+let pitchOn = false;
+function togglePitch() {
+  pitchOn = !pitchOn;
+  map.easeTo({pitch: pitchOn ? 45 : 0, duration:400});
+  document.getElementById('btn3d').classList.toggle('on', pitchOn);
+}
+function centerIsland() { map.flyTo({center:CENTER, zoom:17, bearing:0, pitch:0}); }
+
+// ── LAYERS ──
+function setActiveLayer(id) {
+  activeLayer = id;
+  const cfg = LAYERS[id];
+  document.getElementById('actLabel').textContent = cfg.label;
+  document.getElementById('sb-layer').textContent = cfg.label.replace(/[^\w\s]/g,'').trim().toUpperCase();
+}
+
+function initLayerVisUI() {
+  document.getElementById('layerVis').innerHTML = Object.entries(LAYERS).map(([id,cfg]) => `
+    <div class="layer-row">
+      <div class="layer-dot" style="background:${cfg.color}"></div>
+      <div class="layer-name">${cfg.label}</div>
+      <button class="layer-vis" id="lvis-${id}" onclick="toggleLayerVis('${id}')" title="Toggle">👁</button>
+      <input class="layer-opa" type="range" min="0" max="100" value="${cfg.opacity*100}"
+             oninput="setLayerOpa('${id}',this.value)">
+    </div>`).join('');
+}
+
+function toggleLayerVis(id) {
+  LAYERS[id].visible = !LAYERS[id].visible;
+  document.getElementById('lvis-'+id).style.opacity = LAYERS[id].visible ? '1' : '0.3';
+  refreshMarkers();
+  renderElList();
+  toast((LAYERS[id].visible ? 'Visível: ' : 'Oculto: ') + LAYERS[id].label);
+}
+function setLayerOpa(id, v) { LAYERS[id].opacity = v/100; refreshMarkers(); }
+
+// ── SÍMBOLOS UI ──
+function initSymbolsUI() {
+  document.getElementById('symGroups').innerHTML = Object.entries(SYMBOLS).map(([grp,items]) => `
+    <div>
+      <div class="sg-hd" onclick="toggleSG(this)">${grp} <span>▸</span></div>
+      <div class="sg-body">${items.map(s => `
+        <div class="si" id="si-${s.id}" onclick="pickSym('${s.id}')" title="${s.label}">
+          <svg width="28" height="28" viewBox="0 0 28 28">${s.svg}</svg>
+          <span>${s.label}</span>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+function toggleSG(hd) {
+  const b = hd.nextElementSibling, o = b.classList.toggle('open');
+  hd.classList.toggle('open', o);
+  hd.querySelector('span').textContent = o ? '▾' : '▸';
+}
+function pickSym(id) {
+  const sym = Object.values(SYMBOLS).flat().find(s => s.id === id);
+  if (!sym) return;
+  // Cancelar qualquer modo de desenho ativo
+  if (Draw.getMode() !== 'simple_select') Draw.changeMode('simple_select');
+  if (activeSymBtn) document.getElementById('si-'+activeSymBtn).classList.remove('on');
+  activeSymBtn = id;
+  document.getElementById('si-'+id).classList.add('on');
+  placingSymbol = sym;
+  map.getCanvas().style.cursor = 'crosshair';
+  document.getElementById('sb-mode').textContent = 'INSERIR: ' + sym.label.toUpperCase();
+  toast('Clique no mapa → ' + sym.label);
+}
+function cancelPlace() {
+  placingSymbol = null;
+  if (activeSymBtn) document.getElementById('si-'+activeSymBtn).classList.remove('on');
+  activeSymBtn = null;
+  map.getCanvas().style.cursor = '';
+  document.getElementById('sb-mode').textContent = 'NAVEGAR';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { cancelPlace(); Draw.changeMode('simple_select'); }
+  if (e.key === 'Delete' && selectedEl) deleteEl(selectedEl);
+});
+
+// ── MARCADORES HTML ──
+function makeMarkerEl(el) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:relative;cursor:pointer;width:28px;height:28px;';
+  const pin = document.createElement('div');
+  pin.style.cssText = `width:28px;height:28px;border-radius:50%;
+    background:${el.color};border:2px solid #080f1e;
+    display:flex;align-items:center;justify-content:center;
+    font-family:Courier New,monospace;font-size:8px;font-weight:bold;
+    color:#080f1e;user-select:none;
+    box-shadow:0 0 0 1.5px ${el.color}55,0 2px 6px rgba(0,0,0,.5);`;
+  pin.textContent = el.abbr;
+  const lbl = document.createElement('div');
+  lbl.style.cssText = `position:absolute;top:30px;left:50%;transform:translateX(-50%);
+    white-space:nowrap;font-family:Courier New,monospace;font-size:9px;
+    color:${el.color};background:rgba(8,15,30,.9);
+    padding:1px 5px;border-radius:2px;pointer-events:none;letter-spacing:.04em;
+    border:1px solid ${el.color}33;`;
+  lbl.textContent = el.tag || el.label;
+  wrap.appendChild(pin);
+  wrap.appendChild(lbl);
+  wrap.addEventListener('click', ev => { ev.stopPropagation(); selectEl(el.id); });
+  return {wrap, lbl, pin};
+}
+
+function refreshMarkers() {
+  const visible = new Set(
+    elements.filter(el => el.lngLat && LAYERS[el.layer]?.visible).map(el => el.id)
+  );
+  // Remover marcadores de elementos deletados ou ocultos
+  Object.keys(markerObjs).forEach(id => {
+    if (!visible.has(id)) { markerObjs[id].marker.remove(); delete markerObjs[id]; }
+  });
+  // Adicionar/atualizar
+  elements.filter(el => el.lngLat && LAYERS[el.layer]?.visible).forEach(el => {
+    const opa = LAYERS[el.layer].opacity;
+    if (markerObjs[el.id]) {
+      // Atualizar label e opacidade
+      markerObjs[el.id].lbl.textContent = el.tag || el.label;
+      markerObjs[el.id].marker.getElement().style.opacity = opa;
+      // Atualizar cor se mudou o status
+      const sc = STATUS_COLORS[el.status] || el.color;
+      markerObjs[el.id].pin.style.background = el.color;
+    } else {
+      const {wrap, lbl, pin} = makeMarkerEl(el);
+      // anchor:'center' garante que o centro do círculo está na coordenada exata
+      const marker = new maplibregl.Marker({element: wrap, anchor: 'center'})
+        .setLngLat(el.lngLat)
+        .addTo(map);
+      marker.getElement().style.opacity = opa;
+      markerObjs[el.id] = {marker, lbl, pin};
+    }
+  });
+}
+
+// ── SELEÇÃO / PROPS ──
+const STATUS_COLORS = {operacional:'#00cc88', manutencao:'#ffaa00', inativo:'#5a7a99', critico:'#ff4d4d', ativo:'#00cc88'};
+
+function selectEl(id) {
+  selectedEl = id;
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  document.querySelectorAll('.el-item').forEach(i => i.classList.remove('sel'));
+  document.querySelector(`[data-id="${id}"]`)?.classList.add('sel');
+  // Highlight marcador selecionado
+  Object.entries(markerObjs).forEach(([mid, obj]) => {
+    obj.pin.style.outline = mid === id ? `2px solid #f0c040` : 'none';
+    obj.pin.style.outlineOffset = '2px';
+  });
+  renderPropPanel(el);
+}
+
+function renderPropPanel(el) {
+  const ll = el.lngLat
+    ? `${el.lngLat[1].toFixed(5)}, ${el.lngLat[0].toFixed(5)}`
+    : '(área / linha)';
+  const lopts = Object.entries(LAYERS).map(([k,v]) =>
+    `<option value="${k}"${el.layer===k?' selected':''}>${v.label}</option>`).join('');
+  document.getElementById('propPanel').innerHTML = `
+    <div style="font-size:9px;color:var(--dim);margin-bottom:6px;letter-spacing:.09em">
+      ${el.type.toUpperCase()} · ${el.id}</div>
+    <div class="pf"><label>TAG / Código</label>
+      <input id="pf-tag" type="text" value="${el.tag}" placeholder="ex: QD-01"/></div>
+    <div class="pf"><label>Descrição</label>
+      <textarea id="pf-desc" rows="2">${el.desc}</textarea></div>
+    <div class="pf"><label>Layer</label><select id="pf-layer">${lopts}</select></div>
+    <div class="pf"><label>Status</label><select id="pf-status">
+      <option value="operacional"${el.status==='operacional'?' selected':''}>Operacional</option>
+      <option value="manutencao" ${el.status==='manutencao' ?' selected':''}>Em Manutenção</option>
+      <option value="inativo"    ${el.status==='inativo'    ?' selected':''}>Inativo</option>
+      <option value="critico"    ${el.status==='critico'    ?' selected':''}>Crítico</option>
+      <option value="ativo"      ${el.status==='ativo'      ?' selected':''}>Ativo</option>
+    </select></div>
+    <div class="pf"><label>Coordenadas</label>
+      <input type="text" value="${ll}" readonly style="font-size:9px;color:var(--dim)"/></div>
+    <button class="pbtn save" onclick="saveEl()">▶ SALVAR</button>
+    <button class="pbtn modal3d" onclick="openModal3d('${el.id}')">▣ VER 3D</button>
+    <button class="pbtn del" onclick="deleteEl('${el.id}')">✕ REMOVER</button>`;
+}
+
+function saveEl() {
+  const el = elements.find(e => e.id === selectedEl);
+  if (!el) return;
+  el.tag    = document.getElementById('pf-tag').value;
+  el.desc   = document.getElementById('pf-desc').value;
+  el.layer  = document.getElementById('pf-layer').value;
+  el.status = document.getElementById('pf-status').value;
+  // Re-criar marcador com nova cor/tag
+  if (markerObjs[el.id]) { markerObjs[el.id].marker.remove(); delete markerObjs[el.id]; }
+  refreshMarkers();
+  renderElList();
+  toast('Salvo: ' + (el.tag || el.label));
+}
+
+function deleteEl(id) {
+  const idx = elements.findIndex(e => e.id === id);
+  if (idx < 0) return;
+  const el = elements[idx];
+  if (el.drawFeatureId) Draw.delete(el.drawFeatureId);
+  if (markerObjs[id]) { markerObjs[id].marker.remove(); delete markerObjs[id]; }
+  elements.splice(idx, 1);
+  selectedEl = null;
+  document.getElementById('propPanel').innerHTML =
+    '<div style="font-size:10px;color:var(--dim);padding:4px 0">Selecione ou insira um elemento.</div>';
+  renderElList();
+  toast('Removido');
+}
+
+function renderElList() {
+  const list = document.getElementById('elList');
+  document.getElementById('elCount').textContent = elements.length;
+  if (!elements.length) {
+    list.innerHTML = '<div style="font-size:9px;color:var(--dim);padding:10px 10px">Nenhum elemento.</div>';
+    return;
+  }
+  list.innerHTML = elements.map(el => {
+    const sc = STATUS_COLORS[el.status] || '#00cc88';
+    const lc = LAYERS[el.layer]?.color || '#888';
+    const vis = LAYERS[el.layer] && !LAYERS[el.layer].visible ? 'opacity:.35' : '';
+    return `<div class="el-item${el.id===selectedEl?' sel':''}" data-id="${el.id}"
+      onclick="selectEl('${el.id}')" style="${vis}">
+      <div class="el-dot" style="background:${sc}"></div>
+      <div class="el-info">
+        <div class="el-name">${el.tag || el.label}</div>
+        <div class="el-meta">${el.type.toUpperCase()}</div>
+      </div>
+      <div class="el-ltag" style="border-color:${lc}44;color:${lc};font-size:8px;padding:1px 4px;border:1px solid ${lc}44;border-radius:9px">
+        ${el.layer.substring(0,3).toUpperCase()}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── OVERLAY DE PLANTA ──
+let overlayData = null;
+function toggleOvBar() {
+  const bar = document.getElementById('ovBar');
+  const btn = document.getElementById('btn-ov');
+  const show = !bar.classList.contains('show');
+  bar.classList.toggle('show', show);
+  btn.classList.toggle('on', show);
+}
+function loadOverlay(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    overlayData = ev.target.result;
+    const img = document.getElementById('ovImg');
+    img.src = overlayData;
+    img.style.display = 'block';
+    updateOv();
+    toast('Planta carregada');
+  };
+  reader.readAsDataURL(file);
+}
+function updateOv() {
+  const img = document.getElementById('ovImg');
+  if (!img.src || img.style.display === 'none') return;
+  const opa   = document.getElementById('ovOpa').value / 100;
+  const scale = document.getElementById('ovScale').value / 100;
+  const rot   = document.getElementById('ovRot').value;
+  img.style.opacity   = opa;
+  img.style.transform = `translate(-50%,-50%) rotate(${rot}deg) scale(${scale})`;
+}
+function removeOverlay() {
+  const img = document.getElementById('ovImg');
+  img.src = ''; img.style.display = 'none'; overlayData = null;
+  document.getElementById('ovFile').value = '';
+  document.getElementById('ovBar').classList.remove('show');
+  document.getElementById('btn-ov').classList.remove('on');
+  toast('Overlay removido');
+}
+
+// Drag&Drop
+const mapEl = document.getElementById('map');
+const dropOvEl = document.getElementById('dropOv');
+mapEl.addEventListener('dragover', e => { e.preventDefault(); dropOvEl.classList.add('show'); });
+mapEl.addEventListener('dragleave', () => dropOvEl.classList.remove('show'));
+mapEl.addEventListener('drop', e => {
+  e.preventDefault(); dropOvEl.classList.remove('show');
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) { toast('Use imagem PNG/JPG/SVG'); return; }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    overlayData = ev.target.result;
+    const img = document.getElementById('ovImg');
+    img.src = overlayData; img.style.display = 'block';
+    updateOv();
+    toast('Planta via drag&drop');
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('ovBar').classList.add('show');
+  document.getElementById('btn-ov').classList.add('on');
+});
+
+// ── MODAL 3D ──
+function openModal3d(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  document.getElementById('m3dTitle').textContent = '3D — ' + (el.tag || el.label);
+  document.getElementById('m3d-tag').textContent   = el.tag || '—';
+  document.getElementById('m3d-type').textContent  = el.type.toUpperCase();
+  document.getElementById('m3d-layer').textContent = LAYERS[el.layer]?.label || el.layer;
+  document.getElementById('m3d-status').textContent= el.status;
+  document.getElementById('m3dInfo').textContent   = 'Modelo 3D de ' + el.label + ' — Three.js / IFC futura';
+  document.getElementById('modal3d').classList.add('show');
+}
+function closeModal3d() { document.getElementById('modal3d').classList.remove('show'); }
+
+// ── EXPORT GeoJSON ──
+function exportGeoJSON() {
+  const pts = elements.filter(e => e.lngLat).map(el => ({
+    type:'Feature',
+    geometry:{type:'Point', coordinates: el.lngLat},
+    properties:{id:el.id, type:el.type, label:el.label, tag:el.tag, desc:el.desc, status:el.status, layer:el.layer}
+  }));
+  const drawn = Draw.getAll().features;
+  const blob = new Blob([JSON.stringify({type:'FeatureCollection', features:[...pts,...drawn]}, null, 2)],
+    {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cmasm-elementos.geojson';
+  a.click();
+  toast('GeoJSON exportado');
+}
+
+// ── TOAST ──
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

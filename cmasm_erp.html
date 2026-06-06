@@ -308,7 +308,8 @@ table{border-collapse:collapse;width:100%}
 #page-dashboard #dash-os-table tbody td{font-size:12px}
 #page-dashboard #dash-os-table .tbl-empty{padding:22px}
 #page-dashboard #dash-comunicados-body,
-#page-dashboard #dash-calendario-body{min-height:190px}
+#page-dashboard #dash-calendario-body{min-height:260px}
+#page-dashboard #dash-calendario-body .pe-calendar{font-size:11px}
 
 #page-dashboard .status-grid.portal-mod-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:11px}
 #page-dashboard .status-card.module-tile{min-height:145px}
@@ -690,6 +691,10 @@ table{border-collapse:collapse;width:100%}
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
       Estoque MRP
     </div>
+    <div class="ni" data-page="geomap" onclick="showPage('geomap',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      GeoMap
+    </div>
 
     <div class="sb-section">Sistemas BMS e IOT</div>
     <div class="ni ni-ext" onclick="openModulo('xaguada')" title="xAguada — Sistema Hídrico (porta 8001)">
@@ -835,6 +840,11 @@ table{border-collapse:collapse;width:100%}
     <div class="kpi kpi-accent"><div class="kpi-label">Frota Ativa</div><div class="kpi-value" id="kpi-frota">0</div><div class="kpi-sub">veículos/embarcações</div></div>
   </div>
 
+  <!-- Charts row -->
+  <div id="dash-charts-row" style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin:0 0 14px">
+    <div class="card"><div class="card-header"><span class="card-title">Status OS</span></div><div class="card-body" id="dash-chart-donut" style="padding:6px;min-height:200px"></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Tendência de OS (por semana)</span></div><div class="card-body" id="dash-chart-line" style="padding:6px;min-height:200px"></div></div>
+  </div>
   <div class="portal-main-grid">
     <div class="card">
       <div class="card-header"><span class="card-title">Ações Rápidas</span></div>
@@ -982,9 +992,16 @@ table{border-collapse:collapse;width:100%}
   <div class="page-hdr">
     <div class="page-hdr-left"><h1>Calendário da Empresa</h1><p>Treinamentos, reuniões e eventos corporativos</p></div>
     <div class="page-hdr-right">
-      <button class="btn btn-primary" onclick="criarEventoColab()">+ Novo Evento</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" id="colab-cal-toggle" onclick="toggleColabCalView()">📋 Lista</button>
+        <button class="btn btn-primary" onclick="criarEventoColab()">+ Novo Evento</button>
+      </div>
     </div>
   </div>
+  <!-- Visual calendar view -->
+  <div id="colab-cal-visual" style="margin-bottom:16px"></div>
+  <!-- List view -->
+  <div id="colab-cal-lista" style="display:none">
   <div class="table-wrap">
     <div class="table-toolbar">
       <div class="search-box">
@@ -1004,6 +1021,7 @@ table{border-collapse:collapse;width:100%}
       <tbody id="colab-events-body"></tbody>
     </table>
   </div>
+  </div><!-- /#colab-cal-lista -->
 </div>
 
 <!-- ════ PORTAL COLABORADOR · POLÍTICAS ══════════════════════ -->
@@ -1051,6 +1069,11 @@ table{border-collapse:collapse;width:100%}
     </div>
   </div>
   <div class="ch-grid" id="colab-announcements-grid"></div>
+  <!-- Chat de comentários dos comunicados -->
+  <div style="margin-top:20px">
+    <div class="section-title">Chat — Comentários e Discussão</div>
+    <div id="colab-chat-panel" style="height:420px;border:1px solid var(--border);border-radius:10px;overflow:hidden"></div>
+  </div>
 </div>
 
 <!-- ════ PORTAL COLABORADOR · CP - COMUNICAÇÃO PADRONIZADA ═══ -->
@@ -1248,6 +1271,7 @@ table{border-collapse:collapse;width:100%}
     <div class="tab active" onclick="showSvcTab('os',this)">Ordens de Serviço (OS)</div>
     <div class="tab" onclick="showSvcTab('nova-os',this)">Nova OS</div>
     <div class="tab" onclick="showSvcTab('kanban',this)">Kanban</div>
+    <div class="tab" onclick="showSvcTab('gantt',this)">📈 Gantt</div>
     <div class="tab" onclick="showSvcTab('sr',this)">SR</div>
     <div class="tab" onclick="showSvcTab('arquivo',this)">Arquivo</div>
   </div>
@@ -1314,24 +1338,12 @@ table{border-collapse:collapse;width:100%}
 
   <!-- Kanban Tab -->
   <div class="tab-panel" id="svc-tab-kanban">
-    <div class="kboard" id="svc-kanban">
-      <div class="kboard-col">
-        <div class="kboard-header" style="color:var(--warn)">⏳ Autorização <span id="kb-count-pendente_autorizacao" class="badge badge-warn">0</span></div>
-        <div class="kboard-body" id="kb-pendente_autorizacao"></div>
-      </div>
-      <div class="kboard-col">
-        <div class="kboard-header" style="color:var(--acc)">✓ Autorizada <span id="kb-count-autorizada" class="badge badge-info">0</span></div>
-        <div class="kboard-body" id="kb-autorizada"></div>
-      </div>
-      <div class="kboard-col">
-        <div class="kboard-header" style="color:var(--acc2)">→ Em Andamento <span id="kb-count-em_andamento" class="badge badge-cyan">0</span></div>
-        <div class="kboard-body" id="kb-em_andamento"></div>
-      </div>
-      <div class="kboard-col">
-        <div class="kboard-header" style="color:var(--ok)">✓ Concluída <span id="kb-count-concluida" class="badge badge-ok">0</span></div>
-        <div class="kboard-body" id="kb-concluida"></div>
-      </div>
-    </div>
+    <div id="svc-kanban-engine" style="min-height:420px"></div>
+  </div>
+
+  <!-- Gantt Tab -->
+  <div class="tab-panel" id="svc-tab-gantt">
+    <div id="svc-gantt-engine" style="min-height:420px"></div>
   </div>
 
   <!-- SR Tab -->
@@ -2063,6 +2075,10 @@ table{border-collapse:collapse;width:100%}
   </div>
 </div>
 
+
+<div id="page-geomap" class="page" style="padding:0;height:calc(100vh - 52px)">
+  <iframe id="geomap-frame" src="./cmasm-mapa.html" style="width:100%;height:100%;border:none;display:block"></iframe>
+</div>
 
 </main>
 </div><!-- #app -->
@@ -3069,7 +3085,8 @@ const PAGE_TITLES = {
   paiois:'Paiois · cmasm.erp',
   usuarios:'Usuários · cmasm.erp',
   perfil:'Meu Perfil',
-  admin:'Configurações · Admin'
+  admin:'Configurações · Admin',
+  geomap:'GeoMap · Ilha do Engenho'
 };
 
 function showPage(page, el){
@@ -3336,10 +3353,43 @@ function initDashboard(){
       : announcements.map(a=>`<div class="ch-item" style="margin-bottom:10px"><div class="ch-title">${a.title}</div><div class="ch-meta">${fmtDate(a.created_date)} · ${a.author||'Sistema'}</div><div class="ch-desc">${String(a.content||'').slice(0,120)}${String(a.content||'').length>120?'...':''}</div></div>`).join('');
   }
   const dashCal = document.getElementById('dash-calendario-body');
-  if(dashCal){
+  if(dashCal && typeof engine !== 'undefined'){
+    const calEvents = getColabEvents().map(ev=>({
+      id: ev.id||('ev'+ev.title),
+      date: ev.event_date,
+      title: ev.title,
+      color: ({meeting:'var(--acc)',training:'var(--ok)',company_event:'var(--acc2)',holiday:'var(--ok)',deadline:'var(--danger)'}[ev.type])||'var(--warn)'
+    }));
+    engine.calendar(dashCal, {events:calEvents, draggable:false, onEventClick: ev=>toast(ev.title)});
+  } else if(dashCal){
     dashCal.innerHTML = calendar.length===0
       ? '<div class="tbl-empty" style="padding:16px 0">Calendário vazio</div>'
       : `<table class="tbl"><thead><tr><th>Data</th><th>Agenda</th></tr></thead><tbody>${calendar.map(ev=>`<tr><td class="text-mono text-xs">${fmtDateSimple(ev.event_date)||ev.event_date}</td><td><div style="font-weight:600">${ev.title}</div><div class="text-xs text-muted">${colabTypeLabel(ev.type)} · ${ev.location||'Local a definir'}</div></td></tr>`).join('')}</tbody></table>`;
+  }
+  // Dashboard charts (donut OS status + line tendência)
+  if(typeof engine !== 'undefined'){
+    const donutEl = document.getElementById('dash-chart-donut');
+    if(donutEl){
+      const osCounts = [
+        {label:'Autorização', value:os.filter(o=>o.status==='pendente_autorizacao').length, color:'var(--warn)'},
+        {label:'Autorizada',  value:os.filter(o=>o.status==='autorizada').length,           color:'var(--acc)'},
+        {label:'Andamento',   value:os.filter(o=>o.status==='em_andamento').length,          color:'var(--acc2)'},
+        {label:'Concluída',   value:os.filter(o=>o.status==='concluida').length,             color:'var(--ok)'},
+        {label:'Cancelada',   value:os.filter(o=>o.status==='cancelada').length,             color:'var(--text3)'},
+      ].filter(d=>d.value>0);
+      engine.chartDonut(donutEl, {title:'', totalLabel:'OS total', data:osCounts});
+    }
+    const lineEl = document.getElementById('dash-chart-line');
+    if(lineEl){
+      const now = new Date();
+      const wkPts = Array.from({length:8},(_,i)=>{
+        const start = new Date(now); start.setDate(start.getDate()-(7-i)*7);
+        const end   = new Date(now); end.setDate(end.getDate()-(6-i)*7);
+        const cnt   = os.filter(o=>{ const d=new Date(o.dataCriacao||o.id||0); return d>=start && d<end; }).length;
+        return {x:`S${i+1}`, y:cnt};
+      });
+      engine.chartLine(lineEl, {title:'', series:[{label:'OS abertas', points:wkPts, color:'var(--acc)'}]});
+    }
   }
   renderColaboradorInicio();
   // Estoque count
@@ -3559,11 +3609,37 @@ function renderColaboradorCalendario(){
       <td class="text-xs text-mono">${ev.attendees||0}</td>
       <td><button class="btn btn-danger btn-sm" onclick="deleteEventoColab('${ev.id}')">✕</button></td>
     </tr>`).join('');
+  // Visual engine.calendar (all events, unfiltered)
+  const calVis = document.getElementById('colab-cal-visual');
+  if(calVis && typeof engine !== 'undefined'){
+    const typeColor = {meeting:'var(--acc)',training:'var(--ok)',company_event:'var(--acc2)',holiday:'var(--ok)',deadline:'var(--danger)',shift:'var(--warn)'};
+    const allEvents = getColabEvents().map(ev=>({
+      id: ev.id,
+      date: ev.event_date,
+      title: ev.title,
+      color: typeColor[ev.type]||'var(--warn)'
+    }));
+    engine.calendar(calVis, {
+      events: allEvents,
+      draggable: false,
+      onEventClick: ev => toast(ev.title),
+      onDayClick: () => {}
+    });
+  }
+}
+
+let _colabCalViewMode = 'calendar'; // 'calendar' | 'lista'
+function toggleColabCalView(){
+  _colabCalViewMode = _colabCalViewMode==='calendar' ? 'lista' : 'calendar';
+  const calVis = document.getElementById('colab-cal-visual');
+  const lista  = document.getElementById('colab-cal-lista');
+  const btn    = document.getElementById('colab-cal-toggle');
+  if(calVis) calVis.style.display = _colabCalViewMode==='calendar' ? '' : 'none';
+  if(lista)  lista.style.display  = _colabCalViewMode==='lista' ? '' : 'none';
+  if(btn) btn.textContent = _colabCalViewMode==='calendar' ? '📋 Lista' : '📅 Calendário';
 }
 
 async function criarEventoColab(){
-  if(soLeitura()) return;
-  const title = prompt('Título do evento:'); if(!title) return;
   const event_date = prompt('Data (AAAA-MM-DD):', new Date().toISOString().split('T')[0]); if(!event_date) return;
   const type = prompt('Tipo (meeting/training/company_event/shift):','meeting') || 'meeting';
   const location = prompt('Local do evento:','Sala Principal') || '';
@@ -3709,6 +3785,25 @@ function renderColaboradorComunicados(){
       <div class="ch-desc" style="margin-top:8px">${a.content||''}</div>
       <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn btn-danger btn-sm" onclick="deleteComunicadoColab('${a.id}')">Remover</button></div>
     </div>`).join('');
+  // Chat panel
+  const chatPanel = document.getElementById('colab-chat-panel');
+  if(chatPanel && typeof engine !== 'undefined'){
+    const currentUser = SESSION?.nome || 'Colaborador';
+    function _renderChat(){
+      const msgs = DB.get('ch_chat_messages', []);
+      engine.chat(chatPanel, {
+        messages: msgs,
+        currentUser,
+        onSend: text => {
+          const msgs2 = DB.get('ch_chat_messages', []);
+          msgs2.push({id:'msg'+Date.now(), author:currentUser, text, ts:new Date().toLocaleString('pt-BR')});
+          DB.set('ch_chat_messages', msgs2);
+          _renderChat();
+        }
+      });
+    }
+    _renderChat();
+  }
 }
 
 async function criarComunicadoColab(){
@@ -4936,29 +5031,40 @@ function renderArquivoServicos(){
 }
 
 function renderKanban(){
-  const allItems=getOS();
-  const cols={pendente_autorizacao:[],autorizada:[],em_andamento:[],concluida:[]};
-  allItems.forEach(item=>{ if(cols[item.status]) cols[item.status].push(item); });
-  Object.entries(cols).forEach(([col,items])=>{
-    const el=document.getElementById('kb-'+col);
-    const cnt=document.getElementById('kb-count-'+col);
-    if(cnt)cnt.textContent=items.length;
-    if(!el)return;
-    el.innerHTML=items.length===0?'<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">Vazio</div>':
-      items.map(item=>{
-        const bloqueada=_osBloqueada(item);
-        const custoInfo=item.custoPlanejado>0?`<div style="font-size:10px;color:var(--text3);margin-top:3px">Pl: ${brl(item.custoPlanejado)}${item.custoReal>0?' · Re: '+brl(item.custoReal):''}</div>`:'';
-        const hierBadge=item.osPai?`<span style="font-size:9px;color:var(--text3)">↳${item.osPai}</span> `:(item.osFilhos||[]).length>0?`<span style="font-size:9px;color:var(--acc)">⊕${item.osFilhos.length}</span> `:'';
-        return `<div class="kcard${bloqueada?' kcard-blocked':''}" onclick="verOS('${item.id}')">
-          <div class="kcard-id">${bloqueada?'🔴 ':''}${hierBadge}${item.id} · OS</div>
-          <div class="kcard-title">${item.assunto||item.descricao||'-'}</div>
-          <div class="kcard-meta">${item.solicitante||item.criadoPor||'-'} · ${prioBadge(item.prioridade)}</div>
-          ${custoInfo}
-          ${bloqueada?`<div style="font-size:10px;color:var(--red-400);margin-top:3px">⚠ Req. não atendido(s)</div>`:''}
-          ${_osTemSRMaterialPendente(item.id)?`<div style="font-size:10px;color:var(--amber);margin-top:3px">🧱 SR de material pendente</div>`:''}
-        </div>`;
-      }).join('');
-  });
+  const container = document.getElementById('svc-kanban-engine');
+  if(!container) return;
+  const allItems = getOS();
+  const COLS = [
+    {id:'pendente_autorizacao', title:'⏳ Autorização'},
+    {id:'autorizada',           title:'✓ Autorizada'},
+    {id:'em_andamento',         title:'→ Em Andamento'},
+    {id:'concluida',            title:'✓ Concluída'},
+  ];
+  const prioKind = p => ({urgente:'danger',alta:'danger',media:'warn',normal:'neutral'}[p]||'neutral');
+  const prioLabel = p => ({urgente:'URGENTE',alta:'Alta',media:'Média',normal:'Normal'}[p]||p||'Normal');
+  const cards = allItems.filter(o=>COLS.some(c=>c.id===o.status)).map(item=>({
+    id: item.id,
+    columnId: item.status,
+    title: `${item.id} · ${item.assunto||item.descricao||'-'}`,
+    badges: [
+      {text: prioLabel(item.prioridade), kind: prioKind(item.prioridade)},
+      ...(item.solicitante ? [{text: item.solicitante, kind:'neutral'}] : []),
+      ...(_osBloqueada(item) ? [{text:'Bloqueada', kind:'danger'}] : []),
+    ]
+  }));
+  if(typeof engine !== 'undefined'){
+    engine.kanban(container, {
+      columns: COLS,
+      cards,
+      onCardClick: c => verOS(c.id),
+      onMove: (cardId, _from, toColId) => {
+        if(soLeitura()) return;
+        const osData = getOS();
+        const item = osData.find(o=>o.id===cardId);
+        if(item){ item.status = toColId; saveOS(osData); renderOS(); }
+      }
+    });
+  }
 }
 
 function abrirSRDaOS(osId){
@@ -4978,8 +5084,38 @@ function showSvcTab(name, el){
   if(name==='os')renderOS();
   if(name==='nova-os'){}
   if(name==='kanban')renderKanban();
+  if(name==='gantt')renderSvcGantt();
   if(name==='sr')renderSR();
   if(name==='arquivo')renderArquivoServicos();
+}
+
+function renderSvcGantt(){
+  const container = document.getElementById('svc-gantt-engine');
+  if(!container || typeof engine === 'undefined') return;
+  const hoje = new Date().toISOString().split('T')[0];
+  const allOS = getOS().filter(o=>!['cancelada'].includes(o.status));
+  if(allOS.length===0){
+    container.innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">Nenhuma OS ativa para exibir no Gantt</div>';
+    return;
+  }
+  const statusColor = {pendente_autorizacao:'var(--warn)',autorizada:'var(--acc)',em_andamento:'var(--acc2)',concluida:'var(--ok)'};
+  const tasks = allOS.map(o=>({
+    id: o.id,
+    label: `${o.id}: ${(o.assunto||o.descricao||'-').substring(0,35)}`,
+    start: o.dataCriacao || hoje,
+    end: o.prazo || o.dataFim || new Date(Date.now()+7*86400000).toISOString().split('T')[0],
+    color: statusColor[o.status]||'var(--warn)'
+  }));
+  const starts = tasks.map(t=>t.start).sort();
+  const ends   = tasks.map(t=>t.end).sort();
+  const rangeStart = starts[0] || hoje;
+  const rangeEnd   = ends[ends.length-1] || hoje;
+  engine.gantt(container, {
+    tasks,
+    range: {start:rangeStart, end:rangeEnd},
+    draggable: false,
+    onTaskClick: t => verOS(t.id)
+  });
 }
 
 /* ════ SR — SOLICITAÇÃO DE RECURSOS ══════════════════════ */
