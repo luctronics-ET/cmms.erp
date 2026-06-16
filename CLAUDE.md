@@ -14,21 +14,25 @@ O núcleo cobre: **usuários, organização, ativos, estoque, OS/serviços, manu
 
 ## Repository Structure
 
-Este repo (`/home/luciano/DEV/cmasm.erp`) contém **o núcleo + o PMOC único**. Não existem mais repos `pmoc_<dom>` separados — categorias do PMOC vivem em `pmoc/` dentro deste mesmo repo.
+Este repo (`/home/luc/DEV_ERP/cmasm.erp`) contém **o núcleo + o PMOC único**. Não existem mais repos `pmoc_<dom>` separados — categorias do PMOC vivem em `pmoc/` dentro deste mesmo repo.
 
 ```
 cmasm.erp/                       ← este repo (NÚCLEO + PMOC ÚNICO)
-├── cmasm_erp.html               # ★ MAIN ERP — single-file app do núcleo
-├── index.html                   # Portal de acesso rápido
+├── cmasm_erp.html               # ★ MAIN ERP — single-file app, servido em /
 │
 ├── pmoc/                        # ★ PMOC único (app de campo offline-first)
-│   └── (a criar — categorias internas: refrigeracao, predial, paiois,
-│        transportes, grama, eletrica, calibracao)
+│   ├── index.html               # app de campo (categorias: refrigeracao, predial,
+│   │                            #   paiois, transportes, grama, eletrica, calibracao)
+│   ├── assets/                  # pmoc.js + pmoc.css
+│   ├── seeds/                   # seeds das categorias
+│   └── tools/gen_seeds.py       # gerador de seeds
 │
 ├── backend/                     # FastAPI — núcleo (port 8010)
 │   ├── main.py                  # FastAPI app — serves HTML + all /api/* routes
 │   ├── db_core.py               # aiosqlite singleton
-│   └── grama.py                 # /api/grama/* routes
+│   ├── grama.py                 # /api/grama/* routes
+│   ├── catalogo.py              # /api/catalogo/* (serviços, planos, qualificações)
+│   └── sync.py                  # /api/sync/* (manifest, push, cursor) p/ PMOC
 │
 ├── data/                        # DB schemas
 │   ├── schema_core.sql          # Core: usuarios, ativos, locais, os, estoque, sessoes
@@ -68,7 +72,7 @@ cmasm.erp/                       ← este repo (NÚCLEO + PMOC ÚNICO)
 | xFonoclama | firmware ESP32 | — |
 | xCFTV | Java | — |
 
-> Repos legados em `/home/luciano/DEV/pmoc_*` (refrigeracao, eletrica, calibracao, corte, transportes) estão a arquivar. `pmoc.refs` permanece como repo de referências/seeds.
+> Repos legados `pmoc_*` (refrigeracao, eletrica, calibracao, corte, transportes) já arquivados — categorias agora vivem em `pmoc/` neste repo. Seeds/refs ficam em `pmoc/seeds/` e `referencias/`.
 
 ---
 
@@ -78,7 +82,7 @@ The **main application** is `cmasm_erp.html` at the repo root — a single-file 
 
 ```bash
 # Serve with any static HTTP server (required — file:// breaks font loading)
-cd /home/luciano/DEV/cmasm.erp
+cd /home/luc/DEV_ERP/cmasm.erp
 npx serve .          # serves on http://localhost:3000 by default
 # Then open: http://localhost:3000/cmasm_erp.html
 ```
@@ -114,9 +118,9 @@ TOKEN_TTL_HOURS=8
 CORS_ORIGINS=http://localhost:3001,http://localhost:8002,...
 ```
 
-**xPredial** (satellite — repo separado em `/home/luciano/DEV/xPredial`):
+**xPredial** (satellite — repo separado em `/home/luc/DEV_ERP/xPredial`):
 ```bash
-cd /home/luciano/DEV/xPredial
+cd /home/luc/DEV_ERP/xPredial
 source .venv/bin/activate
 uvicorn backend.main:app --reload --port 8002
 pytest tests -q
@@ -131,7 +135,7 @@ pytest tests -q
 `backend/main.py` is the single FastAPI app that:
 1. Exposes all `/api/*` REST endpoints (auth, users, assets, locations, OS, inventory, grama, sync, catálogo)
 2. Mounts static directories: `/assets` → `assets/`
-3. Serve estaticamente o PMOC em `/pmoc/` (a configurar).
+3. Serve estaticamente o PMOC em `/pmoc/` (StaticFiles `html=True`, se `pmoc/` existir).
 
 Módulos realmente externos (aguada-web, xSeguranca, xCFTV, xFonoclama) têm seus próprios servidores e se integram via `GET /api/usuarios` e `POST /api/os` com `modulo_origem`.
 

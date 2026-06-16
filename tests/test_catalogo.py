@@ -68,11 +68,13 @@ def _servico_payload(**kwargs):
 # ──────────────────────────── Serviços ───────────────────────────────────────
 
 
-def test_list_servicos_empty(app_client):
+def test_list_servicos_baseline_seeded(app_client):
+    # startup semeia o catálogo de manutenção; SV001 (de teste) não existe ainda
     client, _ = app_client
     r = client.get("/api/catalogo/servicos")
     assert r.status_code == 200
-    assert r.json() == []
+    codigos = {s["codigo"] for s in r.json()}
+    assert "SV001" not in codigos
 
 
 def test_create_servico_requires_auth(app_client):
@@ -112,11 +114,11 @@ def test_list_servicos_shows_latest_version_only(app_client):
         headers=headers,
     )
     r = client.get("/api/catalogo/servicos")
-    data = r.json()
-    # Deve aparecer apenas 1 entrada (versao mais recente)
-    assert len(data) == 1
-    assert data[0]["versao"] == 2
-    assert data[0]["nome"] == "Inspecao Visual Atualizada"
+    # Deve aparecer apenas 1 entrada para SV001 (versao mais recente), ignorando seed
+    sv001 = [s for s in r.json() if s["codigo"] == "SV001"]
+    assert len(sv001) == 1
+    assert sv001[0]["versao"] == 2
+    assert sv001[0]["nome"] == "Inspecao Visual Atualizada"
 
 
 def test_put_servico_creates_new_version(app_client):
@@ -208,11 +210,12 @@ def _plano_payload(servico_id: str, **kwargs) -> dict:
     return base
 
 
-def test_list_planos_empty(app_client):
+def test_list_planos_baseline_seeded(app_client):
+    # startup semeia planos de manutenção; endpoint responde lista
     client, _ = app_client
     r = client.get("/api/catalogo/planos")
     assert r.status_code == 200
-    assert r.json() == []
+    assert isinstance(r.json(), list)
 
 
 def test_create_plano_requires_auth(app_client):
