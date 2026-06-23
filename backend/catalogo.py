@@ -522,3 +522,45 @@ async def remove_usuario_qualificacao(
         (uid, codigo),
     )
     return {"ok": True}
+
+
+# ── Planos de climatização (template = conjunto de serviços por variante) ───────
+# catalogo_planos + catalogo_plano_itens (ver tools/import_ata2_climatizacao.py).
+# Difere de /planos (planos_manutencao = agendamento por ativo).
+
+@router.get("/planos-climatizacao")
+async def list_planos_climatizacao(
+    tipo: str | None = Query(None, description="tipo_codigo (ex AC_SPLIT)"),
+    btu: int | None = Query(None),
+    inverter: int | None = Query(None, ge=0, le=1),
+):
+    where, params = ["categoria = 'climatizacao'", "ativo = 1"], []
+    if tipo:
+        where.append("tipo_codigo = ?"); params.append(tipo)
+    if btu is not None:
+        where.append("btu = ?"); params.append(btu)
+    if inverter is not None:
+        where.append("inverter = ?"); params.append(inverter)
+    rows = await _db().fetch_all(
+        "SELECT p.*, "
+        " (SELECT COUNT(*) FROM catalogo_plano_itens i WHERE i.plano_id = p.id) AS n_servicos, "
+        " (SELECT COUNT(*) FROM catalogo_plano_itens i WHERE i.plano_id = p.id AND i.classe='prev') AS n_preventivos "
+        f"FROM catalogo_planos p WHERE {' AND '.join(where)} ORDER BY p.codigo",
+        tuple(params),
+    )
+    return rows
+
+
+@router.get("/planos-climatizacao/{pid}")
+async def get_plano_climatizacao(pid: str):
+    plano = await _db().fetch_one("SELECT * FROM catalogo_planos WHERE id = ?", (pid,))
+    if not plano:
+        raise HTTPException(404, "Plano não encontrado")
+    plano["itens"] = await _db().fetch_all(
+        "SELECT i.seq, i.classe, i.item_arp, i.valor_unit, i.qtd_ata, i.lim_adesao, i.qtd_cmasm, "
+        "       s.id AS servico_id, s.codigo, s.nome "
+        "FROM catalogo_plano_itens i JOIN catalogo_servicos s ON s.id = i.servico_id "
+        "WHERE i.plano_id = ? ORDER BY i.seq",
+        (pid,),
+    )
+    return plano

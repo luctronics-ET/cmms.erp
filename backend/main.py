@@ -22,6 +22,8 @@ from .grama import router as grama_router, init_grama
 from .sync import router as sync_router
 
 # ── Config ────────────────────────────────────────────────────────────────────
+from tools.telegram_spike import _load_dotenv as _load_env  # noqa: E402
+_load_env()  # carrega .env (TELEGRAM_BOT_TOKEN, DB_PATH, etc.) antes dos os.getenv abaixo
 DB_PATH   = os.getenv("DB_PATH",   os.path.join(os.path.dirname(__file__), "..", "data", "core.db"))
 TOKEN_TTL = int(os.getenv("TOKEN_TTL_HOURS", "8"))
 XPREDIAL_URL   = os.getenv("XPREDIAL_URL",   "http://127.0.0.1:8002").rstrip("/")
@@ -557,9 +559,15 @@ async def list_modulos():
 @app.on_event("startup")
 async def startup():
     await db.init()
+    # Migração aditiva: usuarios.telegram_chat_id (PRAGMA antes do ALTER — nunca DROP)
+    cols = {c["name"] for c in await db.fetch_all("PRAGMA table_info(usuarios)")}
+    if "telegram_chat_id" not in cols:
+        await db.execute("ALTER TABLE usuarios ADD COLUMN telegram_chat_id TEXT")
     init_grama(db)
     await _seed_colab_if_empty()
     await _seed_catalogo_manut_if_empty()
+    # Catálogo de climatização vem de tools/import_ata2_climatizacao.py (serviços +
+    # catalogo_planos/itens a partir do HTML da ATA2). Import manual, não no boot.
 
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
@@ -1665,7 +1673,31 @@ async def create_os(body: OSIn):
         "INSERT INTO os_historico (os_id, status_de, status_para, obs) VALUES (?,?,?,?)",
         (oid, None, "aberta", "OS criada"),
     )
+    await _notify_os_responsavel(oid)
     return await get_os(oid)
+
+
+async def _notify_os_responsavel(oid: str) -> None:
+    """Best-effort: avisa o responsável no Telegram (card + botões de status).
+    Silencioso se faltar token, chat_id ou der erro de rede — nunca quebra a OS."""
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        return
+    row = await db.fetch_one(
+        "SELECT o.codigo, o.titulo, o.status, o.prioridade, u.telegram_chat_id AS chat "
+        "FROM ordens_servico o LEFT JOIN usuarios u ON u.id = o.responsavel_id WHERE o.id = ?",
+        (oid,),
+    )
+    if not row or not row["chat"]:
+        return
+    from tools.telegram_spike import build_send_params, card_os
+    texto = card_os(row["codigo"], row["titulo"], row["status"], row["prioridade"])
+    params = build_send_params(row["chat"], texto, oid)
+    try:
+        async with httpx.AsyncClient(timeout=10) as cli:
+            await cli.post(f"https://api.telegram.org/bot{token}/sendMessage", data=params)
+    except httpx.HTTPError as e:
+        print(f"  (notify Telegram OS {oid} ignorado: {e})")
 
 
 @app.put("/api/os/{oid}/status")

@@ -69,10 +69,8 @@ ATIVOS = [
     ("emb03","EMB_LANCHA","embarcacoes","Sargento Freitas", "CMASM-10",None,"Cais CMASM","emb_pat","Embarcação de apoio a fainas",0,"h"),
 
     # ── CLIMATIZAÇÃO ───────────────────────────────────────────────────────────
-    ("u40","AC_SPLIT",  "climatizacao","AC Sala Comando",     None,"",      "Bloco Admin",      None,"24.000 BTU",0,"meses"),
-    ("u41","AC_SPLIT",  "climatizacao","AC Sala Servidores",  None,"",      "Bloco TI",         None,"36.000 BTU",0,"meses"),
-    ("u42","AC_SPLIT",  "climatizacao","AC Oficina Eletrônica",None,"",     "Galpão Armas",     None,"18.000 BTU",0,"meses"),
-    ("u43","AC_CENTRAL","climatizacao","Chiller Bloco Admin", None,"PAT-4521","Casa de Máquinas",None,"Chiller 20TR",0,"meses"),
+    # Fonte única: tools/import_refrigeracao_csv.py (162 máquinas reais do mapeamento).
+    # Placeholders u40-u43 removidos p/ não poluir o parque real.
 
     # ── GERADORES ──────────────────────────────────────────────────────────────
     ("u50","GERADOR","eletrica","GMG-01 Gerador Principal", None,"PAT-7810","Casa de Força",None,"150 kVA diesel",0,"h"),

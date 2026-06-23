@@ -228,3 +228,38 @@ INSERT OR IGNORE INTO qualificacoes_catalogo (codigo, nome, descricao, requer_va
   ('motorista_d',       'Motorista categoria D',              'CNH D vigente (transporte de pessoal)',        1),
   ('arrais',            'Arrais Amador',                      'Habilitação náutica para embarcações',         1),
   ('operador_corte',    'Operador de máquina de corte',       'NR-12 + EPI específico',                       1);
+
+-- ========================================================
+-- 6. PLANO = CONJUNTO DE SERVIÇOS (template por tipo/variante de máquina)
+--    Adicionado 2026-06-23. Difere de planos_manutencao (agendamento por ativo):
+--    aqui é o "cardápio" de serviços de um plano (ex: Preventiva Split 18kBTU).
+-- ========================================================
+CREATE TABLE IF NOT EXISTS catalogo_planos (
+  id            TEXT PRIMARY KEY,
+  codigo        TEXT UNIQUE NOT NULL,          -- G1..G12 (ATA2)
+  nome          TEXT NOT NULL,                 -- "Split 18.000 BTU — até 3m"
+  categoria     TEXT NOT NULL DEFAULT 'climatizacao',
+  tipo_codigo   TEXT,                          -- AC_SPLIT | AC_JANELA | ...
+  btu           INTEGER,
+  inverter      INTEGER NOT NULL DEFAULT 0,
+  altura_max_m  REAL,                          -- 3 | 10 (condição de execução)
+  fonte         TEXT,
+  ativo         INTEGER NOT NULL DEFAULT 1,
+  criado_em     DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS catalogo_plano_itens (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  plano_id    TEXT NOT NULL REFERENCES catalogo_planos(id) ON DELETE CASCADE,
+  servico_id  TEXT NOT NULL REFERENCES catalogo_servicos(id),
+  seq         INTEGER NOT NULL DEFAULT 0,
+  classe      TEXT NOT NULL DEFAULT 'prev',    -- prev (preventivo) | corr (corretivo sob demanda)
+  item_arp    INTEGER,                         -- nº original do item na ATA2
+  valor_unit  REAL,
+  qtd_ata     REAL,
+  lim_adesao  REAL,
+  qtd_cmasm   REAL,
+  UNIQUE (plano_id, servico_id)
+);
+CREATE INDEX IF NOT EXISTS idx_plano_itens_plano ON catalogo_plano_itens(plano_id);
+CREATE INDEX IF NOT EXISTS idx_plano_itens_svc   ON catalogo_plano_itens(servico_id);
+CREATE INDEX IF NOT EXISTS idx_catalogo_planos_cat ON catalogo_planos(categoria, ativo);

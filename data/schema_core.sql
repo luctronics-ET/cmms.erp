@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   role       TEXT DEFAULT 'operador' CHECK (role IN ('admin','gestor','operador','visualizador')),
   pw_hash    TEXT,
   ativo      INTEGER DEFAULT 1,
+  telegram_chat_id TEXT,
   criado_em  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

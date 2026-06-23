@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="color-scheme" content="light only"/>
+<title>ATA 02/2024 — CARIOCA SOLUTION — Sistema de OS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css"/>
+<style>
+:root{
+  --cp:#1351b4;--cpd:#0c326f;--ok:#168821;--warn:#e77c00;--danger:#cc1f1f;--info:#155bcb;
+  --g1:#f4f6fa;--g2:#e8edf5;--g5:#c8cdd8;--g7:#6b7280;--g9:#1f2937;
+  --ff:'Inter',sans-serif; color-scheme:light only;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#f4f6fa;font-family:var(--ff);font-size:13px;color:var(--g9)}
+
+/* NAV */
+.topbar{background:var(--cpd);color:#fff;padding:0 20px;display:flex;align-items:stretch}
+.topbar-brand{font-size:14px;font-weight:700;padding:12px 16px 12px 0;border-right:1px solid rgba(255,255,255,.2);margin-right:8px;white-space:nowrap}
+.topbar-brand small{display:block;font-size:10px;font-weight:400;opacity:.75}
+.nav-tab{padding:0 16px;cursor:pointer;font-size:12px;font-weight:600;color:rgba(255,255,255,.7);
+  display:flex;align-items:center;gap:6px;border-bottom:3px solid transparent;transition:.15s}
+.nav-tab:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-tab.active{color:#fff;border-bottom-color:#ffcd07}
+
+/* PAGES */
+.page{display:none}.page.active{display:block}
+
+/* PAINEL STATUS */
+.status-bar{background:#fff;border-bottom:1px solid var(--g2);padding:10px 20px;
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chip{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid var(--g5);
+  background:#fff;color:var(--g9)}
+.chip b{color:var(--cp)}
+.chip.green{background:#d4edda;border-color:#aad4b4;color:#155724}
+.chip.yellow{background:#fff3cd;border-color:#ffc107;color:#6b4c00}
+.chip.red{background:#fde8e8;border-color:#f5c6c6;color:#8b1a1a}
+
+/* KPI */
+.kpi-row{display:flex;gap:10px;flex-wrap:wrap;padding:16px 20px}
+.kpi{background:#fff;border-radius:8px;padding:12px 16px;border-left:4px solid var(--cp);
+  box-shadow:0 1px 3px rgba(0,0,0,.08);min-width:140px;flex:1}
+.kpi.ok{border-left-color:var(--ok)}.kpi.warn{border-left-color:var(--warn)}
+.kpi.danger{border-left-color:var(--danger)}.kpi.info{border-left-color:var(--info)}
+.kv{font-size:20px;font-weight:800;color:var(--g9);line-height:1.2}
+.kl{font-size:10px;color:var(--g7);text-transform:uppercase;font-weight:700;margin-bottom:2px}
+.ks{font-size:10px;color:var(--g7);margin-top:2px}
+
+/* CARD */
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);
+  margin:0 20px 16px;overflow:hidden}
+.card-head{padding:12px 16px;display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--g2);cursor:pointer}
+.card-head:hover{background:var(--g1)}
+.card-head .title{font-size:13px;font-weight:700;color:var(--cp);flex:1}
+.card-head .badge{font-size:10px;padding:2px 8px;border-radius:10px;
+  background:var(--g2);color:var(--g7);font-weight:600}
+.card-body{padding:0}.card-body.closed{display:none}
+
+/* TABELA MCP */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--cp);color:#fff;padding:7px 10px;text-align:left;font-size:11px;
+  font-weight:600;position:sticky;top:0;z-index:3;white-space:nowrap}
+th.r{text-align:right}
+tr.alt{background:#fafbfc}
+tr:hover{background:#f0f6ff}
+td{padding:6px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle;color:var(--g9)}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+td.muted{color:var(--g7);font-size:11px}
+td.price{color:var(--cp);font-weight:600}
+td.saldo-ok{color:var(--ok);font-weight:700}
+td.saldo-warn{color:var(--warn);font-weight:700}
+td.saldo-zero{color:var(--danger);font-weight:700}
+span.tag-prev{background:#e0f0fd;color:#1564a3;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:700}
+span.tag-corr{background:#fff0e0;color:#c05800;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:700}
+.qtd-in{width:56px;padding:3px 6px;border:1px solid var(--g5);border-radius:4px;
+  text-align:center;font-size:12px;font-family:var(--ff);color:var(--g9);background:#fff}
+.qtd-in:focus{outline:2px solid var(--cp)}
+.qtd-in:disabled{background:#f0f0f0;color:#aaa}
+tr.tem-cmasm{background:#eaf4fb !important}
+tr.tem-cmasm:hover{background:#d6eaf8 !important}
+.btn-add{padding:4px 10px;border:none;border-radius:4px;background:var(--cp);color:#fff;
+  font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-add:hover{background:var(--cpd)}
+.btn-add:disabled{background:var(--g5);cursor:default}
+tr.grupo-sep td{background:#e8f0fb;font-weight:700;color:var(--cp);font-size:11px;
+  padding:5px 10px;border-top:2px solid var(--cp)}
+
+/* FILTROS */
+.filters{padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;
+  border-bottom:1px solid var(--g2);background:#fff}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld label{font-size:10px;font-weight:700;color:var(--g7);text-transform:uppercase}
+.fld select,.fld input{border:1px solid var(--g5);border-radius:4px;padding:5px 8px;
+  font-size:12px;font-family:var(--ff);color:var(--g9);background:#fff;min-width:160px}
+.btn{padding:6px 14px;border:none;border-radius:4px;font-size:12px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;gap:5px}
+.btn-p{background:var(--cp);color:#fff}.btn-p:hover{background:var(--cpd)}
+.btn-s{background:#fff;color:var(--cp);border:1px solid var(--cp)}.btn-s:hover{background:var(--g1)}
+.btn-ok{background:var(--ok);color:#fff}.btn-ok:hover{background:#127020}
+.btn-warn{background:var(--warn);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+
+/* RASCUNHO DA OS */
+.os-layout{display:flex;gap:16px;padding:16px 20px;align-items:flex-start}
+.os-main{flex:1;min-width:0}
+.os-side{width:320px;flex-shrink:0;position:sticky;top:0}
+.draft-card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.draft-head{background:var(--cp);color:#fff;padding:11px 14px;border-radius:8px 8px 0 0;
+  font-weight:700;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.draft-body{padding:12px 14px}
+.meta-row{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.meta-row label{font-size:10px;font-weight:700;color:var(--g7);text-transform:uppercase}
+.meta-in{border:1px solid var(--g5);border-radius:4px;padding:6px 8px;font-size:12px;
+  font-family:var(--ff);width:100%;color:var(--g9);background:#fff}
+.meta-in:focus{outline:2px solid var(--cp)}
+.draft-items{max-height:280px;overflow-y:auto;margin:8px 0}
+.di{border:1px solid #e0e8f8;border-radius:5px;padding:7px 9px;margin-bottom:5px;
+  font-size:11px;position:relative;background:#fafcff}
+.di-maq{font-size:10px;font-weight:700;color:var(--cp);margin-bottom:2px;text-transform:uppercase}
+.di-desc{color:var(--g9);font-weight:600;padding-right:20px}
+.di-vals{display:flex;justify-content:space-between;margin-top:3px;color:var(--cp);font-weight:700}
+.di-qtd{color:var(--g7);font-weight:400}
+.btn-rm{position:absolute;top:5px;right:7px;background:none;border:none;cursor:pointer;
+  color:var(--g5);font-size:13px;padding:0}.btn-rm:hover{color:var(--danger)}
+.total-row{display:flex;justify-content:space-between;padding:8px 0;
+  border-top:2px solid var(--cp);font-size:14px;font-weight:700;color:var(--cp);margin-top:6px}
+.draft-empty{text-align:center;color:var(--g7);padding:16px;border:1px dashed var(--g5);
+  border-radius:6px;font-size:12px}
+.os-actions{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.os-actions .btn{width:100%;justify-content:center}
+.maq-field{border:1px solid var(--g5);border-radius:4px;padding:6px 8px;font-size:12px;
+  font-family:var(--ff);width:100%;resize:vertical;min-height:52px;color:var(--g9);background:#fff}
+.maq-field:focus{outline:2px solid var(--cp)}
+.maq-field.err{border-color:var(--danger)}
+
+/* LISTA DE OS */
+.os-list-item{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.07);
+  margin-bottom:10px;overflow:hidden}
+.os-li-head{padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;
+  border-bottom:1px solid #f0f0f0}
+.os-li-head:hover{background:var(--g1)}
+.os-num{font-size:12px;font-weight:800;color:var(--cp)}
+.os-org{font-size:12px;color:var(--g7);flex:1}
+.os-total{font-weight:700;color:var(--g9);font-size:13px}
+.os-date{font-size:10px;color:var(--g7)}
+/* STATUS BADGES */
+.status{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+.s-rascunho{background:#e0f2fe;color:#0369a1}
+.s-emitida{background:#dcfce7;color:#166534}
+.s-concluida{background:#f3e8ff;color:#6b21a8}
+.s-nf_gerada{background:#fef9c3;color:#854d0e}
+.s-nf_atestada{background:#dbeafe;color:#1e40af}
+.s-paga{background:#d1fae5;color:#065f46}
+.os-li-body{padding:10px 14px;display:none;border-top:1px solid #f0f0f0}
+.os-li-body.open{display:block}
+
+/* FLOW DE STATUS */
+.flow{display:flex;gap:0;margin:12px 0;overflow-x:auto}
+.flow-step{display:flex;flex-direction:column;align-items:center;position:relative;min-width:90px}
+.flow-step::after{content:'';position:absolute;top:16px;left:50%;width:100%;height:2px;
+  background:var(--g5);z-index:0}
+.flow-step:last-child::after{display:none}
+.flow-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--g5);
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:13px;position:relative;z-index:1}
+.flow-dot.done{background:var(--ok);border-color:var(--ok);color:#fff}
+.flow-dot.active{background:var(--cp);border-color:var(--cp);color:#fff}
+.flow-dot.pending{background:#fff;border-color:var(--g5);color:var(--g7)}
+.flow-label{font-size:9px;text-align:center;margin-top:4px;color:var(--g7);font-weight:600;
+  text-transform:uppercase;line-height:1.3;max-width:80px}
+.flow-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.flow-actions .btn{font-size:11px;padding:5px 10px}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;
+  align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:10px;width:680px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 8px 32px rgba(0,0,0,.25)}
+.modal-head{background:var(--cpd);color:#fff;padding:14px 20px;border-radius:10px 10px 0 0;
+  display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.modal-body{padding:20px}
+.modal-foot{padding:10px 20px;border-top:1px solid var(--g2);display:flex;gap:8px;justify-content:flex-end}
+.btn-close{background:none;border:none;color:#fff;cursor:pointer;font-size:18px;padding:0}
+
+/* FAB */
+.fab{position:fixed;bottom:24px;right:24px;background:var(--cp);color:#fff;border:none;
+  border-radius:50px;padding:11px 18px;font-size:13px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);display:flex;align-items:center;gap:7px;z-index:100}
+.fab:hover{background:var(--cpd)}
+.fab .fbadge{background:#ffcd07;color:#333;border-radius:50%;width:19px;height:19px;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+.fab.hidden{display:none}
+
+@media print{.topbar,.filters,.os-side,.fab,.modal-overlay{display:none}
+  .card-body.closed{display:block!important}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    ATA 02/2024 — CARIOCA SOLUTION LTDA
+    <small>CMRJ · Pregão 90026/2024 · CNPJ 22.567.346/0001-09</small>
+  </div>
+  <div class="nav-tab active" onclick="showPage('pg-mcp',this)"><i class="fas fa-balance-scale"></i> MCP / Consulta</div>
+  <div class="nav-tab" onclick="showPage('pg-os',this)"><i class="fas fa-clipboard-list"></i> Ordens de Serviço</div>
+  <div class="nav-tab" onclick="showPage('pg-controle',this)"><i class="fas fa-chart-bar"></i> Controle de Adesão</div>
+</div>
+
+<div class="status-bar">
+  <span class="chip"><b>Vigência:</b> 01/04/2025 → 01/04/2027</span>
+  <span class="chip"><b>Fornecedor:</b> CARIOCA SOLUTION LTDA · CNPJ 22.567.346/0001-09</span>
+  <span class="chip"><b>Contato:</b> cariocasolution2@gmail.com · (21) 3882-6083</span>
+  <span class="chip"><b>Gerenciador:</b> CMRJ UASG 160292</span>
+  <span class="chip green"><i class="fas fa-check-circle"></i> <b>Aceite confirmado</b></span>
+  <span class="chip"><b>Valor adesão CMASM:</b> <b id="chip-vlr-ades">R$ 70.000,00</b></span>
+  <span class="chip" id="chip-saldo"></span>
+</div>
+
+<!-- ═══════════ PG MCP ═══════════ -->
+<div id="pg-mcp" class="page active">
+  <div class="kpi-row" id="kpi-mcp"></div>
+  <div class="card">
+    <div class="card-head" onclick="toggleCard(this)">
+      <i class="fas fa-table" style="color:var(--cp)"></i>
+      <span class="title">Mapa Comparativo de Preços — Ata 02/2024</span>
+      <span class="badge" id="mcp-count">354 itens</span>
+      <i class="fas fa-chevron-down" style="color:var(--g7)"></i>
+    </div>
+    <div class="card-body">
+      <div class="filters">
+        <div class="fld">
+          <label>Grupo / BTU</label>
+          <select id="f-grupo" onchange="renderMcp()">
+            <option value="">Todos os grupos</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Tipo</label>
+          <select id="f-tipo" onchange="renderMcp()">
+            <option value="">Todos</option>
+            <option value="prev">Preventivos</option>
+            <option value="corr">Corretivos</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Buscar serviço</label>
+          <input type="text" id="f-texto" placeholder="ex: compressor, dreno…" oninput="renderMcp()"/>
+        </div>
+        <button class="btn btn-s" onclick="limparFiltrosMcp()"><i class="fas fa-times"></i> Limpar</button>
+        <button class="btn btn-p" onclick="exportCsv()"><i class="fas fa-file-csv"></i> CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:60px">Item#</th>
+              <th>Descrição do Serviço</th>
+              <th style="width:80px">Tipo</th>
+              <th class="r" style="width:110px">Valor Unit.</th>
+              <th class="r" style="width:80px">Qtd ATA</th>
+              <th class="r" style="width:90px">Lim. Adesão</th>
+              <th class="r" style="width:90px;background:#1a5276;color:#aed6f1">CMASM</th>
+              <th class="r" style="width:90px;background:#0c326f">Saldo disp.</th>
+              <th style="width:60px;text-align:center">Qtd</th>
+              <th style="width:60px"></th>
+            </tr>
+          </thead>
+          <tbody id="mcp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PG OS ═══════════ -->
+<div id="pg-os" class="page">
+  <div class="os-layout">
+    <div class="os-main">
+      <div style="font-size:15px;font-weight:700;color:var(--cp);margin-bottom:10px;
+        display:flex;align-items:center;gap:8px">
+        <i class="fas fa-folder-open"></i>
+        Ordens de Serviço
+        <span id="os-cnt-badge" style="background:var(--g2);color:var(--g7);border-radius:10px;
+          padding:1px 8px;font-size:11px;font-weight:600">0</span>
+      </div>
+      <div id="os-lista">
+        <div class="draft-empty">Nenhuma OS registrada ainda.</div>
+      </div>
+    </div>
+    <div class="os-side">
+      <div class="draft-card">
+        <div class="draft-head">
+          <span><i class="fas fa-clipboard-list"></i> Nova OS</span>
+          <span id="draft-cnt" style="font-size:11px;opacity:.8">0 itens</span>
+        </div>
+        <div class="draft-body">
+          <div class="meta-row">
+            <label>Órgão solicitante</label>
+            <input class="meta-in" id="os-orgao" placeholder="CMASM — 13ª RM"/>
+          </div>
+          <div class="meta-row">
+            <label>Responsável / Fiscal</label>
+            <input class="meta-in" id="os-resp" placeholder="Nome do fiscal designado"/>
+          </div>
+          <div class="meta-row">
+            <label>Observações</label>
+            <input class="meta-in" id="os-obs" placeholder="Prazo, urgência, acesso…"/>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:var(--g7);text-transform:uppercase;margin-bottom:5px">
+            Itens adicionados
+          </div>
+          <div id="draft-list" class="draft-items">
+            <div class="draft-empty">Nenhum item ainda.</div>
+          </div>
+          <div class="total-row">
+            <span>TOTAL</span>
+            <span id="draft-total">R$ 0,00</span>
+          </div>
+          <div class="os-actions">
+            <button class="btn btn-ok" onclick="gerarOS()">
+              <i class="fas fa-file-signature"></i> Gerar OS
+            </button>
+            <button class="btn btn-s" onclick="limparRascunho()">
+              <i class="fas fa-trash-alt"></i> Limpar rascunho
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PG CONTROLE ═══════════ -->
+<div id="pg-controle" class="page">
+  <div class="kpi-row" id="kpi-ctrl"></div>
+  <div style="padding:0 20px 20px">
+    <div style="font-size:15px;font-weight:700;color:var(--cp);margin-bottom:10px">
+      <i class="fas fa-chart-line"></i> Controle Financeiro da Adesão
+    </div>
+    <table style="border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+      <thead>
+        <tr>
+          <th>OS</th><th>Data</th><th>Responsável</th>
+          <th class="r">Valor OS</th><th>Status</th><th>Fluxo</th>
+        </tr>
+      </thead>
+      <tbody id="ctrl-tbody">
+        <tr><td colspan="6" style="text-align:center;color:var(--g7);padding:20px">
+          Nenhuma OS gerada ainda.
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab hidden" id="fab" onclick="showPage('pg-os', document.querySelectorAll('.nav-tab')[1])">
+  <i class="fas fa-clipboard-list"></i> Rascunho
+  <span class="fbadge" id="fab-cnt">0</span>
+</button>
+
+<!-- MODAL IMPRESSÃO -->
+<div class="modal-overlay" id="modal-print">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span><i class="fas fa-file-alt"></i> Ordem de Serviço</span>
+      <button class="btn-close" onclick="closeModal('modal-print')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body" id="print-area"></div>
+    <div class="modal-foot">
+      <button class="btn btn-p" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+      <button class="btn btn-s" onclick="closeModal('modal-print')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DADOS
+// ═══════════════════════════════════════════════
+const ATA2 = [{"id":"G1","nome":"Split 18.000 BTU — até 3m","itens":[{"num":355,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":630,"lim_adesao":630,"qtd_cmasm":200},{"num":356,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":9.2619,"qtd_ata":504,"lim_adesao":504,"qtd_cmasm":0},{"num":357,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":4.6309,"qtd_ata":504,"lim_adesao":504,"qtd_cmasm":0},{"num":358,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":4.6309,"qtd_ata":504,"lim_adesao":504,"qtd_cmasm":0},{"num":359,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":504,"lim_adesao":504,"qtd_cmasm":200},{"num":360,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":504,"lim_adesao":504,"qtd_cmasm":200},{"num":361,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":1512,"lim_adesao":1512,"qtd_cmasm":470},{"num":362,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":504,"lim_adesao":504,"qtd_cmasm":200},{"num":363,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":630,"lim_adesao":630,"qtd_cmasm":200},{"num":364,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":9.2619,"qtd_ata":192,"lim_adesao":192,"qtd_cmasm":0},{"num":365,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":205.3711,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":366,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":123.7497,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":367,"seq":13,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":368,"seq":14,"desc":"Subst. capacitor","tipo":"corr","vunit":21.6193,"qtd_ata":27,"lim_adesao":27,"qtd_cmasm":0},{"num":369,"seq":15,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":38.6827,"qtd_ata":27,"lim_adesao":27,"qtd_cmasm":0},{"num":370,"seq":16,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.4445,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":0},{"num":371,"seq":17,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":74.3949,"qtd_ata":41,"lim_adesao":41,"qtd_cmasm":20},{"num":372,"seq":18,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":136.7924,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":373,"seq":19,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.5729,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":374,"seq":20,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":26.3803,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":0},{"num":375,"seq":21,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":44.804,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":376,"seq":22,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":14.913,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":377,"seq":23,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":27.9806,"qtd_ata":27,"lim_adesao":27,"qtd_cmasm":0},{"num":378,"seq":24,"desc":"Subst. compressor","tipo":"corr","vunit":598.5197,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":5},{"num":379,"seq":25,"desc":"Subst. serpentina","tipo":"corr","vunit":570.3991,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":5},{"num":380,"seq":26,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":495.099,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":5},{"num":381,"seq":27,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":9.807,"qtd_ata":41,"lim_adesao":41,"qtd_cmasm":0},{"num":382,"seq":28,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":27.0454,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":383,"seq":29,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":8.8418,"qtd_ata":192,"lim_adesao":192,"qtd_cmasm":0}]},{"id":"G2","nome":"Split 18.000 BTU — até 10m (andaime)","itens":[{"num":384,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":46.7994,"qtd_ata":315,"lim_adesao":315,"qtd_cmasm":0},{"num":385,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":14.0428,"qtd_ata":252,"lim_adesao":252,"qtd_cmasm":0},{"num":386,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":9.3619,"qtd_ata":252,"lim_adesao":252,"qtd_cmasm":0},{"num":387,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":9.3619,"qtd_ata":252,"lim_adesao":252,"qtd_cmasm":0},{"num":388,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.7091,"qtd_ata":252,"lim_adesao":252,"qtd_cmasm":0},{"num":389,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":30.091,"qtd_ata":252,"lim_adesao":252,"qtd_cmasm":0},{"num":390,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.3273,"qtd_ata":756,"lim_adesao":756,"qtd_cmasm":0},{"num":391,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":14.0778,"qtd_ata":252,"lim_adesao":252,"qtd_cmasm":0},{"num":392,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":14.0428,"qtd_ata":315,"lim_adesao":315,"qtd_cmasm":0},{"num":393,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":46.7994,"qtd_ata":96,"lim_adesao":96,"qtd_cmasm":0},{"num":394,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":213.0576,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":395,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":124.5199,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":396,"seq":13,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":127.6755,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":397,"seq":14,"desc":"Subst. capacitor","tipo":"corr","vunit":29.946,"qtd_ata":15,"lim_adesao":15,"qtd_cmasm":0},{"num":398,"seq":15,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":43.1586,"qtd_ata":15,"lim_adesao":15,"qtd_cmasm":0},{"num":399,"seq":16,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.6995,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":400,"seq":17,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":77.9256,"qtd_ata":21,"lim_adesao":21,"qtd_cmasm":0},{"num":401,"seq":18,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":142.3685,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":402,"seq":19,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.993,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":403,"seq":20,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":31.9964,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":404,"seq":21,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":50.9352,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":405,"seq":22,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":22.1394,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":406,"seq":23,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":28.2807,"qtd_ata":15,"lim_adesao":15,"qtd_cmasm":0},{"num":407,"seq":24,"desc":"Subst. compressor","tipo":"corr","vunit":619.0388,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":408,"seq":25,"desc":"Subst. serpentina","tipo":"corr","vunit":590.6181,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":409,"seq":26,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":611.9324,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":410,"seq":27,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":17.9636,"qtd_ata":21,"lim_adesao":21,"qtd_cmasm":0},{"num":411,"seq":28,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":32.7115,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":412,"seq":29,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":15.6481,"qtd_ata":96,"lim_adesao":96,"qtd_cmasm":0}]},{"id":"G3","nome":"Split 18.000 BTU INVERTER — até 3m","itens":[{"num":413,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":270,"lim_adesao":270,"qtd_cmasm":0},{"num":414,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":9.2619,"qtd_ata":224,"lim_adesao":224,"qtd_cmasm":0},{"num":415,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":4.6309,"qtd_ata":224,"lim_adesao":224,"qtd_cmasm":0},{"num":416,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":4.6309,"qtd_ata":224,"lim_adesao":224,"qtd_cmasm":0},{"num":417,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":224,"lim_adesao":224,"qtd_cmasm":0},{"num":418,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":224,"lim_adesao":224,"qtd_cmasm":0},{"num":419,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":592,"lim_adesao":592,"qtd_cmasm":0},{"num":420,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":224,"lim_adesao":224,"qtd_cmasm":0},{"num":421,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":270,"lim_adesao":270,"qtd_cmasm":0},{"num":422,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":46.2993,"qtd_ata":131,"lim_adesao":131,"qtd_cmasm":0},{"num":423,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":210.7021,"qtd_ata":29,"lim_adesao":29,"qtd_cmasm":0},{"num":424,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":85.9322,"qtd_ata":49,"lim_adesao":49,"qtd_cmasm":0},{"num":425,"seq":13,"desc":"Subst. placa eletrônica da condensadora","tipo":"corr","vunit":607.7415,"qtd_ata":49,"lim_adesao":49,"qtd_cmasm":0},{"num":426,"seq":14,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":49,"lim_adesao":49,"qtd_cmasm":0},{"num":427,"seq":15,"desc":"Subst. capacitor","tipo":"corr","vunit":29.6159,"qtd_ata":21,"lim_adesao":21,"qtd_cmasm":0},{"num":428,"seq":16,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":42.6785,"qtd_ata":11,"lim_adesao":11,"qtd_cmasm":0},{"num":429,"seq":17,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.4445,"qtd_ata":18,"lim_adesao":18,"qtd_cmasm":0},{"num":430,"seq":18,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":77.0604,"qtd_ata":58,"lim_adesao":58,"qtd_cmasm":0},{"num":431,"seq":19,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":147.7946,"qtd_ata":29,"lim_adesao":29,"qtd_cmasm":0},{"num":432,"seq":20,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.5729,"qtd_ata":69,"lim_adesao":69,"qtd_cmasm":0},{"num":433,"seq":21,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":22.2144,"qtd_ata":48,"lim_adesao":48,"qtd_cmasm":0},{"num":434,"seq":22,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":50.4001,"qtd_ata":49,"lim_adesao":49,"qtd_cmasm":0},{"num":435,"seq":23,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":21.9094,"qtd_ata":29,"lim_adesao":29,"qtd_cmasm":0},{"num":436,"seq":24,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":27.9806,"qtd_ata":31,"lim_adesao":31,"qtd_cmasm":0},{"num":437,"seq":25,"desc":"Subst. compressor","tipo":"corr","vunit":612.5075,"qtd_ata":38,"lim_adesao":38,"qtd_cmasm":0},{"num":438,"seq":26,"desc":"Subst. serpentina","tipo":"corr","vunit":553.9208,"qtd_ata":38,"lim_adesao":38,"qtd_cmasm":0},{"num":439,"seq":27,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":495.099,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":440,"seq":28,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":17.7636,"qtd_ata":48,"lim_adesao":48,"qtd_cmasm":0},{"num":441,"seq":29,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":32.3465,"qtd_ata":39,"lim_adesao":39,"qtd_cmasm":0},{"num":442,"seq":30,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":15.4731,"qtd_ata":101,"lim_adesao":101,"qtd_cmasm":0}]},{"id":"G4","nome":"Split 18.000 BTU INVERTER — até 10m","itens":[{"num":443,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":46.2993,"qtd_ata":120,"lim_adesao":120,"qtd_cmasm":0},{"num":444,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":13.8928,"qtd_ata":96,"lim_adesao":96,"qtd_cmasm":0},{"num":445,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":9.2619,"qtd_ata":96,"lim_adesao":96,"qtd_cmasm":0},{"num":446,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":9.2619,"qtd_ata":96,"lim_adesao":96,"qtd_cmasm":0},{"num":447,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":96,"lim_adesao":96,"qtd_cmasm":0},{"num":448,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":96,"lim_adesao":96,"qtd_cmasm":0},{"num":449,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":288,"lim_adesao":288,"qtd_cmasm":0},{"num":450,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":96,"lim_adesao":96,"qtd_cmasm":0},{"num":451,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":13.8928,"qtd_ata":120,"lim_adesao":120,"qtd_cmasm":0},{"num":452,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":46.2993,"qtd_ata":37,"lim_adesao":37,"qtd_cmasm":0},{"num":453,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":210.7021,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":454,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":85.9322,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":455,"seq":13,"desc":"Subst. placa eletrônica da condensadora","tipo":"corr","vunit":607.7415,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":456,"seq":14,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":457,"seq":15,"desc":"Subst. capacitor","tipo":"corr","vunit":29.6159,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":458,"seq":16,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":42.6785,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":459,"seq":17,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.6145,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":460,"seq":18,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":77.0604,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":461,"seq":19,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":147.7946,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":462,"seq":20,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.5729,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":463,"seq":21,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":22.2144,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":464,"seq":22,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":50.4001,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":465,"seq":23,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":21.9094,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":466,"seq":24,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":27.9806,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":467,"seq":25,"desc":"Subst. compressor","tipo":"corr","vunit":612.5075,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":468,"seq":26,"desc":"Subst. serpentina","tipo":"corr","vunit":553.9208,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":469,"seq":27,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":495.099,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":470,"seq":28,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":17.7636,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":471,"seq":29,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":32.3465,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":472,"seq":30,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":15.4731,"qtd_ata":37,"lim_adesao":37,"qtd_cmasm":0}]},{"id":"G5","nome":"Split 22.000 BTU — até 3m","itens":[{"num":473,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":490,"lim_adesao":490,"qtd_cmasm":200},{"num":474,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":9.2619,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":475,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":4.6309,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":476,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":4.6309,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":477,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":200},{"num":478,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":200},{"num":479,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":1176,"lim_adesao":1176,"qtd_cmasm":400},{"num":480,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":200},{"num":481,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":490,"lim_adesao":490,"qtd_cmasm":200},{"num":482,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":9.2619,"qtd_ata":157,"lim_adesao":157,"qtd_cmasm":0},{"num":483,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":206.3913,"qtd_ata":13,"lim_adesao":13,"qtd_cmasm":6},{"num":484,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":124.0598,"qtd_ata":13,"lim_adesao":13,"qtd_cmasm":0},{"num":485,"seq":13,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":13,"lim_adesao":13,"qtd_cmasm":6},{"num":486,"seq":14,"desc":"Subst. capacitor","tipo":"corr","vunit":21.7243,"qtd_ata":23,"lim_adesao":23,"qtd_cmasm":0},{"num":487,"seq":15,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":38.8728,"qtd_ata":23,"lim_adesao":23,"qtd_cmasm":0},{"num":488,"seq":16,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.6145,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":0},{"num":489,"seq":17,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":74.765,"qtd_ata":34,"lim_adesao":34,"qtd_cmasm":0},{"num":490,"seq":18,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":137.4725,"qtd_ata":13,"lim_adesao":13,"qtd_cmasm":6},{"num":491,"seq":19,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.5729,"qtd_ata":13,"lim_adesao":13,"qtd_cmasm":0},{"num":492,"seq":20,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":26.3803,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":0},{"num":493,"seq":21,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":44.804,"qtd_ata":13,"lim_adesao":13,"qtd_cmasm":0},{"num":494,"seq":22,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":14.913,"qtd_ata":13,"lim_adesao":13,"qtd_cmasm":0},{"num":495,"seq":23,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":27.9806,"qtd_ata":23,"lim_adesao":23,"qtd_cmasm":0},{"num":496,"seq":24,"desc":"Subst. compressor","tipo":"corr","vunit":712.1324,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":5},{"num":497,"seq":25,"desc":"Subst. serpentina","tipo":"corr","vunit":468.2186,"qtd_ata":10,"lim_adesao":10,"qtd_cmasm":5},{"num":498,"seq":26,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":497.5745,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":4},{"num":499,"seq":27,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":9.857,"qtd_ata":34,"lim_adesao":34,"qtd_cmasm":0},{"num":500,"seq":28,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":27.1804,"qtd_ata":13,"lim_adesao":13,"qtd_cmasm":0},{"num":501,"seq":29,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":8.8868,"qtd_ata":157,"lim_adesao":157,"qtd_cmasm":0}]},{"id":"G6","nome":"Split 22.000 BTU — até 10m (andaime)","itens":[{"num":502,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":48.2897,"qtd_ata":110,"lim_adesao":110,"qtd_cmasm":0},{"num":503,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":14.4879,"qtd_ata":88,"lim_adesao":88,"qtd_cmasm":0},{"num":504,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":9.6619,"qtd_ata":88,"lim_adesao":88,"qtd_cmasm":0},{"num":505,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":9.6619,"qtd_ata":88,"lim_adesao":88,"qtd_cmasm":0},{"num":506,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":21.3693,"qtd_ata":88,"lim_adesao":88,"qtd_cmasm":0},{"num":507,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":31.0462,"qtd_ata":88,"lim_adesao":88,"qtd_cmasm":0},{"num":508,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.6873,"qtd_ata":264,"lim_adesao":264,"qtd_cmasm":0},{"num":509,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":14.5229,"qtd_ata":88,"lim_adesao":88,"qtd_cmasm":0},{"num":510,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":14.4879,"qtd_ata":110,"lim_adesao":110,"qtd_cmasm":0},{"num":511,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":48.2897,"qtd_ata":35,"lim_adesao":35,"qtd_cmasm":0},{"num":512,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":221.1842,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":513,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":129.5709,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":514,"seq":13,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":131.7263,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":515,"seq":14,"desc":"Subst. capacitor","tipo":"corr","vunit":31.0862,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":0},{"num":516,"seq":15,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":44.804,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":0},{"num":517,"seq":16,"desc":"Subst. controle remoto","tipo":"corr","vunit":23.6247,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":518,"seq":17,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":80.8962,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":519,"seq":18,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":147.0944,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":520,"seq":19,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":41.2583,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":521,"seq":20,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":33.0066,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":522,"seq":21,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":52.5455,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":523,"seq":22,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":22.8396,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":524,"seq":23,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":29.1708,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":0},{"num":525,"seq":24,"desc":"Subst. compressor","tipo":"corr","vunit":757.0914,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":526,"seq":25,"desc":"Subst. serpentina","tipo":"corr","vunit":502.7755,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":527,"seq":26,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":632.3514,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":528,"seq":27,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":18.5637,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":529,"seq":28,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":33.8018,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":530,"seq":29,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":16.1682,"qtd_ata":35,"lim_adesao":35,"qtd_cmasm":0}]},{"id":"G7","nome":"Split 22.000 BTU INVERTER — até 3m","itens":[{"num":531,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":145,"lim_adesao":145,"qtd_cmasm":0},{"num":532,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":9.2619,"qtd_ata":118,"lim_adesao":118,"qtd_cmasm":0},{"num":533,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":4.6309,"qtd_ata":118,"lim_adesao":118,"qtd_cmasm":0},{"num":534,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":4.6309,"qtd_ata":118,"lim_adesao":118,"qtd_cmasm":0},{"num":535,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":118,"lim_adesao":118,"qtd_cmasm":0},{"num":536,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":118,"lim_adesao":118,"qtd_cmasm":0},{"num":537,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":334,"lim_adesao":334,"qtd_cmasm":0},{"num":538,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":118,"lim_adesao":118,"qtd_cmasm":0},{"num":539,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":145,"lim_adesao":145,"qtd_cmasm":0},{"num":540,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":46.2993,"qtd_ata":53,"lim_adesao":53,"qtd_cmasm":0},{"num":541,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":210.7021,"qtd_ata":11,"lim_adesao":11,"qtd_cmasm":0},{"num":542,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":85.9322,"qtd_ata":11,"lim_adesao":11,"qtd_cmasm":0},{"num":543,"seq":13,"desc":"Subst. placa eletrônica da condensadora","tipo":"corr","vunit":167.0884,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":544,"seq":14,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":545,"seq":15,"desc":"Subst. capacitor","tipo":"corr","vunit":29.6159,"qtd_ata":17,"lim_adesao":17,"qtd_cmasm":0},{"num":546,"seq":16,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":42.6785,"qtd_ata":8,"lim_adesao":8,"qtd_cmasm":0},{"num":547,"seq":17,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.6145,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":548,"seq":18,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":77.0604,"qtd_ata":21,"lim_adesao":21,"qtd_cmasm":0},{"num":549,"seq":19,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":147.7946,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":550,"seq":20,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.5729,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":551,"seq":21,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":22.2144,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":552,"seq":22,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":50.4001,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":553,"seq":23,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":21.9094,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":554,"seq":24,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":27.9806,"qtd_ata":18,"lim_adesao":18,"qtd_cmasm":0},{"num":555,"seq":25,"desc":"Subst. compressor","tipo":"corr","vunit":844.1688,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":556,"seq":26,"desc":"Subst. serpentina","tipo":"corr","vunit":457.0714,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":557,"seq":27,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":495.099,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":558,"seq":28,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":17.7636,"qtd_ata":21,"lim_adesao":21,"qtd_cmasm":0},{"num":559,"seq":29,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":32.3465,"qtd_ata":16,"lim_adesao":16,"qtd_cmasm":0},{"num":560,"seq":30,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":15.4731,"qtd_ata":53,"lim_adesao":53,"qtd_cmasm":0}]},{"id":"G8","nome":"Split 22.000 BTU INVERTER — até 10m","itens":[{"num":561,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":46.2993,"qtd_ata":55,"lim_adesao":55,"qtd_cmasm":0},{"num":562,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":13.8928,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":563,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":9.2619,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":564,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":9.2619,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":565,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":566,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":567,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":132,"lim_adesao":132,"qtd_cmasm":0},{"num":568,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":569,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":13.8928,"qtd_ata":55,"lim_adesao":55,"qtd_cmasm":0},{"num":570,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":46.2993,"qtd_ata":17,"lim_adesao":17,"qtd_cmasm":0},{"num":571,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":210.7021,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":572,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":85.9322,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":573,"seq":13,"desc":"Subst. placa eletrônica da condensadora","tipo":"corr","vunit":167.0884,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":574,"seq":14,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":575,"seq":15,"desc":"Subst. capacitor","tipo":"corr","vunit":29.6159,"qtd_ata":3,"lim_adesao":3,"qtd_cmasm":0},{"num":576,"seq":16,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":42.6785,"qtd_ata":3,"lim_adesao":3,"qtd_cmasm":0},{"num":577,"seq":17,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.6145,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":578,"seq":18,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":77.0604,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":579,"seq":19,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":147.7946,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":580,"seq":20,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.5729,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":581,"seq":21,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":22.2144,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":582,"seq":22,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":50.4001,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":583,"seq":23,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":21.9094,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":584,"seq":24,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":27.9806,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":585,"seq":25,"desc":"Subst. compressor","tipo":"corr","vunit":844.1688,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":586,"seq":26,"desc":"Subst. serpentina","tipo":"corr","vunit":457.0714,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":587,"seq":27,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":495.099,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":588,"seq":28,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":17.7636,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":589,"seq":29,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":32.5065,"qtd_ata":1,"lim_adesao":1,"qtd_cmasm":0},{"num":590,"seq":30,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":15.5531,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0}]},{"id":"G9","nome":"Split 24.000 BTU — até 3m","itens":[{"num":591,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":490,"lim_adesao":490,"qtd_cmasm":0},{"num":592,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":9.2619,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":593,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":4.6309,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":594,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":4.6309,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":595,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":596,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":597,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":1176,"lim_adesao":1176,"qtd_cmasm":0},{"num":598,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":392,"lim_adesao":392,"qtd_cmasm":0},{"num":599,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":490,"lim_adesao":490,"qtd_cmasm":0},{"num":600,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":9.2619,"qtd_ata":148,"lim_adesao":148,"qtd_cmasm":0},{"num":601,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":206.3913,"qtd_ata":12,"lim_adesao":12,"qtd_cmasm":6},{"num":602,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":123.7497,"qtd_ata":12,"lim_adesao":12,"qtd_cmasm":0},{"num":603,"seq":13,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":12,"lim_adesao":12,"qtd_cmasm":0},{"num":604,"seq":14,"desc":"Subst. capacitor","tipo":"corr","vunit":21.7243,"qtd_ata":22,"lim_adesao":22,"qtd_cmasm":0},{"num":605,"seq":15,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":38.8728,"qtd_ata":22,"lim_adesao":22,"qtd_cmasm":0},{"num":606,"seq":16,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.6145,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":0},{"num":607,"seq":17,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":74.765,"qtd_ata":31,"lim_adesao":31,"qtd_cmasm":0},{"num":608,"seq":18,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":137.4725,"qtd_ata":12,"lim_adesao":12,"qtd_cmasm":0},{"num":609,"seq":19,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.5729,"qtd_ata":12,"lim_adesao":12,"qtd_cmasm":0},{"num":610,"seq":20,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":26.3803,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":0},{"num":611,"seq":21,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":44.804,"qtd_ata":12,"lim_adesao":12,"qtd_cmasm":0},{"num":612,"seq":22,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":14.913,"qtd_ata":12,"lim_adesao":12,"qtd_cmasm":0},{"num":613,"seq":23,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":27.9806,"qtd_ata":22,"lim_adesao":22,"qtd_cmasm":0},{"num":614,"seq":24,"desc":"Subst. compressor","tipo":"corr","vunit":712.1324,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":3},{"num":615,"seq":25,"desc":"Subst. serpentina","tipo":"corr","vunit":573.0646,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":3},{"num":616,"seq":26,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":497.5745,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":3},{"num":617,"seq":27,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":9.857,"qtd_ata":31,"lim_adesao":31,"qtd_cmasm":0},{"num":618,"seq":28,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":27.1804,"qtd_ata":12,"lim_adesao":12,"qtd_cmasm":0},{"num":619,"seq":29,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":8.8868,"qtd_ata":148,"lim_adesao":148,"qtd_cmasm":0}]},{"id":"G10","nome":"Split 24.000 BTU — até 10m (andaime)","itens":[{"num":620,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":48.2897,"qtd_ata":90,"lim_adesao":90,"qtd_cmasm":0},{"num":621,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":14.4879,"qtd_ata":72,"lim_adesao":72,"qtd_cmasm":0},{"num":622,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":9.6619,"qtd_ata":72,"lim_adesao":72,"qtd_cmasm":0},{"num":623,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":9.6619,"qtd_ata":72,"lim_adesao":72,"qtd_cmasm":0},{"num":624,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":21.3693,"qtd_ata":72,"lim_adesao":72,"qtd_cmasm":0},{"num":625,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":31.0462,"qtd_ata":72,"lim_adesao":72,"qtd_cmasm":0},{"num":626,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.6873,"qtd_ata":216,"lim_adesao":216,"qtd_cmasm":0},{"num":627,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":14.5229,"qtd_ata":72,"lim_adesao":72,"qtd_cmasm":0},{"num":628,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":14.4879,"qtd_ata":90,"lim_adesao":90,"qtd_cmasm":0},{"num":629,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":48.2897,"qtd_ata":28,"lim_adesao":28,"qtd_cmasm":0},{"num":630,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":221.1842,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":631,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":129.2658,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":632,"seq":13,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":131.7263,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":633,"seq":14,"desc":"Subst. capacitor","tipo":"corr","vunit":29.911,"qtd_ata":5,"lim_adesao":5,"qtd_cmasm":0},{"num":634,"seq":15,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":43.1036,"qtd_ata":5,"lim_adesao":5,"qtd_cmasm":0},{"num":635,"seq":16,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.7245,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":636,"seq":17,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":77.8256,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":637,"seq":18,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":142.1934,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":638,"seq":19,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.758,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":639,"seq":20,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":31.8064,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":640,"seq":21,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":50.6351,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":641,"seq":22,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":22.0094,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":642,"seq":23,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":28.1106,"qtd_ata":5,"lim_adesao":5,"qtd_cmasm":0},{"num":643,"seq":24,"desc":"Subst. compressor","tipo":"corr","vunit":729.5609,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":644,"seq":25,"desc":"Subst. serpentina","tipo":"corr","vunit":589.8379,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":645,"seq":26,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":611.1722,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":646,"seq":27,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":17.9436,"qtd_ata":7,"lim_adesao":7,"qtd_cmasm":0},{"num":647,"seq":28,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":32.5065,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":648,"seq":29,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":15.5481,"qtd_ata":28,"lim_adesao":28,"qtd_cmasm":0}]},{"id":"G11","nome":"Split 24.000 BTU INVERTER — até 3m","itens":[{"num":649,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":230,"lim_adesao":230,"qtd_cmasm":0},{"num":650,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":9.2619,"qtd_ata":194,"lim_adesao":194,"qtd_cmasm":0},{"num":651,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":4.6309,"qtd_ata":194,"lim_adesao":194,"qtd_cmasm":0},{"num":652,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":4.6309,"qtd_ata":194,"lim_adesao":194,"qtd_cmasm":0},{"num":653,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":174,"lim_adesao":174,"qtd_cmasm":0},{"num":654,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":174,"lim_adesao":174,"qtd_cmasm":0},{"num":655,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":462,"lim_adesao":462,"qtd_cmasm":0},{"num":656,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":164,"lim_adesao":164,"qtd_cmasm":0},{"num":657,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":9.2619,"qtd_ata":201,"lim_adesao":201,"qtd_cmasm":0},{"num":658,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":46.2993,"qtd_ata":95,"lim_adesao":95,"qtd_cmasm":0},{"num":659,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":210.7021,"qtd_ata":36,"lim_adesao":36,"qtd_cmasm":0},{"num":660,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":85.9322,"qtd_ata":46,"lim_adesao":46,"qtd_cmasm":0},{"num":661,"seq":13,"desc":"Subst. placa eletrônica da condensadora","tipo":"corr","vunit":167.0884,"qtd_ata":46,"lim_adesao":46,"qtd_cmasm":0},{"num":662,"seq":14,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":46,"lim_adesao":46,"qtd_cmasm":0},{"num":663,"seq":15,"desc":"Subst. capacitor","tipo":"corr","vunit":29.6159,"qtd_ata":29,"lim_adesao":29,"qtd_cmasm":0},{"num":664,"seq":16,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":42.6785,"qtd_ata":9,"lim_adesao":9,"qtd_cmasm":0},{"num":665,"seq":17,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.6145,"qtd_ata":27,"lim_adesao":27,"qtd_cmasm":0},{"num":666,"seq":18,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":77.8256,"qtd_ata":38,"lim_adesao":38,"qtd_cmasm":0},{"num":667,"seq":19,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":147.0944,"qtd_ata":6,"lim_adesao":6,"qtd_cmasm":0},{"num":668,"seq":20,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.758,"qtd_ata":36,"lim_adesao":36,"qtd_cmasm":0},{"num":669,"seq":21,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":31.8064,"qtd_ata":35,"lim_adesao":35,"qtd_cmasm":0},{"num":670,"seq":22,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":50.6351,"qtd_ata":36,"lim_adesao":36,"qtd_cmasm":0},{"num":671,"seq":23,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":22.0094,"qtd_ata":36,"lim_adesao":36,"qtd_cmasm":0},{"num":672,"seq":24,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":28.1106,"qtd_ata":39,"lim_adesao":39,"qtd_cmasm":0},{"num":673,"seq":25,"desc":"Subst. compressor","tipo":"corr","vunit":844.1688,"qtd_ata":30,"lim_adesao":30,"qtd_cmasm":0},{"num":674,"seq":26,"desc":"Subst. serpentina","tipo":"corr","vunit":556.4513,"qtd_ata":45,"lim_adesao":45,"qtd_cmasm":0},{"num":675,"seq":27,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":495.099,"qtd_ata":5,"lim_adesao":5,"qtd_cmasm":0},{"num":676,"seq":28,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":17.7636,"qtd_ata":38,"lim_adesao":38,"qtd_cmasm":0},{"num":677,"seq":29,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":32.3465,"qtd_ata":31,"lim_adesao":31,"qtd_cmasm":0},{"num":678,"seq":30,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":15.5531,"qtd_ata":80,"lim_adesao":80,"qtd_cmasm":0}]},{"id":"G12","nome":"Split 24.000 BTU INVERTER — até 10m","itens":[{"num":679,"seq":1,"desc":"Desmontagem parcial do equipamento","tipo":"prev","vunit":46.2993,"qtd_ata":55,"lim_adesao":55,"qtd_cmasm":0},{"num":680,"seq":2,"desc":"Verificação da pressão do gás","tipo":"prev","vunit":13.8928,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":681,"seq":3,"desc":"Revisão elétrica (aperto e limpeza dos terminais)","tipo":"prev","vunit":9.2619,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":682,"seq":4,"desc":"Revisão mecânica (aperto das conexões)","tipo":"prev","vunit":9.2619,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":683,"seq":5,"desc":"Limpeza e higienização da condensadora","tipo":"prev","vunit":20.4891,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":684,"seq":6,"desc":"Limpeza e higienização da evaporadora","tipo":"prev","vunit":29.771,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":685,"seq":7,"desc":"Limpeza e higienização dos filtros","tipo":"prev","vunit":11.2072,"qtd_ata":132,"lim_adesao":132,"qtd_cmasm":0},{"num":686,"seq":8,"desc":"Regulagens e teste de funcionamento com diagnóstico","tipo":"prev","vunit":13.9278,"qtd_ata":44,"lim_adesao":44,"qtd_cmasm":0},{"num":687,"seq":9,"desc":"Montagem do equipamento","tipo":"prev","vunit":13.8928,"qtd_ata":55,"lim_adesao":55,"qtd_cmasm":0},{"num":688,"seq":10,"desc":"Desmontagem para reparos e troca de peças","tipo":"corr","vunit":46.2993,"qtd_ata":17,"lim_adesao":17,"qtd_cmasm":0},{"num":689,"seq":11,"desc":"Subst. motor ventilador da condensadora","tipo":"corr","vunit":210.7021,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":690,"seq":12,"desc":"Subst. placa eletrônica da evaporadora","tipo":"corr","vunit":85.9322,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":691,"seq":13,"desc":"Subst. placa eletrônica da condensadora","tipo":"corr","vunit":167.0884,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":692,"seq":14,"desc":"Subst. suportes da condensadora (mão francesas INMETRO/NBR 16655)","tipo":"corr","vunit":126.3253,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":693,"seq":15,"desc":"Subst. capacitor","tipo":"corr","vunit":29.6159,"qtd_ata":3,"lim_adesao":3,"qtd_cmasm":0},{"num":694,"seq":16,"desc":"Desentupimento do dreno com gás pressurizado","tipo":"corr","vunit":42.6785,"qtd_ata":3,"lim_adesao":3,"qtd_cmasm":0},{"num":695,"seq":17,"desc":"Subst. controle remoto","tipo":"corr","vunit":22.6145,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":696,"seq":18,"desc":"Carga de gás 2 kg","tipo":"corr","vunit":77.0604,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":697,"seq":19,"desc":"Carga de gás 4 kg","tipo":"corr","vunit":147.7946,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":698,"seq":20,"desc":"Subst. conjunto dos filtros de ar","tipo":"corr","vunit":39.5729,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":699,"seq":21,"desc":"Subst. sensor de temperatura","tipo":"corr","vunit":22.2144,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":700,"seq":22,"desc":"Pressurização com nitrogênio (vazamento)","tipo":"corr","vunit":50.4001,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":701,"seq":23,"desc":"Ajustes e solda para sanar vazamento de gás","tipo":"corr","vunit":21.9094,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":702,"seq":24,"desc":"Vácuo no sistema (bomba de vácuo)","tipo":"corr","vunit":27.9806,"qtd_ata":3,"lim_adesao":3,"qtd_cmasm":0},{"num":703,"seq":25,"desc":"Subst. compressor","tipo":"corr","vunit":844.1688,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":704,"seq":26,"desc":"Subst. serpentina","tipo":"corr","vunit":556.4513,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":705,"seq":27,"desc":"Subst. bomba de dreno (34 L/h)","tipo":"corr","vunit":495.099,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":706,"seq":28,"desc":"Subst. 2m isolamento (baixa e alta pressão)","tipo":"corr","vunit":17.7636,"qtd_ata":4,"lim_adesao":4,"qtd_cmasm":0},{"num":707,"seq":29,"desc":"Subst. 2m cabo PP 5 vias","tipo":"corr","vunit":32.5065,"qtd_ata":2,"lim_adesao":2,"qtd_cmasm":0},{"num":708,"seq":30,"desc":"Montagem do equipamento (pós-reparo)","tipo":"corr","vunit":15.5531,"qtd_ata":17,"lim_adesao":17,"qtd_cmasm":0}]}];
+
+const VALOR_ADESAO = 70000;
+const FORNECEDOR = {nome:'CARIOCA SOLUTION LTDA', cnpj:'22.567.346/0001-09',
+  email:'cariocasolution2@gmail.com', tel:'(21) 3882-6083'};
+
+// ═══════════════════════════════════════════════
+// ESTADO — saldo por item e OSs registradas
+// ═══════════════════════════════════════════════
+const saldo = {};       // saldo[num_item] = qtd disponível
+const osRegistradas = []; // OSs geradas
+let osCounter = 1;
+let draftItems = [];
+let valorAdesaoUsado = 0;
+
+// Inicializar saldo (= lim_adesao de cada item)
+ATA2.forEach(g => g.itens.forEach(it => {
+  saldo[it.num] = it.lim_adesao - (it.qtd_cmasm||0);
+}));
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+const brl = v => v == null ? '—' : v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:4});
+const brl2 = v => v == null ? '—' : v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const pct = v => (v*100).toFixed(1)+'%';
+
+function saldoClass(num) {
+  const it = findItem(num);
+  if (!it) return '';
+  const s = saldo[num];
+  const lim = it.lim_adesao;
+  if (s === 0) return 'saldo-zero';
+  if (s < lim * 0.25) return 'saldo-warn';
+  return 'saldo-ok';
+}
+
+function findItem(num) {
+  for (const g of ATA2) for (const it of g.itens) if (it.num === num) return it;
+  return null;
+}
+
+// ═══════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════
+function showPage(id, tab) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(tab) tab.classList.add('active');
+  document.getElementById('fab').classList.toggle('hidden',
+    id==='pg-os' || draftItems.length===0);
+  if(id==='pg-controle') renderControle();
+  if(id==='pg-os') renderOsLista();
+}
+
+function toggleCard(head) {
+  head.classList.toggle('collapsed');
+  head.nextElementSibling.classList.toggle('closed');
+}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+
+// ═══════════════════════════════════════════════
+// PREENCHER SELECT DE GRUPOS
+// ═══════════════════════════════════════════════
+(function initSelect(){
+  const sel = document.getElementById('f-grupo');
+  ATA2.forEach(g=>{
+    const opt=document.createElement('option');
+    opt.value=g.id; opt.textContent=g.nome; sel.appendChild(opt);
+  });
+})();
+
+// ═══════════════════════════════════════════════
+// MCP — RENDER
+// ═══════════════════════════════════════════════
+function renderMcp() {
+  const fGrupo = document.getElementById('f-grupo').value;
+  const fTipo  = document.getElementById('f-tipo').value;
+  const fTxt   = document.getElementById('f-texto').value.toLowerCase();
+  const tbody  = document.getElementById('mcp-tbody');
+
+  let html='', cnt=0, prevGrupoId='';
+
+  ATA2.forEach(g => {
+    if(fGrupo && g.id !== fGrupo) return;
+    let grupoShown = false;
+    g.itens.forEach((it,idx) => {
+      if(fTipo && it.tipo !== fTipo) return;
+      if(fTxt && !it.desc.toLowerCase().includes(fTxt)) return;
+
+      if(!grupoShown){
+        html += `<tr class="grupo-sep"><td colspan="9">${g.nome} (${g.itens.length} itens)</td></tr>`;
+        grupoShown=true;
+      }
+
+      const s = saldo[it.num];
+      const sc = saldoClass(it.num);
+      const sCls = s===0?'saldo-zero': s<it.lim_adesao*0.25?'saldo-warn':'saldo-ok';
+      const disabled = s===0 ? 'disabled' : '';
+      const tipoBadge = it.tipo==='prev'
+        ? '<span class="tag-prev">PREV</span>'
+        : '<span class="tag-corr">CORR</span>';
+
+      html += `<tr class="${idx%2?'alt':''}">
+        <td class="muted">${it.num}</td>
+        <td>${it.desc}</td>
+        <td>${tipoBadge}</td>
+        <td class="r price">${brl(it.vunit)}</td>
+        <td class="r muted">${it.qtd_ata}</td>
+        <td class="r muted">${it.lim_adesao}</td>
+        ${(it.qtd_cmasm||0)>0 ? `<td class="r" style="color:#1a5276;font-weight:700">${it.qtd_cmasm}</td>` : '<td class="r muted">—</td>'}
+        <td class="r ${sCls}" id="saldo-cell-${it.num}">${s}</td>
+        <td class="r"><input class="qtd-in" type="number" min="1" max="${s}"
+          value="1" id="qtd-in-${it.num}" ${disabled}/></td>
+        <td><button class="btn-add" id="btn-add-${it.num}"
+          onclick="promptMaquinaAdd(${it.num})" ${disabled}>
+          <i class="fas fa-plus"></i></button></td>
+      </tr>`;
+      cnt++;
+    });
+  });
+
+  tbody.innerHTML = html;
+  document.getElementById('mcp-count').textContent = cnt+' itens';
+  renderKpiMcp();
+}
+
+function limparFiltrosMcp(){
+  document.getElementById('f-grupo').value='';
+  document.getElementById('f-tipo').value='';
+  document.getElementById('f-texto').value='';
+  renderMcp();
+}
+
+function renderKpiMcp(){
+  const totalItens = ATA2.reduce((s,g)=>s+g.itens.length,0);
+  const totalValorAta = ATA2.reduce((s,g)=>s+g.itens.reduce((ss,it)=>ss+it.vunit*it.qtd_ata,0),0);
+  const saldoTotal = Object.values(saldo).reduce((a,b)=>a+b,0);
+  const limTotal = ATA2.reduce((s,g)=>s+g.itens.reduce((ss,it)=>ss+it.lim_adesao,0),0);
+  const qtdCmasmTotal = ATA2.reduce((s,g)=>s+g.itens.reduce((ss,it)=>ss+(it.qtd_cmasm||0),0),0);
+  const vlrCmasm = ATA2.reduce((s,g)=>s+g.itens.reduce((ss,it)=>ss+(it.qtd_cmasm||0)*it.vunit,0),0);
+  document.getElementById('kpi-mcp').innerHTML = `
+    <div class="kpi"><div class="kl">Itens na Ata</div><div class="kv">${totalItens}</div><div class="ks">12 grupos · 354 serviços</div></div>
+    <div class="kpi info"><div class="kl">Valor total da Ata</div><div class="kv">${brl2(totalValorAta)}</div><div class="ks">soma qtd × vlr unit</div></div>
+    <div class="kpi ok"><div class="kl">Saldo global disp.</div><div class="kv">${saldoTotal}</div><div class="ks">de ${limTotal} total</div></div>
+    <div class="kpi warn"><div class="kl">Valor adesão CMASM</div><div class="kv">${brl2(vlrCmasm)}</div><div class="ks">${qtdCmasmTotal} unid. alocadas</div></div>
+    <div class="kpi ${valorAdesaoUsado>VALOR_ADESAO?'danger':'ok'}">
+      <div class="kl">Valor OS emitidas</div>
+      <div class="kv">${brl2(valorAdesaoUsado)}</div>
+      <div class="ks">saldo financeiro: ${brl2(VALOR_ADESAO-valorAdesaoUsado)}</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// ADICIONAR AO RASCUNHO
+// ═══════════════════════════════════════════════
+let pendingItemNum = null;
+
+function promptMaquinaAdd(num){
+  pendingItemNum = num;
+  // Pegar qtd do campo
+  const qtdEl = document.getElementById('qtd-in-'+num);
+  const qtd = Math.max(1, parseInt(qtdEl.value)||1);
+  const s = saldo[num];
+  if(s===0) return;
+  const qtdFinal = Math.min(qtd, s);
+  // Reutilizar campo de máquina da sidebar — navegar para OS com item pendente
+  // Melhor: mini prompt inline via textarea temporária
+  const maqVal = prompt('Identificação da Máquina / Local:\n(ex: Split 18.000 BTU — Sala da Chefia Bloco A, Tombamento 12345)');
+  if(!maqVal || !maqVal.trim()) return;
+
+  const it = findItem(num);
+  draftItems.push({
+    id: Date.now()+Math.random(),
+    num, desc:it.desc, tipo:it.tipo, vunit:it.vunit,
+    qtd:qtdFinal, maquina:maqVal.trim(),
+    grupoNome: ATA2.find(g=>g.itens.some(i=>i.num===num))?.nome||'',
+    subtotal: it.vunit * qtdFinal
+  });
+
+  // Decrementar saldo
+  saldo[num] -= qtdFinal;
+  atualizarSaldoCells(num);
+  qtdEl.value=1; qtdEl.max=saldo[num];
+  if(saldo[num]===0){
+    qtdEl.disabled=true;
+    document.getElementById('btn-add-'+num).disabled=true;
+  }
+
+  renderDraft();
+  syncFab();
+}
+
+function atualizarSaldoCells(num){
+  const s = saldo[num];
+  const it = findItem(num);
+  const cls = s===0?'saldo-zero': s<it.lim_adesao*0.25?'saldo-warn':'saldo-ok';
+  const cell = document.getElementById('saldo-cell-'+num);
+  if(cell){cell.textContent=s; cell.className='r '+cls;}
+}
+
+function renderDraft(){
+  const list = document.getElementById('draft-list');
+  const cnt = document.getElementById('draft-cnt');
+  const totEl = document.getElementById('draft-total');
+
+  cnt.textContent = draftItems.length+' item'+(draftItems.length!==1?'s':'');
+
+  if(!draftItems.length){
+    list.innerHTML='<div class="draft-empty">Nenhum item ainda.</div>';
+    totEl.textContent='R$ 0,00';
+    return;
+  }
+
+  // Agrupar por máquina
+  const maquinas={};
+  draftItems.forEach(it=>{if(!maquinas[it.maquina]) maquinas[it.maquina]=[];maquinas[it.maquina].push(it)});
+
+  let html='';
+  Object.entries(maquinas).forEach(([maq,itens])=>{
+    const subMaq = itens.reduce((s,i)=>s+i.subtotal,0);
+    html+=`<div style="margin-bottom:4px">
+      <div style="font-size:10px;font-weight:700;color:var(--cp);background:#f0f6ff;
+        padding:3px 8px;border:1px solid #c5d8f8;border-bottom:none;border-radius:4px 4px 0 0">
+        <i class="fas fa-desktop" style="font-size:9px"></i> ${maq}
+        <span style="float:right;color:var(--g7)">${brl2(subMaq)}</span>
+      </div>`;
+    itens.forEach(it=>{
+      const tag=it.tipo==='prev'
+        ?'<span class="tag-prev" style="font-size:9px">PREV</span>'
+        :'<span class="tag-corr" style="font-size:9px">CORR</span>';
+      html+=`<div class="di" style="border-radius:0;margin-bottom:0;border-top:none">
+        <button class="btn-rm" onclick="removerItem(${it.id})"><i class="fas fa-times"></i></button>
+        <div class="di-desc">${tag} ${it.desc}</div>
+        <div style="font-size:9px;color:var(--g7);margin:1px 0">${it.grupoNome}</div>
+        <div class="di-vals">
+          <span class="di-qtd">Qtd ${it.qtd} × ${brl(it.vunit)}</span>
+          <span>${brl2(it.subtotal)}</span>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+
+  list.innerHTML=html;
+  totEl.textContent=brl2(draftItems.reduce((s,i)=>s+i.subtotal,0));
+}
+
+function removerItem(id){
+  const it = draftItems.find(i=>i.id===id);
+  if(!it) return;
+  saldo[it.num] += it.qtd;
+  atualizarSaldoCells(it.num);
+  const el = document.getElementById('qtd-in-'+it.num);
+  const btn = document.getElementById('btn-add-'+it.num);
+  if(el){el.disabled=false; el.max=saldo[it.num];}
+  if(btn) btn.disabled=false;
+  draftItems = draftItems.filter(i=>i.id!==id);
+  renderDraft(); syncFab();
+}
+
+function limparRascunho(){
+  if(!draftItems.length) return;
+  if(!confirm('Limpar todos os itens do rascunho?')) return;
+  draftItems.forEach(it=>{
+    saldo[it.num]+=it.qtd;
+    atualizarSaldoCells(it.num);
+    const el=document.getElementById('qtd-in-'+it.num);
+    const btn=document.getElementById('btn-add-'+it.num);
+    if(el){el.disabled=false;el.max=saldo[it.num];}
+    if(btn) btn.disabled=false;
+  });
+  draftItems=[];
+  renderDraft(); syncFab();
+}
+
+function syncFab(){
+  const fab=document.getElementById('fab');
+  const isOs=document.getElementById('pg-os').classList.contains('active');
+  document.getElementById('fab-cnt').textContent=draftItems.length;
+  fab.classList.toggle('hidden', draftItems.length===0||isOs);
+}
+
+// ═══════════════════════════════════════════════
+// GERAR OS
+// ═══════════════════════════════════════════════
+function gerarOS(){
+  if(!draftItems.length){alert('Adicione itens ao rascunho.');return;}
+  const orgao = document.getElementById('os-orgao').value.trim()||'CMASM — 13ª RM';
+  const resp = document.getElementById('os-resp').value.trim()||'(não informado)';
+  const obs  = document.getElementById('os-obs').value.trim();
+  const total= draftItems.reduce((s,i)=>s+i.subtotal,0);
+
+  const os = {
+    num: 'OS-'+String(osCounter++).padStart(4,'0'),
+    data: new Date().toLocaleDateString('pt-BR'),
+    orgao, resp, obs,
+    itens: [...draftItems],
+    total,
+    status:'emitida',  // emitida → concluida → nf_gerada → nf_atestada → paga
+    historico:['Emitida em '+new Date().toLocaleDateString('pt-BR')]
+  };
+
+  valorAdesaoUsado += total;
+  osRegistradas.unshift(os);
+  draftItems=[];
+  renderDraft(); syncFab(); renderKpiMcp();
+  abrirModalImpressao(os);
+  renderOsLista();
+  atualizarChipSaldo();
+}
+
+function atualizarChipSaldo(){
+  const el = document.getElementById('chip-saldo');
+  const saldoFin = VALOR_ADESAO - valorAdesaoUsado;
+  const cls = saldoFin<0?'red': saldoFin<10000?'yellow':'green';
+  el.className='chip '+cls;
+  el.innerHTML=`<b>Saldo financeiro:</b> ${brl2(saldoFin)}`;
+}
+
+// ═══════════════════════════════════════════════
+// LISTA DE OS
+// ═══════════════════════════════════════════════
+const STATUS_LABELS = {
+  emitida:'Emitida', concluida:'Serviços Concluídos',
+  nf_gerada:'NF Gerada', nf_atestada:'NF Atestada', paga:'Paga'
+};
+const STATUS_FLOW = ['emitida','concluida','nf_gerada','nf_atestada','paga'];
+const STATUS_ICONS = {
+  emitida:'fas fa-file-signature', concluida:'fas fa-tools',
+  nf_gerada:'fas fa-file-invoice', nf_atestada:'fas fa-check-double', paga:'fas fa-coins'
+};
+
+function renderOsLista(){
+  const lista=document.getElementById('os-lista');
+  const badge=document.getElementById('os-cnt-badge');
+  badge.textContent=osRegistradas.length;
+  if(!osRegistradas.length){
+    lista.innerHTML='<div class="draft-empty">Nenhuma OS registrada.</div>';
+    return;
+  }
+
+  lista.innerHTML = osRegistradas.map(os=>{
+    const sidx = STATUS_FLOW.indexOf(os.status);
+    const maquinas = [...new Set(os.itens.map(i=>i.maquina))];
+
+    // Flow visual
+    const flowHtml = STATUS_FLOW.map((st,i)=>{
+      const cls = i<sidx?'done': i===sidx?'active':'pending';
+      const icon = STATUS_ICONS[st];
+      return `<div class="flow-step">
+        <div class="flow-dot ${cls}"><i class="${icon}" style="font-size:12px"></i></div>
+        <div class="flow-label">${STATUS_LABELS[st]}</div>
+      </div>`;
+    }).join('');
+
+    // Botão de próxima ação
+    const nextSt = STATUS_FLOW[sidx+1];
+    const nextActions = nextSt ? `<button class="btn btn-p flow-actions"
+      onclick="avancarStatus('${os.num}')">
+      <i class="${STATUS_ICONS[nextSt]}"></i> ${STATUS_LABELS[nextSt]}
+    </button>` : '<span style="color:var(--ok);font-weight:700"><i class="fas fa-check-circle"></i> Concluída</span>';
+
+    // Tabela de itens
+    const maquinaGroups = {};
+    os.itens.forEach(it=>{if(!maquinaGroups[it.maquina]) maquinaGroups[it.maquina]=[];maquinaGroups[it.maquina].push(it)});
+    const itemsHtml = Object.entries(maquinaGroups).map(([maq,itens])=>`
+      <tr><td colspan="5" style="background:#e8f0fb;font-weight:700;color:var(--cp);font-size:11px;padding:4px 8px">
+        <i class="fas fa-desktop"></i> ${maq}</td></tr>
+      ${itens.map(it=>`<tr>
+        <td style="padding:4px 8px;font-size:11px">${it.num}</td>
+        <td style="padding:4px 8px;font-size:11px">${it.desc}</td>
+        <td style="padding:4px 8px;font-size:11px;text-align:center">${it.qtd}</td>
+        <td style="padding:4px 8px;font-size:11px;text-align:right">${brl(it.vunit)}</td>
+        <td style="padding:4px 8px;font-size:11px;text-align:right;font-weight:700">${brl2(it.subtotal)}</td>
+      </tr>`).join('')}
+    `).join('');
+
+    return `<div class="os-list-item">
+      <div class="os-li-head" onclick="toggleOsDetail('${os.num}')">
+        <i class="fas fa-file-alt" style="color:var(--cp)"></i>
+        <span class="os-num">${os.num}</span>
+        <span class="os-org">${os.orgao} · ${os.data}</span>
+        <span class="os-total">${brl2(os.total)}</span>
+        <span class="status s-${os.status}">${STATUS_LABELS[os.status]}</span>
+        <i class="fas fa-chevron-down" style="color:var(--g7);font-size:11px"></i>
+      </div>
+      <div class="os-li-body" id="detail-${os.num}">
+        <div style="font-size:11px;color:var(--g7);margin-bottom:8px">
+          <b>Fiscal:</b> ${os.resp} &nbsp;|&nbsp;
+          <b>Fornecedor:</b> ${FORNECEDOR.nome} — CNPJ ${FORNECEDOR.cnpj}
+          ${os.obs?`<br><b>Obs:</b> ${os.obs}`:''}
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--g9);margin-bottom:6px">
+          Fluxo de Execução
+        </div>
+        <div class="flow">${flowHtml}</div>
+        <div class="flow-actions" style="margin-bottom:12px">
+          ${nextActions}
+          <button class="btn btn-s" onclick="abrirModalImpressao(osRegistradas.find(o=>o.num==='${os.num}'))">
+            <i class="fas fa-print"></i> Imprimir
+          </button>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--g9);margin-bottom:6px">
+          ${os.itens.length} itens · ${maquinas.length} máquina(s)
+        </div>
+        <table style="font-size:11px;border-collapse:collapse;width:100%">
+          <thead>
+            <tr style="background:#e8f0fb">
+              <th style="padding:4px 8px;text-align:left;color:var(--cp)">Item</th>
+              <th style="padding:4px 8px;text-align:left;color:var(--cp)">Serviço</th>
+              <th style="padding:4px 8px;text-align:center;color:var(--cp)">Qtd</th>
+              <th style="padding:4px 8px;text-align:right;color:var(--cp)">Vlr Unit.</th>
+              <th style="padding:4px 8px;text-align:right;color:var(--cp)">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHtml}</tbody>
+          <tfoot>
+            <tr style="background:var(--cp)">
+              <td colspan="4" style="padding:6px 8px;text-align:right;color:#fff;font-weight:700">TOTAL OS</td>
+              <td style="padding:6px 8px;text-align:right;color:#fff;font-weight:700">${brl2(os.total)}</td>
+            </tr>
+          </tfoot>
+        </table>
+        ${os.historico&&os.historico.length>1?`<div style="margin-top:10px;font-size:10px;color:var(--g7)">
+          <b>Histórico:</b> ${os.historico.join(' → ')}
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleOsDetail(num){
+  document.getElementById('detail-'+num).classList.toggle('open');
+}
+
+function avancarStatus(num){
+  const os = osRegistradas.find(o=>o.num===num);
+  if(!os) return;
+  const sidx = STATUS_FLOW.indexOf(os.status);
+  if(sidx>=STATUS_FLOW.length-1) return;
+
+  const nextSt = STATUS_FLOW[sidx+1];
+  const labels = {
+    concluida:'Confirma que os serviços foram concluídos?',
+    nf_gerada:'Confirma que a Nota Fiscal foi gerada pelo fornecedor?',
+    nf_atestada:'Confirma que a NF foi atestada pelo fiscal do contrato?',
+    paga:'Confirma que o pagamento foi realizado?'
+  };
+  if(!confirm(labels[nextSt]||'Confirmar?')) return;
+  os.status = nextSt;
+  os.historico.push(STATUS_LABELS[nextSt]+' em '+new Date().toLocaleDateString('pt-BR'));
+  renderOsLista();
+  renderControle();
+}
+
+// ═══════════════════════════════════════════════
+// CONTROLE DE ADESÃO
+// ═══════════════════════════════════════════════
+function renderControle(){
+  const saldoFin = VALOR_ADESAO - valorAdesaoUsado;
+  const totalPago = osRegistradas.filter(o=>o.status==='paga').reduce((s,o)=>s+o.total,0);
+  const emAberto = valorAdesaoUsado - totalPago;
+
+  document.getElementById('kpi-ctrl').innerHTML=`
+    <div class="kpi"><div class="kl">Orçamento autorizado</div><div class="kv">${brl2(VALOR_ADESAO)}</div><div class="ks">valor da adesão CMASM</div></div>
+    <div class="kpi danger"><div class="kl">Comprometido (OS emitidas)</div><div class="kv">${brl2(valorAdesaoUsado)}</div><div class="ks">${pct(valorAdesaoUsado/VALOR_ADESAO)} do orçamento</div></div>
+    <div class="kpi ok"><div class="kl">Saldo disponível</div><div class="kv">${brl2(saldoFin)}</div><div class="ks">${pct(Math.max(0,saldoFin)/VALOR_ADESAO)} restante</div></div>
+    <div class="kpi"><div class="kl">Total pago</div><div class="kv">${brl2(totalPago)}</div><div class="ks">${osRegistradas.filter(o=>o.status==='paga').length} OS pagas</div></div>
+    <div class="kpi warn"><div class="kl">Em aberto (a pagar)</div><div class="kv">${brl2(emAberto)}</div><div class="ks">emitidas não pagas</div></div>
+  `;
+
+  const tbody = document.getElementById('ctrl-tbody');
+  if(!osRegistradas.length){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--g7);padding:20px">Nenhuma OS gerada ainda.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = osRegistradas.map(os=>{
+    const sidx = STATUS_FLOW.indexOf(os.status);
+    const flowMini = STATUS_FLOW.map((st,i)=>{
+      const cls=i<sidx?'done':i===sidx?'active':'pending';
+      return `<div class="flow-step" style="min-width:60px">
+        <div class="flow-dot ${cls}" style="width:24px;height:24px;font-size:10px">
+          <i class="${STATUS_ICONS[st]}"></i>
+        </div>
+        <div class="flow-label" style="font-size:8px">${STATUS_LABELS[st]}</div>
+      </div>`;
+    }).join('');
+
+    const nextSt = STATUS_FLOW[sidx+1];
+
+    return `<tr>
+      <td><b style="color:var(--cp)">${os.num}</b></td>
+      <td class="muted">${os.data}</td>
+      <td>${os.resp}</td>
+      <td class="r" style="font-weight:700">${brl2(os.total)}</td>
+      <td><span class="status s-${os.status}">${STATUS_LABELS[os.status]}</span></td>
+      <td>
+        <div style="display:flex;gap:0;align-items:flex-start">${flowMini}</div>
+        ${nextSt?`<button class="btn btn-p" style="font-size:10px;padding:3px 8px;margin-top:4px"
+          onclick="avancarStatus('${os.num}')">
+          <i class="${STATUS_ICONS[nextSt]}"></i> ${STATUS_LABELS[nextSt]}
+        </button>`:'<span style="font-size:10px;color:var(--ok)"><i class="fas fa-check-circle"></i> Concluída</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// MODAL IMPRESSÃO
+// ═══════════════════════════════════════════════
+function abrirModalImpressao(os){
+  const maquinaGroups={};
+  os.itens.forEach(it=>{if(!maquinaGroups[it.maquina]) maquinaGroups[it.maquina]=[];maquinaGroups[it.maquina].push(it)});
+
+  const maqs = Object.entries(maquinaGroups).map(([maq,itens])=>{
+    const subMaq=itens.reduce((s,i)=>s+i.subtotal,0);
+    const rows=itens.map((it,i)=>`<tr style="background:${i%2?'#f9fafb':'#fff'}">
+      <td style="padding:5px 8px;border:1px solid #ddd">${it.num}</td>
+      <td style="padding:5px 8px;border:1px solid #ddd;font-size:11px">${it.grupoNome}</td>
+      <td style="padding:5px 8px;border:1px solid #ddd">${it.desc}</td>
+      <td style="padding:5px 8px;border:1px solid #ddd;text-align:center">${it.tipo==='prev'?'Preventiva':'Corretiva'}</td>
+      <td style="padding:5px 8px;border:1px solid #ddd;text-align:center">${it.qtd}</td>
+      <td style="padding:5px 8px;border:1px solid #ddd;text-align:right">${brl(it.vunit)}</td>
+      <td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:700">${brl2(it.subtotal)}</td>
+    </tr>`).join('');
+    return `<div style="margin-bottom:16px">
+      <div style="background:var(--cp);color:#fff;padding:6px 10px;font-size:12px;font-weight:700">
+        <i class="fas fa-desktop"></i> ${maq}
+        <span style="float:right">${brl2(subMaq)}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#e8f0fb">
+          <th style="padding:5px 8px;border:1px solid #ddd;width:50px">Item</th>
+          <th style="padding:5px 8px;border:1px solid #ddd">Grupo</th>
+          <th style="padding:5px 8px;border:1px solid #ddd">Serviço</th>
+          <th style="padding:5px 8px;border:1px solid #ddd;width:80px">Tipo</th>
+          <th style="padding:5px 8px;border:1px solid #ddd;width:40px">Qtd</th>
+          <th style="padding:5px 8px;border:1px solid #ddd;width:90px">Vlr Unit.</th>
+          <th style="padding:5px 8px;border:1px solid #ddd;width:90px">Subtotal</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  }).join('');
+
+  document.getElementById('print-area').innerHTML=`
+    <div style="font-family:Arial,sans-serif;font-size:12px">
+      <div style="text-align:center;margin-bottom:14px;border-bottom:2px solid var(--cp);padding-bottom:10px">
+        <div style="font-size:10px;color:#666">MARINHA DO BRASIL</div>
+        <div style="font-size:16px;font-weight:700;color:var(--cp)">ORDEM DE SERVIÇO</div>
+        <div style="font-size:22px;font-weight:900;color:var(--cp)">${os.num}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11px">
+        <tr>
+          <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700;background:#f0f4fb;width:25%">Data</td>
+          <td style="padding:5px 8px;border:1px solid #ddd;width:25%">${os.data}</td>
+          <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700;background:#f0f4fb;width:25%">ARP / Pregão</td>
+          <td style="padding:5px 8px;border:1px solid #ddd">Ata 02/2024 · Pregão 90026/2024</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700;background:#f0f4fb">Órgão Solicitante</td>
+          <td style="padding:5px 8px;border:1px solid #ddd">${os.orgao}</td>
+          <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700;background:#f0f4fb">Fiscal</td>
+          <td style="padding:5px 8px;border:1px solid #ddd">${os.resp}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700;background:#f0f4fb">Fornecedor</td>
+          <td colspan="3" style="padding:5px 8px;border:1px solid #ddd">${FORNECEDOR.nome} · CNPJ ${FORNECEDOR.cnpj}</td>
+        </tr>
+        ${os.obs?`<tr>
+          <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700;background:#f0f4fb">Observações</td>
+          <td colspan="3" style="padding:5px 8px;border:1px solid #ddd">${os.obs}</td>
+        </tr>`:''}
+      </table>
+      <div style="font-size:13px;font-weight:700;color:var(--cp);margin-bottom:8px;border-bottom:1px solid var(--cp);padding-bottom:4px">
+        RELAÇÃO DE SERVIÇOS
+      </div>
+      ${maqs}
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:8px 10px;text-align:right;font-weight:700;background:var(--cp);color:#fff;font-size:14px">
+          VALOR TOTAL: ${brl2(os.total)}
+        </td></tr>
+      </table>
+      <div style="display:flex;gap:32px;margin-top:40px">
+        <div style="flex:1;text-align:center">
+          <div style="border-top:1px solid #333;padding-top:5px;font-size:10px">
+            Responsável pela Solicitação<br>${os.orgao}
+          </div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div style="border-top:1px solid #333;padding-top:5px;font-size:10px">
+            ${FORNECEDOR.nome}
+          </div>
+        </div>
+        <div style="flex:1;text-align:center">
+          <div style="border-top:1px solid #333;padding-top:5px;font-size:10px">
+            Fiscal do Contrato<br>Data: ___/___/______
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:9px;color:#aaa;text-align:center">
+        ARP 00394452000103-1-022984/2024-000002 · CMRJ UASG 160292
+      </div>
+    </div>`;
+  document.getElementById('modal-print').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════
+function exportCsv(){
+  const rows=[['Grupo','Item#','Seq','Descrição','Tipo','Vlr Unit.','Qtd ATA','Lim. Adesão','Saldo']];
+  ATA2.forEach(g=>g.itens.forEach(it=>{
+    rows.push([g.nome,it.num,it.seq,it.desc,it.tipo,it.vunit,it.qtd_ata,it.lim_adesao,saldo[it.num]]);
+  }));
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='MCP_Ata2_CariocaSolution.csv'; a.click();
+}
+
+// ═══════════════════════════════════════════════
+// INICIAR
+// ═══════════════════════════════════════════════
+renderMcp();
+atualizarChipSaldo();
+</script>
+</body>
+</html>

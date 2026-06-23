@@ -121,24 +121,76 @@
     ]
   },
   {
-    "id": "plano_ac_split_limpeza",
+    "id": "plano_ac_split_filtros",
     "tipo_codigo": "AC_SPLIT",
-    "nome": "Limpeza de filtros",
+    "nome": "Limpeza e higienização dos filtros",
     "intervalo": 1,
-    "unidade": "meses"
+    "unidade": "meses",
+    "_fonte": "ARP CMRJ Anexo III item 361"
   },
   {
-    "id": "plano_ac_split_gas",
+    "id": "plano_ac_split_desmont_parcial",
     "tipo_codigo": "AC_SPLIT",
-    "nome": "Verificação de gás",
-    "intervalo": 12,
+    "nome": "Desmontagem parcial do equipamento",
+    "intervalo": 3,
     "unidade": "meses",
-    "materiais": [
-      {
-        "descricao": "Gás R-410A (se necessário)",
-        "qtd": 0
-      }
-    ]
+    "_fonte": "ARP CMRJ Anexo III item 355"
+  },
+  {
+    "id": "plano_ac_split_pressao_gas",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Verificação da pressão do gás",
+    "intervalo": 3,
+    "unidade": "meses",
+    "_fonte": "ARP CMRJ Anexo III item 356"
+  },
+  {
+    "id": "plano_ac_split_revisao_eletrica",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Revisão elétrica (aperto e limpeza de terminais)",
+    "intervalo": 3,
+    "unidade": "meses",
+    "_fonte": "ARP CMRJ Anexo III item 357"
+  },
+  {
+    "id": "plano_ac_split_revisao_mecanica",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Revisão mecânica (aperto de conexões)",
+    "intervalo": 3,
+    "unidade": "meses",
+    "_fonte": "ARP CMRJ Anexo III item 358"
+  },
+  {
+    "id": "plano_ac_split_limp_condensadora",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Limpeza e higienização da condensadora",
+    "intervalo": 3,
+    "unidade": "meses",
+    "_fonte": "ARP CMRJ Anexo III item 359"
+  },
+  {
+    "id": "plano_ac_split_limp_evaporadora",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Limpeza e higienização da evaporadora",
+    "intervalo": 3,
+    "unidade": "meses",
+    "_fonte": "ARP CMRJ Anexo III item 360"
+  },
+  {
+    "id": "plano_ac_split_regulagem",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Regulagens e teste de funcionamento",
+    "intervalo": 3,
+    "unidade": "meses",
+    "_fonte": "ARP CMRJ Anexo III item 362"
+  },
+  {
+    "id": "plano_ac_split_montagem",
+    "tipo_codigo": "AC_SPLIT",
+    "nome": "Montagem do equipamento",
+    "intervalo": 3,
+    "unidade": "meses",
+    "_fonte": "ARP CMRJ Anexo III item 363"
   },
   {
     "id": "plano_ac_central_limpeza",
