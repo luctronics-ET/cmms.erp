@@ -422,6 +422,7 @@
       '<button id="ficha-x" style="background:none;border:none;color:var(--text3,#9fb3cc);font-size:22px;cursor:pointer">×</button></div>' +
       '<div style="font-size:12px;color:var(--text3,#9fb3cc);margin-bottom:14px">' + esc(r.ativo_id) + ' · ' + esc(loc) + '</div>' +
       derived +
+      '<div style="margin-bottom:14px"><button type="button" id="ficha-gerar-os" style="padding:8px 16px;border-radius:8px;border:1px solid var(--green,#22c55e);background:transparent;color:var(--green,#22c55e);font-weight:700;cursor:pointer">🧰 Gerar OS preventiva</button></div>' +
       '<form id="ficha-form">' +
       grp('Identificação', fld('Nome', 'nome', r.ativo_nome) + fld('Patrimônio', 'patrimonio', r.patrimonio) + fld('Fabricante', 'fabricante', r.fabricante) + fld('BTU', 'btu', r.btu, 'number')) +
       grp('Estado', fld('Funciona', 'funciona', r.funciona) + fld('Conservação', 'estado_conservacao', r.estado_conservacao) + fld('Criticidade (manual)', 'criticidade', r.criticidade)) +
@@ -438,6 +439,17 @@
     ov.querySelector('#ficha-cancel').onclick = closeFicha;
     ov.onclick = function (ev) { if (ev.target === ov) closeFicha(); };
     ov.querySelector('#ficha-form').onsubmit = function (ev) { ev.preventDefault(); saveFicha(ativoId, ev.target, container); };
+    ov.querySelector('#ficha-gerar-os').onclick = function () {
+      if (!confirm('Gerar OS preventiva para esta máquina?')) return;
+      fetch('/api/pmoc/refrigeracao/' + encodeURIComponent(ativoId) + '/os-preventiva', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        .then(function (res) { if (!res.ok) return res.json().then(function (j) { throw new Error(j.detail || ('HTTP ' + res.status)); }); return res.json(); })
+        .then(function (os) {
+          closeFicha();
+          alert('OS ' + (os.codigo || '') + ' criada (' + ((os.etapas || []).length) + ' etapas). Veja na aba Controle.');
+          if (window.manutOpenTab) window.manutOpenTab('os');
+        })
+        .catch(function (err) { alert('Falha: ' + err.message); });
+    };
   }
 
   var NUMS = { btu: 1, tensao_nominal: 1, corrente_nominal: 1, horas_dia: 1, dias_semana: 1 };

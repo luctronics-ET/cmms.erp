@@ -899,6 +899,60 @@ async def update_refrigeracao(ativo_id: str, body: dict):
     )
 
 
+@app.post("/api/pmoc/refrigeracao/{ativo_id}/os-preventiva", status_code=201)
+async def gerar_os_preventiva(ativo_id: str):
+    """Fecha o ciclo plano→OS: cria uma OS preventiva para a máquina, ligada ao
+    serviço preventivo do seu plano, com etapas (checklist) vindas da descrição."""
+    ativo = await db.fetch_one(
+        "SELECT id, nome, local_id FROM ativos WHERE id = ?", (ativo_id,)
+    )
+    if not ativo:
+        raise HTTPException(404, "Ativo não encontrado")
+    plano = await db.fetch_one(
+        "SELECT servico_id, obs FROM planos_manutencao "
+        "WHERE ativo_id = ? AND criado_por_modulo = 'refrigeracao' AND ativo = 1 LIMIT 1",
+        (ativo_id,),
+    )
+    if not plano:
+        raise HTTPException(400, "Sem plano preventivo para esta máquina")
+    servico = await db.fetch_one(
+        "SELECT id, nome, descricao FROM catalogo_servicos WHERE id = ?", (plano["servico_id"],)
+    )
+    crit = "media"
+    obs = plano["obs"] or ""
+    if "CRÍTICA" in obs:
+        crit = "critica"
+    elif "ALTA" in obs:
+        crit = "alta"
+    elif "BAIXA" in obs:
+        crit = "baixa"
+    local_id = ativo["local_id"] or (
+        await db.fetch_one("SELECT local_id FROM pmoc_refrigeracao WHERE ativo_id = ?", (ativo_id,)) or {}
+    ).get("local_id")
+    oid = str(uuid.uuid4())
+    codigo = await _gen_os_codigo()
+    titulo = f"Preventiva PMOC — {ativo['nome']}"
+    await db.execute(
+        """INSERT INTO ordens_servico
+           (id, codigo, titulo, descricao, tipo, prioridade, modulo_origem,
+            local_id, ativo_id, servico_id)
+           VALUES (?,?,?,?, 'preventiva', ?, 'refrigeracao', ?, ?, ?)""",
+        (oid, codigo, titulo, (servico or {}).get("nome"), crit, local_id, ativo_id, plano["servico_id"]),
+    )
+    await db.execute(
+        "INSERT INTO os_historico (os_id, status_de, status_para, obs) VALUES (?,?,?,?)",
+        (oid, None, "aberta", "OS preventiva gerada do plano (refrigeração)"),
+    )
+    # etapas = checklist do serviço (descrição com tarefas separadas por ' ; ')
+    desc = (servico or {}).get("descricao") or ""
+    tarefas = [t.strip() for t in desc.split(" ; ") if t.strip()]
+    for i, t in enumerate(tarefas):
+        await db.execute(
+            "INSERT INTO os_etapas (os_id, titulo, ordem) VALUES (?,?,?)", (oid, t, i)
+        )
+    return await get_os(oid)
+
+
 @app.get("/api/equipe/refrigeracao")
 async def equipe_refrigeracao():
     """Técnicos de refrigeração = pessoas lotadas na subárvore da Divisão de
