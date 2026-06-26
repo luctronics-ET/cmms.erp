@@ -837,6 +837,27 @@ async def list_ativos(categoria: str | None = None, ativo: int = 1):
     return await db.fetch_all("SELECT * FROM ativos WHERE ativo = ? ORDER BY categoria, nome", (ativo,))
 
 
+@app.get("/api/pmoc/refrigeracao")
+async def list_refrigeracao():
+    """Dados ricos de refrigeração: pmoc_refrigeracao + ativo + local/ambiente.
+    Consumido pela página Refrigeração do módulo Manutenção."""
+    return await db.fetch_all(
+        """
+        SELECT p.*,
+               a.nome  AS ativo_nome,  a.tipo AS ativo_tipo, a.pat AS ativo_pat,
+               a.loc   AS loc_txt,     a.ativo AS ativo_ativo,
+               l.nome  AS local_nome,  l.area AS local_area,
+               l.area_m2 AS local_area_m2, l.altura_m AS local_altura_m,
+               lp.nome AS predio_nome
+        FROM pmoc_refrigeracao p
+        JOIN ativos a       ON a.id = p.ativo_id
+        LEFT JOIN locais l  ON l.id = p.local_id
+        LEFT JOIN locais lp ON lp.id = l.parent_id
+        ORDER BY a.nome
+        """
+    )
+
+
 @app.get("/api/ativos/{aid}")
 async def get_ativo(aid: str):
     row = await db.fetch_one("SELECT * FROM ativos WHERE id = ?", (aid,))
