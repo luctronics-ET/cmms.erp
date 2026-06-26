@@ -250,6 +250,56 @@ async def update_servico(sid: str, body: ServicoIn, authorization: str | None = 
     return await get_servico(new_id)
 
 
+class ServicoMaterialIn(BaseModel):
+    material_id: Optional[int] = None   # estoque.id; ou nome_livre
+    nome_livre: Optional[str] = None
+    qtd: float
+    unidade: str
+    obrigatorio: int = 1
+    obs: Optional[str] = None
+
+
+async def _materiais_do_servico(sid: str):
+    return await _db().fetch_all(
+        """SELECT m.id, m.material_id, m.nome_livre, m.qtd, m.unidade, m.obrigatorio,
+                  e.codigo AS estoque_codigo, e.nome AS estoque_nome
+           FROM catalogo_servico_materiais m
+           LEFT JOIN estoque e ON e.id = m.material_id
+           WHERE m.servico_id = ?""",
+        (sid,),
+    )
+
+
+@router.get("/servicos/{sid}/materiais")
+async def list_servico_materiais(sid: str):
+    return await _materiais_do_servico(sid)
+
+
+@router.post("/servicos/{sid}/materiais", status_code=201)
+async def add_servico_material(sid: str, body: ServicoMaterialIn, authorization: str | None = Header(None)):
+    await _require_auth(authorization)
+    db = _db()
+    if not await db.fetch_one("SELECT id FROM catalogo_servicos WHERE id = ?", (sid,)):
+        raise HTTPException(404, "Serviço não encontrado")
+    if body.material_id is None and not body.nome_livre:
+        raise HTTPException(400, "Informe material_id ou nome_livre")
+    await db.execute(
+        "INSERT INTO catalogo_servico_materiais (servico_id, material_id, nome_livre, qtd, unidade, obrigatorio, obs) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (sid, body.material_id, body.nome_livre, body.qtd, body.unidade, body.obrigatorio, body.obs),
+    )
+    return await _materiais_do_servico(sid)
+
+
+@router.delete("/servicos/{sid}/materiais/{mid}")
+async def del_servico_material(sid: str, mid: int, authorization: str | None = Header(None)):
+    await _require_auth(authorization)
+    await _db().execute(
+        "DELETE FROM catalogo_servico_materiais WHERE id = ? AND servico_id = ?", (mid, sid)
+    )
+    return {"ok": True}
+
+
 @router.patch("/servicos/{sid}/arquivar")
 async def arquivar_servico(sid: str, authorization: str | None = Header(None)):
     await _require_auth(authorization)

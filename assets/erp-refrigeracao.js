@@ -228,7 +228,7 @@
     }
     function tbl(list) {
       var body = list.map(function (s) {
-        return '<tr><td class="text-mono">' + esc(s.codigo || '') + '</td><td>' + esc(s.nome) + '</td>' +
+        return '<tr data-svc="' + esc(s.id) + '" style="cursor:pointer" title="Editar materiais">' + '<td class="text-mono">' + esc(s.codigo || '') + '</td><td>' + esc(s.nome) + '</td>' +
           '<td>' + esc(_tiposDe(s)) + '</td><td>' + (s.tempo_estimado_min ? s.tempo_estimado_min + ' min' : '—') + '</td>' +
           '<td style="font-size:11px">' + matsTxt(s) + '</td></tr>';
       }).join('');
@@ -368,6 +368,9 @@
     });
     var nv = container.querySelector('[data-action="novo-servico"]');
     if (nv) nv.onclick = function () { openNovoServico(container); };
+    container.querySelectorAll('[data-svc]').forEach(function (el) {
+      el.addEventListener('click', function () { openMateriais(el.dataset.svc, container); });
+    });
     if (window.tblEnhance) setTimeout(window.tblEnhance, 30);
   }
 
@@ -522,6 +525,63 @@
         return res.json();
       }).then(function () { closeFicha(); render(container); })
       .catch(function (err) { alert('Falha: ' + err.message); });
+  }
+
+  // ── editor de materiais do serviço ───────────────────────────────────────
+  function _authHeaders() {
+    var t = localStorage.getItem('xcmasm_token');
+    var h = { 'Content-Type': 'application/json' };
+    if (t) h['Authorization'] = 'Bearer ' + t;
+    return h;
+  }
+  function openMateriais(svcId, container) {
+    var svc = state.servicos.find(function (s) { return String(s.id) === String(svcId); });
+    if (!svc) return;
+    closeFicha();
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 12px';
+    document.body.appendChild(ov); _fichaOverlay = ov;
+    ov.onclick = function (ev) { if (ev.target === ov) closeFicha(); };
+
+    function draw(mats) {
+      var estOpts = state.estoque.map(function (i) { return '<option value="' + i.id + '" data-un="' + esc(i.unidade || 'un') + '">' + esc(i.codigo) + ' — ' + esc(i.nome) + '</option>'; }).join('');
+      var rows = (mats || []).map(function (m) {
+        var nm = m.estoque_codigo ? (m.estoque_codigo + ' — ' + (m.estoque_nome || '')) : (m.nome_livre || '?');
+        return '<tr><td>' + esc(nm) + '</td><td>' + num(m.qtd) + ' ' + esc(m.unidade || '') + '</td>' +
+          '<td><button data-del="' + m.id + '" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px">🗑</button></td></tr>';
+      }).join('') || '<tr><td colspan="3" style="color:var(--text3,#9fb3cc);padding:10px">Sem materiais.</td></tr>';
+      ov.innerHTML = '<div style="background:var(--bg2,#0d1e33);border:1px solid var(--border,#1c3350);border-radius:14px;max-width:620px;width:100%;padding:20px;color:var(--text1,#e6eefc)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h2 style="margin:0;font-size:17px">🛠️ Materiais — ' + esc(svc.nome) + '</h2><button id="mt-x" style="background:none;border:none;color:var(--text3,#9fb3cc);font-size:22px;cursor:pointer">×</button></div>' +
+        '<div style="font-size:12px;color:var(--text3,#9fb3cc);margin-bottom:14px">' + esc(svc.codigo || '') + '</div>' +
+        '<table class="tbl"><thead><tr><th>Material</th><th>Qtd</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<div style="display:flex;gap:8px;align-items:flex-end;margin-top:14px;border-top:1px solid var(--border,#1c3350);padding-top:12px">' +
+        '<label style="flex:1;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text3,#9fb3cc)">Item do estoque<select id="mt-est" style="padding:6px 8px;border-radius:7px;border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text1,#e6eefc)">' + estOpts + '</select></label>' +
+        '<label style="width:90px;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text3,#9fb3cc)">Qtd<input id="mt-qtd" type="number" step="any" value="1" style="padding:6px 8px;border-radius:7px;border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text1,#e6eefc)"></label>' +
+        '<button id="mt-add" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc,#00b4d8);color:#001018;font-weight:700;cursor:pointer">+ Add</button></div>' +
+        '<div style="text-align:right;margin-top:12px"><button id="mt-close" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border,#1c3350);background:transparent;color:var(--text2,#9fb3cc);cursor:pointer">Fechar</button></div></div>';
+      ov.querySelector('#mt-x').onclick = function () { closeFicha(); render(container); };
+      ov.querySelector('#mt-close').onclick = function () { closeFicha(); render(container); };
+      ov.querySelectorAll('[data-del]').forEach(function (b) {
+        b.onclick = function () {
+          fetch('/api/catalogo/servicos/' + svcId + '/materiais/' + b.dataset.del, { method: 'DELETE', headers: _authHeaders() })
+            .then(function (r) { if (r.status === 401) throw new Error('Faça login (não-visitante).'); if (!r.ok) throw new Error('HTTP ' + r.status); return reload(); })
+            .catch(function (e) { alert('Falha: ' + e.message); });
+        };
+      });
+      ov.querySelector('#mt-add').onclick = function () {
+        var sel = ov.querySelector('#mt-est'); var opt = sel.options[sel.selectedIndex];
+        if (!opt) return;
+        var body = { material_id: Number(sel.value), qtd: Number(ov.querySelector('#mt-qtd').value) || 1, unidade: opt.dataset.un || 'un' };
+        fetch('/api/catalogo/servicos/' + svcId + '/materiais', { method: 'POST', headers: _authHeaders(), body: JSON.stringify(body) })
+          .then(function (r) { if (r.status === 401) throw new Error('Faça login (não-visitante).'); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (mats) { draw(mats); })
+          .catch(function (e) { alert('Falha: ' + e.message); });
+      };
+    }
+    function reload() {
+      return fetch('/api/catalogo/servicos/' + svcId + '/materiais').then(function (r) { return r.ok ? r.json() : []; }).then(draw);
+    }
+    draw(svc.materiais || []);
   }
 
   window.erpRefrig = { render: render };
