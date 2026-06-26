@@ -23,6 +23,7 @@
     { id: 'os',        icon: '🧰', label: 'Controle' },
     { id: 'planos',    icon: '⚙️', label: 'Planos' },
     { id: 'catalogo',  icon: '📖', label: 'Catálogo de Serviços' },
+    { id: 'refrigeracao', icon: '❄️', label: 'Refrigeração' },
   ];
 
   // ── persistência filtros ─────────────────────────────────────────────────
@@ -401,6 +402,11 @@
 
   // ── renderers de cada tab ────────────────────────────────────────────────
   const RENDERERS = {
+    refrigeracao(cont) {
+      if (window.erpRefrig) window.erpRefrig.render(cont);
+      else cont.replaceChildren(window.engine.utils.el('div',
+        { style: { padding: '24px', color: 'var(--ink-3)' } }, 'Módulo Refrigeração não carregado.'));
+    },
     dashboard(cont) {
       const { el, fmt } = window.engine.utils;
       const ativos = filteredAtivos();
@@ -2144,6 +2150,14 @@
   window.manutRefresh = function () {
     if (!initialized) return;
     fetchAll().finally(() => { markAllDirty(); renderActiveTab(); _showPendingBanner(); });
+  };
+
+  // Abre uma tab específica por código (ex.: link Ativos → Refrigeração).
+  // Se ainda não inicializou, o boot renderiza esta activeTab quando a página abrir.
+  window.manutOpenTab = function (id) {
+    state.activeTab = id;
+    const root = document.getElementById('manut-root');
+    if (initialized && root) render(root);
   };
 
   // 1) Se a página já está visível na carga (caso DOMContentLoaded em deeplink),

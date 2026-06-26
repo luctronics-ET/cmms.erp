@@ -567,6 +567,8 @@ table{border-collapse:collapse;width:100%}
 </style>
 <script src="assets/pmoc-engine.js" defer></script>
 <script src="assets/erp-manutencao-mocks.js" defer></script>
+<script src="assets/refrig-engine.js" defer></script>
+<script src="assets/erp-refrigeracao.js" defer></script>
 <script src="assets/erp-manutencao.js" defer></script>
 <script src="assets/tbl-enhance.js" defer></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
@@ -1667,8 +1669,8 @@ table{border-collapse:collapse;width:100%}
       </select>
     </div>
     <table class="tbl">
-      <thead><tr><th>Código</th><th>Denominação</th><th>Categoria</th><th>Fabricante/Modelo</th><th>Uso Atual</th><th>Última Manutenção</th><th>Status</th><th>Ações</th></tr></thead>
-      <tbody id="ativos-body"><tr><td colspan="8" class="tbl-empty">Nenhum ativo</td></tr></tbody>
+      <thead><tr><th>Código</th><th>Denominação</th><th>Categoria</th><th>Local</th><th>Fabricante/Modelo</th><th>Uso Atual</th><th>Última Manutenção</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="ativos-body"><tr><td colspan="9" class="tbl-empty">Nenhum ativo</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -5954,16 +5956,18 @@ function renderAtivos(){
     return true;
   });
   const tbody=document.getElementById('ativos-body');if(!tbody)return;
-  tbody.innerHTML=filtered.length===0?'<tr><td colspan="8" class="tbl-empty">Nenhum ativo</td></tr>':
+  tbody.innerHTML=filtered.length===0?'<tr><td colspan="9" class="tbl-empty">Nenhum ativo</td></tr>':
     filtered.map(a=>`<tr>
       <td class="text-mono text-xs font-bold">${a.cod}</td>
       <td style="font-weight:500">${a.nome}</td>
       <td class="text-xs">${categoriaLabel(a.categoria)}${a.tipo?` · ${ativoTipoLabel(a.tipo)}`:''}</td>
+      <td class="text-xs">${a.local||'—'}</td>
       <td class="text-xs">${a.fabricante||'-'} ${a.modelo||''}</td>
       <td class="text-mono text-xs">${a.horimetro||0} ${a.unidade_uso||'h'}</td>
       <td class="text-xs text-muted">${fmtDateSimple(a.ultimaManut)||'—'}</td>
       <td>${statusFrotaBadge(a.status)}</td>
       <td>
+        ${a.categoria==='climatizacao'?`<button class="btn btn-ghost btn-sm" title="Ver em Refrigeração" onclick="window.manutOpenTab&&window.manutOpenTab('refrigeracao');showPage('manutencao')">❄️</button>`:''}
         <button class="btn btn-ghost btn-sm" onclick="editAtivo('${a.id}')">✎</button>
         <button class="btn btn-primary btn-sm" onclick="novaOSManut('${a.id}')">OS</button>
         <select onchange="updateAtivoStatus('${a.id}',this.value)" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text1)">
@@ -8278,47 +8282,108 @@ function saveReservas(d){ DB.set('reservas',d); }
 function getOcorrencias(){ return DB.get('ocorrencias',[]); }
 function saveOcorrencias(d){ DB.set('ocorrencias',d); }
 
+/* ── Locais reais do core (mesmos da refrigeração): árvore predio→sala + equipamentos ── */
+let _locaisCache=null,_locAtivos=null,_locDrill=null;
+function _escL(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);}
+async function loadLocais(force){
+  if(_locaisCache && !force) return _locaisCache;
+  try{
+    const [loc,at]=await Promise.all([
+      fetch('/api/locais').then(r=>r.ok?r.json():[]),
+      fetch('/api/ativos?ativo=1').then(r=>r.ok?r.json():[])
+    ]);
+    _locaisCache=Array.isArray(loc)?loc:[]; _locAtivos=Array.isArray(at)?at:[];
+  }catch(_e){ _locaisCache=_locaisCache||[]; _locAtivos=_locAtivos||[]; }
+  return _locaisCache;
+}
+function _ativosByLocal(){ const m={}; (_locAtivos||[]).forEach(a=>{ if(a.local_id!=null)(m[a.local_id]=m[a.local_id]||[]).push(a); }); return m; }
+function findLocalNome(id){
+  const l=(_locaisCache||[]).find(x=>String(x.id)===String(id)); if(l)return l.nome;
+  const e=getEdificacoes().find(x=>x.id===id); return e?e.nome:String(id);
+}
+
 function renderEdificacoes(){
-  const data = getEdificacoes();
-  const grid = document.getElementById('pred-edif-grid'); if(!grid)return;
-  const stColor = {operacional:'ok',manutencao:'warn',interditado:'danger',inativo:'neutral'};
-  grid.innerHTML = data.map(e=>`<div class="status-card">
-    <div class="sc-header">
-      <div><div class="sc-name">${e.nome}</div><div class="sc-code">${e.sigla} · ${e.tipo}</div></div>
-      <span class="badge badge-${stColor[e.status]||'neutral'}">${e.status}</span>
+  const grid=document.getElementById('pred-edif-grid'); if(!grid)return;
+  if(_locDrill!=null){ return drillLocal(_locDrill); }
+  loadLocais().then(()=>{
+    const locais=_locaisCache||[];
+    if(!locais.length){ grid.innerHTML='<p class="tbl-empty">Sem locais (API indisponível).</p>'; return; }
+    const predios=locais.filter(l=>!l.parent_id);
+    const byParent={}; locais.forEach(l=>{ if(l.parent_id)(byParent[l.parent_id]=byParent[l.parent_id]||[]).push(l); });
+    const abl=_ativosByLocal();
+    const eqCount=pid=>{ let n=(abl[pid]||[]).length; (byParent[pid]||[]).forEach(s=>n+=(abl[s.id]||[]).length); return n; };
+    grid.innerHTML=predios.map(p=>{
+      const salas=byParent[p.id]||[]; const eq=eqCount(p.id);
+      return `<div class="status-card">
+        <div class="sc-header">
+          <div><div class="sc-name">${_escL(p.nome)}</div><div class="sc-code">${_escL(p.codigo||'')} · ${_escL(p.area||'')}</div></div>
+          <span class="badge badge-${p.ativo?'ok':'neutral'}">${p.ativo?'ativo':'inativo'}</span>
+        </div>
+        <div class="sc-meta">
+          <div class="sc-row"><span class="sc-row-label">Salas/ambientes</span><span class="sc-row-value">${salas.length}</span></div>
+          <div class="sc-row"><span class="sc-row-label">Equipamentos</span><span class="sc-row-value">${eq}</span></div>
+        </div>
+        <div class="sc-actions">
+          <button class="btn btn-secondary btn-sm" onclick="drillLocal(${p.id})">📂 Abrir</button>
+          <button class="btn btn-ghost btn-sm" onclick="novaOcorrencia('${p.id}')">⚠ Ocorrência</button>
+        </div>
+      </div>`;
+    }).join('');
+  });
+}
+
+function drillLocal(predioId){
+  _locDrill=predioId;
+  const grid=document.getElementById('pred-edif-grid'); if(!grid)return;
+  const locais=_locaisCache||[];
+  const p=locais.find(l=>String(l.id)===String(predioId)); if(!p){ _locDrill=null; return renderEdificacoes(); }
+  const salas=locais.filter(l=>String(l.parent_id)===String(predioId));
+  const abl=_ativosByLocal();
+  const eqRow=a=>`<tr>
+    <td class="text-mono text-xs font-bold">${_escL(a.id)}</td>
+    <td style="font-weight:500">${_escL(a.nome)}</td>
+    <td class="text-xs">${_escL(categoriaLabel(a.categoria))}</td>
+    <td>${a.categoria==='climatizacao'?`<button class="btn btn-ghost btn-sm" title="Ver em Refrigeração" onclick="window.manutOpenTab&&window.manutOpenTab('refrigeracao');showPage('manutencao')">❄️</button>`:''}
+        <button class="btn btn-primary btn-sm" onclick="novaOSManut('${a.id}');showPage('manutencao')">OS</button></td></tr>`;
+  function bloco(loc){
+    const eqs=abl[loc.id]||[];
+    return `<div class="card" style="margin-bottom:12px"><div class="card-header"><span class="card-title">${_escL(loc.nome)}</span>
+      <span class="badge badge-neutral">${eqs.length} equip.</span></div>
+      <div class="card-body" style="padding:0">${eqs.length?`<table class="tbl"><thead><tr><th>Código</th><th>Denominação</th><th>Categoria</th><th>Ações</th></tr></thead><tbody>${eqs.map(eqRow).join('')}</tbody></table>`:'<p class="tbl-empty" style="padding:12px">Sem equipamentos</p>'}</div></div>`;
+  }
+  const predEqs=(abl[p.id]||[]);
+  grid.innerHTML=`<div style="grid-column:1/-1">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <button class="btn btn-secondary btn-sm" onclick="_locDrill=null;renderEdificacoes()">← Voltar</button>
+      <h2 style="margin:0">${_escL(p.nome)}</h2>
+      <span class="badge badge-ok">${_escL(p.area||'')}</span>
     </div>
-    <div class="sc-meta">
-      ${e.capacidade?`<div class="sc-row"><span class="sc-row-label">Capacidade</span><span class="sc-row-value">${e.capacidade} pessoas</span></div>`:''}
-      <div class="sc-row"><span class="sc-row-label">Pavimentos</span><span class="sc-row-value">${e.andares}</span></div>
-      ${e.obs?`<div class="sc-row"><span class="sc-row-label">Obs.</span><span class="sc-row-value text-muted text-xs">${e.obs}</span></div>`:''}
-    </div>
-    <div class="sc-actions">
-      <button class="btn btn-secondary btn-sm" onclick="reservarLocal('${e.id}')">📅 Reservar</button>
-      <button class="btn btn-ghost btn-sm" onclick="novaOcorrencia('${e.id}')">⚠ Ocorrência</button>
-    </div>
-  </div>`).join('');
+    ${predEqs.length?bloco(p):''}
+    ${salas.map(bloco).join('')||'<p class="tbl-empty">Sem salas cadastradas</p>'}
+  </div>`;
+  if(window.tblEnhance) setTimeout(window.tblEnhance,30);
 }
 
 function reservarLocal(edId){
   if(soLeitura())return;
-  const ed = getEdificacoes().find(e=>e.id===edId); if(!ed)return;
-  const data = prompt(`Reservar "${ed.nome}"
+  const nome = findLocalNome(edId); if(!nome)return;
+  const data = prompt(`Reservar "${nome}"
 Data (AAAA-MM-DD):`); if(!data)return;
   const fin = prompt('Finalidade:'); if(!fin)return;
   const per = prompt('Período (ex: 08:00-12:00):'); if(!per)return;
-  const reserva = {id:'RSV-'+padZero(getReservas().length+1,3),edificacaoId:edId,edificacao:ed.nome,solicitante:SESSION.nome,data,finalidade:fin,periodo:per,status:'confirmado',criadoEm:new Date().toISOString()};
+  const reserva = {id:'RSV-'+padZero(getReservas().length+1,3),edificacaoId:edId,edificacao:nome,solicitante:SESSION.nome,data,finalidade:fin,periodo:per,status:'confirmado',criadoEm:new Date().toISOString()};
   const rs = getReservas(); rs.push(reserva); saveReservas(rs);
   renderReservas(); toast(`Reserva ${reserva.id} criada`);
 }
 
 function novaOcorrencia(edId){
   if(soLeitura())return;
-  const ed = getEdificacoes().find(e=>e.id===edId); if(!ed)return;
+  const nome = findLocalNome(edId); if(!nome)return;
   const tipos = ['Elétrica','Hidráulica','Estrutural','Segurança','Limpeza','Outro'];
-  const tipo = prompt(`Ocorrência em "${ed.nome}"
+  const tipo = prompt(`Ocorrência em "${nome}"
 Tipo (${tipos.join('/')}):`) || 'Outro';
   const desc = prompt('Descrição da ocorrência:'); if(!desc)return;
-  const oc = {id:'OC-'+padZero(getOcorrencias().length+1,4),edificacaoId:edId,edificacao:ed.nome,tipo,descricao:desc,reportadoPor:SESSION.nome,data:new Date().toISOString().split('T')[0],status:'aberta',criadoEm:new Date().toISOString()};
+  const oc = {id:'OC-'+padZero(getOcorrencias().length+1,4),edificacaoId:edId,edificacao:nome,tipo,descricao:desc,reportadoPor:SESSION.nome,data:new Date().toISOString().split('T')[0],status:'aberta',criadoEm:new Date().toISOString()};
   const ocs = getOcorrencias(); ocs.push(oc); saveOcorrencias(ocs);
   renderOcorrencias(); toast(`Ocorrência ${oc.id} registrada`);
 }
