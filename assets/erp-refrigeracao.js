@@ -90,7 +90,7 @@
       head = '<th>Local</th><th>Tipo</th><th>Tensão (V)</th><th>Corrente (A)</th><th>Potência (W)</th><th>Gás (est.)</th><th>Status</th>';
       body = rows.map(function (r) {
         var e = toEngine(r); var g = E.estimateGas(e);
-        return '<tr><td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
+        return '<tr data-ativo="' + esc(r.ativo_id) + '" style="cursor:pointer">' + '<td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
           '<td>' + num(r.tensao_nominal) + '</td><td>' + num(r.corrente_nominal) + '</td>' +
           '<td>' + num(E.estimatePower(e.btu)) + '</td><td>' + esc(g.gas) + ' · ' + g.carga + 'g</td>' +
           '<td>' + statusBadge(e.funciona) + '</td></tr>';
@@ -100,7 +100,7 @@
       body = rows.map(function (r) {
         var e = toEngine(r); var crit = E.autoCrit(e);
         var hsem = (r.horas_dia != null && r.dias_semana != null) ? num(r.horas_dia * r.dias_semana) : '—';
-        return '<tr><td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
+        return '<tr data-ativo="' + esc(r.ativo_id) + '" style="cursor:pointer">' + '<td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
           '<td>' + critBadge(crit) + '</td><td>' + num(r.horas_dia) + '</td><td>' + num(r.dias_semana) + '</td>' +
           '<td>' + hsem + '</td><td>' + (r.permanencia ? '❄️ 24h' : '—') + '</td>' +
           '<td>' + statusBadge(e.funciona) + '</td></tr>';
@@ -109,7 +109,7 @@
       head = '<th>Local</th><th>Tipo</th><th>BTU</th><th>Gás (est.)</th><th>Fabricante</th><th>Estado</th><th>Status</th><th>Criticidade</th>';
       body = rows.map(function (r) {
         var e = toEngine(r); var g = E.estimateGas(e); var crit = E.autoCrit(e);
-        return '<tr><td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
+        return '<tr data-ativo="' + esc(r.ativo_id) + '" style="cursor:pointer">' + '<td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
           '<td>' + num(e.btu) + '</td><td>' + esc(g.gas) + ' · ' + g.carga + 'g</td>' +
           '<td>' + esc(e.fabricante || '—') + '</td><td>' + esc(e.estado || '—') + '</td>' +
           '<td>' + statusBadge(e.funciona) + '</td><td>' + critBadge(crit) + '</td></tr>';
@@ -258,7 +258,96 @@
     container.querySelectorAll('[data-invview]').forEach(function (b) {
       b.onclick = function () { state.invView = b.dataset.invview; paint(container); };
     });
+    container.querySelectorAll('tr[data-ativo]').forEach(function (tr) {
+      tr.onclick = function () { openFicha(tr.dataset.ativo, container); };
+    });
     if (window.tblEnhance) setTimeout(window.tblEnhance, 30);
+  }
+
+  // ── ficha do ativo (detalhe + edição) ───────────────────────────────────
+  var SELECTS = {
+    funciona: ['OK', 'NOK'],
+    estado_conservacao: ['NOVA', 'SEMI', 'VELHA'],
+    criticidade: ['CRÍTICA', 'ALTA', 'MÉDIA', 'BAIXA'],
+  };
+  function fld(label, name, val, type) {
+    var v = val == null ? '' : val;
+    var input;
+    if (SELECTS[name]) {
+      input = '<select name="' + name + '" style="width:100%;padding:6px 8px;border-radius:7px;border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text1,#e6eefc)">' +
+        '<option value=""></option>' + SELECTS[name].map(function (o) { return '<option' + (String(v) === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>';
+    } else if (type === 'check') {
+      input = '<input type="checkbox" name="' + name + '"' + (v ? ' checked' : '') + ' style="width:18px;height:18px">';
+    } else {
+      input = '<input name="' + name + '" type="' + (type || 'text') + '" value="' + esc(v) + '" style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:7px;border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text1,#e6eefc)">';
+    }
+    return '<label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text3,#9fb3cc)">' + esc(label) + input + '</label>';
+  }
+  function grp(title, html) {
+    return '<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--acc,#00b4d8);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;border-bottom:1px solid var(--border,#1c3350);padding-bottom:4px">' + esc(title) + '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' + html + '</div></div>';
+  }
+
+  var _fichaOverlay = null;
+  function closeFicha() { if (_fichaOverlay) { _fichaOverlay.remove(); _fichaOverlay = null; } }
+
+  function openFicha(ativoId, container) {
+    var E = window.RefrigEngine;
+    var r = state.rows.find(function (x) { return String(x.ativo_id) === String(ativoId); });
+    if (!r) return;
+    var e = toEngine(r); var g = E.estimateGas(e); var crit = E.autoCrit(e);
+    var loc = (r.predio_nome ? r.predio_nome + ' / ' : '') + (r.local_nome || r.loc_txt || '—');
+    closeFicha();
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px';
+    var derived = '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2,#9fb3cc);background:var(--bg3,#0a1828);border-radius:8px;padding:10px 12px;margin-bottom:14px">' +
+      '<span>Gás (est.): <b style="color:var(--text1,#e6eefc)">' + esc(g.gas) + ' · ' + g.carga + 'g</b></span>' +
+      '<span>Potência: <b style="color:var(--text1,#e6eefc)">' + E.estimatePower(e.btu) + ' W</b></span>' +
+      '<span>Criticidade (auto): ' + critBadge(crit) + '</span>' +
+      '<span>PMOC: <b style="color:var(--text1,#e6eefc)">' + esc((E.PMOC_INT[crit] || {}).desc || '') + '</b></span></div>';
+    ov.innerHTML = '<div style="background:var(--bg2,#0d1e33);border:1px solid var(--border,#1c3350);border-radius:14px;max-width:760px;width:100%;padding:20px;color:var(--text1,#e6eefc)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+      '<h2 style="margin:0;font-size:18px">❄️ ' + esc(r.ativo_nome || r.ativo_id) + '</h2>' +
+      '<button id="ficha-x" style="background:none;border:none;color:var(--text3,#9fb3cc);font-size:22px;cursor:pointer">×</button></div>' +
+      '<div style="font-size:12px;color:var(--text3,#9fb3cc);margin-bottom:14px">' + esc(r.ativo_id) + ' · ' + esc(loc) + '</div>' +
+      derived +
+      '<form id="ficha-form">' +
+      grp('Identificação', fld('Nome', 'nome', r.ativo_nome) + fld('Patrimônio', 'patrimonio', r.patrimonio) + fld('Fabricante', 'fabricante', r.fabricante) + fld('BTU', 'btu', r.btu, 'number')) +
+      grp('Estado', fld('Funciona', 'funciona', r.funciona) + fld('Conservação', 'estado_conservacao', r.estado_conservacao) + fld('Criticidade (manual)', 'criticidade', r.criticidade)) +
+      grp('Elétrico', fld('Tensão (V)', 'tensao_nominal', r.tensao_nominal, 'number') + fld('Corrente (A)', 'corrente_nominal', r.corrente_nominal, 'number') + fld('Quadro', 'quadro', r.quadro) + fld('Disjuntor', 'disjuntor', r.disjuntor) + fld('Cabo', 'cabo', r.cabo)) +
+      grp('Uso / PMOC', fld('h/dia', 'horas_dia', r.horas_dia, 'number') + fld('dias/semana', 'dias_semana', r.dias_semana, 'number') + fld('Permanente 24h', 'permanencia', r.permanencia, 'check') + fld('Instalação', 'data_instalacao', (r.data_instalacao || '').slice(0, 10), 'date') + fld('Última manutenção', 'ultima_manutencao', (r.ultima_manutencao || '').slice(0, 10), 'date')) +
+      grp('Observações', '<label style="grid-column:1/-1;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text3,#9fb3cc)">Obs<textarea name="obs" rows="2" style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:7px;border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text1,#e6eefc)">' + esc(r.obs || '') + '</textarea></label>') +
+      '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">' +
+      '<button type="button" id="ficha-cancel" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border,#1c3350);background:transparent;color:var(--text2,#9fb3cc);cursor:pointer">Cancelar</button>' +
+      '<button type="submit" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc,#00b4d8);color:#001018;font-weight:700;cursor:pointer">Salvar</button></div>' +
+      '</form></div>';
+    document.body.appendChild(ov);
+    _fichaOverlay = ov;
+    ov.querySelector('#ficha-x').onclick = closeFicha;
+    ov.querySelector('#ficha-cancel').onclick = closeFicha;
+    ov.onclick = function (ev) { if (ev.target === ov) closeFicha(); };
+    ov.querySelector('#ficha-form').onsubmit = function (ev) { ev.preventDefault(); saveFicha(ativoId, ev.target, container); };
+  }
+
+  var NUMS = { btu: 1, tensao_nominal: 1, corrente_nominal: 1, horas_dia: 1, dias_semana: 1 };
+  function saveFicha(ativoId, form, container) {
+    var fd = new FormData(form);
+    var body = {};
+    fd.forEach(function (v, k) { body[k] = NUMS[k] ? (v === '' ? null : Number(v)) : v; });
+    body.permanencia = form.querySelector('[name=permanencia]').checked ? 1 : 0;
+    // ativo nome vai pra ativos; patrimonio existe nos dois — manda nos dois
+    if (body.patrimonio != null) body.pat = body.patrimonio;
+    fetch('/api/pmoc/refrigeracao/' + encodeURIComponent(ativoId), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).then(function () {
+      closeFicha();
+      render(container); // recarrega dados frescos do backend
+    }).catch(function (err) {
+      alert('Falha ao salvar: ' + err.message);
+    });
   }
 
   function render(container) {

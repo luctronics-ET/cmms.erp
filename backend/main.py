@@ -858,6 +858,47 @@ async def list_refrigeracao():
     )
 
 
+_PMOC_EDIT = {
+    "funciona", "estado_conservacao", "est_idade", "obs", "permanencia", "criticidade",
+    "critico", "horas_dia", "dias_semana", "tensao_nominal", "tensao_medida",
+    "corrente_nominal", "corrente_medida", "potencia_kw", "quadro", "disjuntor", "cabo",
+    "gas_tipo", "carga_g", "pressao_padrao", "pressao_medida", "temp_evaporadora",
+    "temp_evaporadora_m", "temp_centro", "temp_longe", "patrimonio", "data_instalacao",
+    "ultima_manutencao", "fabricante", "btu", "funcao", "automacao", "prioridade",
+    "risco", "estado_operacional",
+}
+_ATIVO_EDIT = {"nome", "obs", "pat", "loc", "local_id"}
+
+
+@app.put("/api/pmoc/refrigeracao/{ativo_id}")
+async def update_refrigeracao(ativo_id: str, body: dict):
+    """Edita a ficha de uma máquina de refrigeração: campos de pmoc_refrigeracao
+    e/ou ativos. Whitelist por segurança."""
+    row = await db.fetch_one("SELECT ativo_id FROM pmoc_refrigeracao WHERE ativo_id = ?", (ativo_id,))
+    if not row:
+        raise HTTPException(404, "Refrigeração não encontrada")
+    pmoc = [(k, v) for k, v in body.items() if k in _PMOC_EDIT]
+    if pmoc:
+        sets = ", ".join(f"{k} = ?" for k, _ in pmoc)
+        await db.execute(
+            f"UPDATE pmoc_refrigeracao SET {sets}, atualizado_em = CURRENT_TIMESTAMP WHERE ativo_id = ?",
+            [v for _, v in pmoc] + [ativo_id],
+        )
+    ativo = [(k, v) for k, v in body.items() if k in _ATIVO_EDIT]
+    if ativo:
+        sets = ", ".join(f"{k} = ?" for k, _ in ativo)
+        await db.execute(
+            f"UPDATE ativos SET {sets} WHERE id = ?",
+            [v for _, v in ativo] + [ativo_id],
+        )
+    return await db.fetch_one(
+        """SELECT p.*, a.nome AS ativo_nome, a.loc AS loc_txt
+           FROM pmoc_refrigeracao p JOIN ativos a ON a.id = p.ativo_id
+           WHERE p.ativo_id = ?""",
+        (ativo_id,),
+    )
+
+
 @app.get("/api/equipe/refrigeracao")
 async def equipe_refrigeracao():
     """Técnicos de refrigeração = pessoas lotadas na subárvore da Divisão de
