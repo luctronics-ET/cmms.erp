@@ -15,7 +15,7 @@
   var TEAM_DEFAULT = { equipes: 1, diasUteis: [1, 2, 3, 4, 5], turnos: [{ horas: 8 }] };
   var TIPO_REV = { AC_SPLIT: 'SPLIT', AC_PISO_TETO: 'PISO/TETO', AC_JANELA: 'JANELA', AC_SELF: 'SELF CONTAINED' };
 
-  var state = { rows: [], equipe: [], servicos: [], sub: 'inventario', loaded: false };
+  var state = { rows: [], equipe: [], servicos: [], estoque: [], sub: 'inventario', loaded: false };
 
   function toEngine(r) {
     return {
@@ -234,12 +234,106 @@
       '<h3 style="margin:18px 0 8px;font-size:14px">Corretivas e peças (ARP)</h3>' + (corr.length ? tbl(corr) : '<p style="font-size:12px;color:var(--text3,#9fb3cc)">Nenhuma corretiva.</p>');
   }
 
+  // ── cronograma de mobilização (porta de pmocCronograma do html) ──────────
+  var DOW = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  function fmtD(d) { return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear(); }
+  function renderCronograma() {
+    var E = window.RefrigEngine;
+    var ordem = ['CRÍTICA', 'ALTA', 'MÉDIA', 'BAIXA'];
+    // fila: 1ª preventiva de quem ainda não tem histórico (ultima_manutencao vazia)
+    var fila = state.rows.filter(function (r) { return !r.ultima_manutencao; }).map(function (r) {
+      var e = toEngine(r);
+      return { r: r, crit: E.autoCrit(e), min: E.estTempoServico(e, 'PREVENTIVA') };
+    }).sort(function (a, b) {
+      var d = ordem.indexOf(a.crit) - ordem.indexOf(b.crit);
+      return d !== 0 ? d : b.min - a.min;
+    });
+    if (!fila.length) {
+      return '<div style="padding:24px;color:var(--text2,#9fb3cc)"><b>Nenhuma mobilização inicial pendente.</b><br>Todos os equipamentos já têm registro de manutenção; o cronograma recorrente segue as frequências do plano.</div>';
+    }
+    var cap = E.capacidade(TEAM_DEFAULT);
+    var capDiaMin = cap.hDiaTotal * 60 || 240;
+    var dias = [], cursor = new Date(); cursor.setHours(0, 0, 0, 0);
+    var dia = null, restante = 0, guard = 0;
+    function novoDia() {
+      while (TEAM_DEFAULT.diasUteis.indexOf(cursor.getDay()) < 0) cursor.setDate(cursor.getDate() + 1);
+      dia = { data: new Date(cursor), os: [], usado: 0 }; dias.push(dia);
+      restante = capDiaMin; cursor.setDate(cursor.getDate() + 1);
+    }
+    novoDia();
+    fila.forEach(function (job) {
+      if (++guard > 5000) return;
+      if (job.min > restante && dia.os.length > 0) novoDia();
+      dia.os.push(job); dia.usado += job.min; restante -= job.min;
+      if (restante <= 0) novoDia();
+    });
+    if (dias.length && !dias[dias.length - 1].os.length) dias.pop();
+    var totalMin = fila.reduce(function (s, j) { return s + j.min; }, 0);
+    var kpis = kpiRow([
+      { label: 'OS de mobilização', value: fila.length, color: '#E52207', sub: '1ª preventiva por equip.' },
+      { label: 'Esforço total', value: (totalMin / 60).toFixed(0) + ' h', color: '#f59e0b' },
+      { label: 'Dias úteis', value: dias.length, sub: cap.hDiaTotal + 'h/dia' },
+      { label: 'Conclusão', value: dias.length ? fmtD(dias[dias.length - 1].data) : '—', color: '#22c55e' },
+    ]);
+    var agenda = dias.map(function (d) {
+      var pct = Math.min(d.usado / capDiaMin * 100, 100);
+      var col = d.usado > capDiaMin ? '#ef4444' : '#22c55e';
+      var rows = d.os.map(function (job) {
+        var cc = E.CRIT_COLOR[job.crit] || '#64748b';
+        var loc = (job.r.predio_nome ? job.r.predio_nome + ' / ' : '') + (job.r.local_nome || '—');
+        return '<div data-ativo="' + esc(job.r.ativo_id) + '" style="cursor:pointer;display:flex;gap:10px;align-items:center;padding:5px 8px;border-radius:6px" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'\'">' +
+          '<span style="width:8px;height:8px;border-radius:50%;background:' + cc + ';flex:none"></span>' +
+          '<span style="flex:1;font-size:12px">' + esc(loc) + '</span>' +
+          '<span style="font-size:11px;color:var(--text3,#9fb3cc)">' + esc(TIPO_REV[job.r.ativo_tipo] || '') + '</span>' +
+          '<span style="font-size:11px;color:var(--text2,#9fb3cc);width:60px;text-align:right">' + job.min + ' min</span></div>';
+      }).join('');
+      return '<div style="background:var(--bg2,#0d1e33);border:1px solid var(--border,#1c3350);border-radius:10px;padding:12px;margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<div style="font-weight:700"><span style="color:var(--acc,#00b4d8);margin-right:6px">' + DOW[d.data.getDay()] + '</span>' + fmtD(d.data) + '</div>' +
+        '<div style="font-size:12px"><span style="color:' + col + '">' + (d.usado / 60).toFixed(1) + 'h</span> / ' + (capDiaMin / 60).toFixed(0) + 'h · ' + d.os.length + ' OS</div></div>' +
+        '<div style="height:6px;background:var(--bg3,#0a1828);border-radius:4px;overflow:hidden;margin-bottom:8px"><div style="height:100%;width:' + pct + '%;background:' + col + '"></div></div>' +
+        rows + '</div>';
+    }).join('');
+    return kpis +
+      '<p style="font-size:11px;color:var(--text3,#9fb3cc);margin:10px 0">Mobilização inicial: sem histórico, cada máquina recebe 1ª preventiva completa, distribuída por dia útil respeitando capacidade (' + cap.hDiaTotal + 'h/dia) e priorizada por criticidade. Registre manutenções p/ o plano calcular vencimentos recorrentes.</p>' +
+      agenda;
+  }
+
+  // ── estoque de refrigeração (consumíveis/sobressalentes/ferramentas) ─────
+  function renderEstoque() {
+    var itens = state.estoque;
+    var baixo = itens.filter(function (i) { return (i.qtd_atual || 0) < (i.qtd_minima || 0); });
+    var kpis = kpiRow([
+      { label: 'Itens', value: itens.length },
+      { label: 'Abaixo do mínimo', value: baixo.length, color: baixo.length ? '#ef4444' : '#22c55e' },
+      { label: 'Consumíveis', value: itens.filter(function (i) { return i.categoria === 'consumivel'; }).length },
+      { label: 'Ferramentas', value: itens.filter(function (i) { return i.categoria === 'ferramenta'; }).length },
+    ]);
+    var CATS = [['consumivel', 'Consumíveis'], ['sobressalente', 'Sobressalentes (estoque mínimo)'], ['ferramenta', 'Ferramentas']];
+    var html = CATS.map(function (ct) {
+      var list = itens.filter(function (i) { return i.categoria === ct[0]; });
+      if (!list.length) return '';
+      var body = list.map(function (i) {
+        var low = (i.qtd_atual || 0) < (i.qtd_minima || 0);
+        var badge = low ? '<span style="display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;color:#fff;background:#ef4444">Baixo</span>' : '<span style="color:#22c55e">OK</span>';
+        return '<tr><td class="text-mono">' + esc(i.codigo || '') + '</td><td>' + esc(i.nome) + '</td>' +
+          '<td>' + num(i.qtd_atual) + ' ' + esc(i.unidade || '') + '</td><td>' + num(i.qtd_minima) + '</td>' +
+          '<td>' + badge + '</td></tr>';
+      }).join('');
+      return '<h3 style="margin:18px 0 8px;font-size:14px">' + esc(ct[1]) + ' (' + list.length + ')</h3>' +
+        '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Código</th><th>Item</th><th>Qtd atual</th><th>Mínimo</th><th>Status</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+    }).join('');
+    return kpis + (html || '<p style="padding:24px;color:var(--text3,#9fb3cc)">Sem itens de estoque de refrigeração.</p>');
+  }
+
   var SUBS = [
     { id: 'inventario', label: '📋 Inventário', fn: renderInventario },
     { id: 'alertas', label: '⚠️ Alertas', fn: renderAlertas },
     { id: 'termico', label: '🌡️ Térmico', fn: renderTermico },
     { id: 'pmoc', label: '📅 PMOC', fn: renderPMOC },
+    { id: 'cronograma', label: '🗓️ Cronograma', fn: renderCronograma },
     { id: 'servicos', label: '🛠️ Serviços', fn: renderServicos },
+    { id: 'estoque', label: '📦 Estoque', fn: renderEstoque },
   ];
 
   function paint(container) {
@@ -258,8 +352,8 @@
     container.querySelectorAll('[data-invview]').forEach(function (b) {
       b.onclick = function () { state.invView = b.dataset.invview; paint(container); };
     });
-    container.querySelectorAll('tr[data-ativo]').forEach(function (tr) {
-      tr.onclick = function () { openFicha(tr.dataset.ativo, container); };
+    container.querySelectorAll('[data-ativo]').forEach(function (el) {
+      el.addEventListener('click', function () { openFicha(el.dataset.ativo, container); });
     });
     if (window.tblEnhance) setTimeout(window.tblEnhance, 30);
   }
@@ -357,9 +451,11 @@
       fetch('/api/pmoc/refrigeracao').then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
       fetch('/api/equipe/refrigeracao').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
       fetch('/api/catalogo/servicos').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
+      fetch('/api/estoque').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
     ]).then(function (res) {
       state.rows = res[0] || []; state.equipe = res[1] || [];
       state.servicos = (res[2] || []).filter(function (s) { return (_aplic(s).categorias || []).indexOf('climatizacao') >= 0; });
+      state.estoque = (res[3] || []).filter(function (i) { return i.obs === 'refrigeracao'; });
       state.loaded = true; paint(container);
     }).catch(function (e) {
       container.innerHTML = '<div style="padding:24px;color:#ef4444">Falha ao carregar /api/pmoc/refrigeracao: ' + esc(e.message) + '</div>';
