@@ -57,6 +57,14 @@
   }
 
   // ── sub-renders ────────────────────────────────────────────────────────
+  var INV_VIEWS = [
+    { id: 'base', label: 'Base' },
+    { id: 'eletrico', label: 'Elétrico' },
+    { id: 'uso', label: 'Uso / PMOC' },
+  ];
+  function _loc(r) { return (r.predio_nome ? r.predio_nome + ' / ' : '') + (r.local_nome || r.loc_txt || '—'); }
+  function num(v) { return (v == null ? '—' : Number(v).toLocaleString('pt-BR')); }
+
   function renderInventario() {
     var E = window.RefrigEngine;
     var rows = state.rows;
@@ -69,23 +77,46 @@
       { label: 'Inoperantes', value: nNok, color: '#ef4444' },
       { label: 'Críticas', value: critCount['CRÍTICA'] || 0, color: '#E52207' },
     ]);
-    var body = rows.map(function (r) {
-      var e = toEngine(r); var g = E.estimateGas(e); var crit = E.autoCrit(e);
-      var loc = (r.predio_nome ? r.predio_nome + ' / ' : '') + (r.local_nome || r.loc_txt || '—');
-      return '<tr>' +
-        '<td>' + esc(loc) + '</td>' +
-        '<td>' + esc(e.tipo) + '</td>' +
-        '<td>' + (e.btu || 0).toLocaleString('pt-BR') + '</td>' +
-        '<td>' + esc(g.gas) + ' · ' + g.carga + 'g</td>' +
-        '<td>' + esc(e.fabricante || '—') + '</td>' +
-        '<td>' + esc(e.estado || '—') + '</td>' +
-        '<td>' + statusBadge(e.funciona) + '</td>' +
-        '<td>' + critBadge(crit) + '</td>' +
-        '</tr>';
-    }).join('');
-    return kpis + '<div style="overflow-x:auto"><table class="tbl"><thead><tr>' +
-      '<th>Local</th><th>Tipo</th><th>BTU</th><th>Gás (est.)</th><th>Fabricante</th><th>Estado</th><th>Status</th><th>Criticidade</th>' +
-      '</tr></thead><tbody>' + body + '</tbody></table></div>';
+    var view = state.invView || 'base';
+    var toggle = '<div style="display:flex;gap:6px;margin-bottom:12px">' + INV_VIEWS.map(function (v) {
+      var on = v.id === view;
+      return '<button data-invview="' + v.id + '" style="padding:5px 12px;border-radius:8px;border:1px solid ' +
+        (on ? 'var(--acc,#00b4d8)' : 'var(--border,#1c3350)') + ';background:' + (on ? 'rgba(0,180,216,.12)' : 'transparent') +
+        ';color:' + (on ? 'var(--acc,#00b4d8)' : 'var(--text2,#9fb3cc)') + ';cursor:pointer;font-size:12px">' + v.label + '</button>';
+    }).join('') + '</div>';
+
+    var head, body;
+    if (view === 'eletrico') {
+      head = '<th>Local</th><th>Tipo</th><th>Tensão (V)</th><th>Corrente (A)</th><th>Potência (W)</th><th>Gás (est.)</th><th>Status</th>';
+      body = rows.map(function (r) {
+        var e = toEngine(r); var g = E.estimateGas(e);
+        return '<tr><td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
+          '<td>' + num(r.tensao_nominal) + '</td><td>' + num(r.corrente_nominal) + '</td>' +
+          '<td>' + num(E.estimatePower(e.btu)) + '</td><td>' + esc(g.gas) + ' · ' + g.carga + 'g</td>' +
+          '<td>' + statusBadge(e.funciona) + '</td></tr>';
+      }).join('');
+    } else if (view === 'uso') {
+      head = '<th>Local</th><th>Tipo</th><th>Criticidade</th><th>h/dia</th><th>d/sem</th><th>h/sem</th><th>Permanente</th><th>Status</th>';
+      body = rows.map(function (r) {
+        var e = toEngine(r); var crit = E.autoCrit(e);
+        var hsem = (r.horas_dia != null && r.dias_semana != null) ? num(r.horas_dia * r.dias_semana) : '—';
+        return '<tr><td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
+          '<td>' + critBadge(crit) + '</td><td>' + num(r.horas_dia) + '</td><td>' + num(r.dias_semana) + '</td>' +
+          '<td>' + hsem + '</td><td>' + (r.permanencia ? '❄️ 24h' : '—') + '</td>' +
+          '<td>' + statusBadge(e.funciona) + '</td></tr>';
+      }).join('');
+    } else {
+      head = '<th>Local</th><th>Tipo</th><th>BTU</th><th>Gás (est.)</th><th>Fabricante</th><th>Estado</th><th>Status</th><th>Criticidade</th>';
+      body = rows.map(function (r) {
+        var e = toEngine(r); var g = E.estimateGas(e); var crit = E.autoCrit(e);
+        return '<tr><td>' + esc(_loc(r)) + '</td><td>' + esc(e.tipo) + '</td>' +
+          '<td>' + num(e.btu) + '</td><td>' + esc(g.gas) + ' · ' + g.carga + 'g</td>' +
+          '<td>' + esc(e.fabricante || '—') + '</td><td>' + esc(e.estado || '—') + '</td>' +
+          '<td>' + statusBadge(e.funciona) + '</td><td>' + critBadge(crit) + '</td></tr>';
+      }).join('');
+    }
+    return kpis + toggle + '<div style="overflow-x:auto"><table class="tbl"><thead><tr>' +
+      head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
   }
 
   function renderAlertas() {
@@ -223,6 +254,9 @@
       '<div id="refrig-sub-body">' + cur.fn() + '</div>';
     container.querySelectorAll('[data-sub]').forEach(function (b) {
       b.onclick = function () { state.sub = b.dataset.sub; paint(container); };
+    });
+    container.querySelectorAll('[data-invview]').forEach(function (b) {
+      b.onclick = function () { state.invView = b.dataset.invview; paint(container); };
     });
     if (window.tblEnhance) setTimeout(window.tblEnhance, 30);
   }
