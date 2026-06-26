@@ -858,6 +858,28 @@ async def list_refrigeracao():
     )
 
 
+@app.get("/api/equipe/refrigeracao")
+async def equipe_refrigeracao():
+    """Técnicos de refrigeração = pessoas lotadas na subárvore da Divisão de
+    Manutenção Especializada (CMASM-13). G2 do design: equipe via estrutura/cargos."""
+    return await db.fetch_all(
+        """
+        WITH RECURSIVE sub(id) AS (
+            SELECT id FROM estrutura WHERE id = 'CMASM-13'
+            UNION ALL
+            SELECT e.id FROM estrutura e JOIN sub ON e.pai = sub.id
+        )
+        SELECT u.id, u.nome, u.posto, e.nome AS setor, e.cargo
+        FROM cargos cg
+        JOIN sub        ON sub.id = cg.unidade_id
+        JOIN usuarios u ON u.id   = cg.usuario_id
+        JOIN estrutura e ON e.id  = cg.unidade_id
+        WHERE u.ativo = 1
+        ORDER BY u.nome
+        """
+    )
+
+
 @app.get("/api/ativos/{aid}")
 async def get_ativo(aid: str):
     row = await db.fetch_one("SELECT * FROM ativos WHERE id = ?", (aid,))

@@ -15,7 +15,7 @@
   var TEAM_DEFAULT = { equipes: 1, diasUteis: [1, 2, 3, 4, 5], turnos: [{ horas: 8 }] };
   var TIPO_REV = { AC_SPLIT: 'SPLIT', AC_PISO_TETO: 'PISO/TETO', AC_JANELA: 'JANELA', AC_SELF: 'SELF CONTAINED' };
 
-  var state = { rows: [], sub: 'inventario', loaded: false };
+  var state = { rows: [], equipe: [], sub: 'inventario', loaded: false };
 
   function toEngine(r) {
     return {
@@ -162,9 +162,17 @@
     var body = order.filter(function (c) { return critCount[c]; }).map(function (c) {
       return '<tr><td>' + critBadge(c) + '</td><td>' + critCount[c] + '</td><td>' + esc(E.PMOC_INT[c].desc) + '</td></tr>';
     }).join('');
+    var eqBody = (state.equipe || []).map(function (t) {
+      return '<tr><td>' + esc(t.nome) + '</td><td>' + esc(t.posto || '—') + '</td><td>' + esc(t.setor || '—') + '</td></tr>';
+    }).join('');
+    var eqBlock = '<h3 style="margin:18px 0 8px;font-size:14px">Equipe técnica · Divisão de Manutenção Especializada (CMASM-13)</h3>' +
+      (eqBody
+        ? '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Nome</th><th>Posto</th><th>Seção</th></tr></thead><tbody>' + eqBody + '</tbody></table></div>'
+        : '<p style="font-size:12px;color:var(--text3,#9fb3cc)">Nenhum técnico lotado na subárvore CMASM-13.</p>');
     return kpis + '<h3 style="margin:18px 0 8px;font-size:14px">Demanda por criticidade</h3>' +
       '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Criticidade</th><th>Máquinas</th><th>Intervalos PMOC</th></tr></thead><tbody>' + body + '</tbody></table></div>' +
-      '<p style="font-size:11px;color:var(--text3,#9fb3cc);margin-top:10px">Capacidade usa equipe-padrão (1 equipe, 8h, seg-sex). Configurável quando a aba Equipe (estrutura/cargos) for implementada.</p>';
+      eqBlock +
+      '<p style="font-size:11px;color:var(--text3,#9fb3cc);margin-top:10px">' + (state.equipe || []).length + ' técnico(s) reais (estrutura/cargos). Capacidade usa equipe-padrão (1 equipe, 8h, seg-sex) — config de turnos é o próximo passo.</p>';
   }
 
   var SUBS = [
@@ -193,10 +201,11 @@
   function render(container) {
     if (!window.RefrigEngine) { container.innerHTML = '<div style="padding:24px;color:#ef4444">RefrigEngine não carregado.</div>'; return; }
     container.innerHTML = '<div style="padding:24px;color:var(--text3,#9fb3cc)">Carregando refrigeração…</div>';
-    fetch('/api/pmoc/refrigeracao').then(function (r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
-    }).then(function (data) {
-      state.rows = data || []; state.loaded = true; paint(container);
+    Promise.all([
+      fetch('/api/pmoc/refrigeracao').then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
+      fetch('/api/equipe/refrigeracao').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
+    ]).then(function (res) {
+      state.rows = res[0] || []; state.equipe = res[1] || []; state.loaded = true; paint(container);
     }).catch(function (e) {
       container.innerHTML = '<div style="padding:24px;color:#ef4444">Falha ao carregar /api/pmoc/refrigeracao: ' + esc(e.message) + '</div>';
     });

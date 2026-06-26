@@ -87,3 +87,7 @@ xPaiol/
 .delete/
 **/.old/
 **/.delete/
+
+# screenshots de verificação
+*.jpeg
+.playwright-mcp/
