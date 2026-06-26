@@ -82,6 +82,16 @@
 
   function estimatePower(btu) { return btu ? Math.round(btu / 10.5) : 0; }
 
+  // horas de uso acumuladas estimadas: dias desde instalação × (h/dia × dias/sem ÷ 7)
+  function horasUsoEstimado(dataInstISO, horasDia, diasSemana, refISO) {
+    if (!dataInstISO || !horasDia || !diasSemana) return null;
+    var inst = new Date(dataInstISO);
+    if (isNaN(inst.getTime())) return null;
+    var ref = refISO ? new Date(refISO) : new Date();
+    var days = Math.max(0, (ref - inst) / 86400000);
+    return Math.round(days * (horasDia * diasSemana / 7));
+  }
+
   // ── homem-hora / demanda ─────────────────────────────────────────────────
   var MIN_POR_ITEM = 10, SETUP_MIN = 15;
   var CHECKLIST_LEN = { 'SPLIT': 9, 'PISO/TETO': 9, 'SELF CONTAINED': 12, 'JANELA': 6 };
@@ -175,7 +185,7 @@
 
   var API = {
     autoCrit: autoCrit, CRIT_COLOR: CRIT_COLOR, PMOC_INT: PMOC_INT, nextPmoc: nextPmoc,
-    estimateGas: estimateGas, estimatePower: estimatePower, lerp: lerp,
+    estimateGas: estimateGas, estimatePower: estimatePower, lerp: lerp, horasUsoEstimado: horasUsoEstimado,
     estTempoServico: estTempoServico, demandaAnual: demandaAnual, capacidade: capacidade,
     TIPO_USO: TIPO_USO, SOLAR_FACTOR: SOLAR_FACTOR, ELEC_BTU: ELEC_BTU,
     calcBTU: calcBTU, btuComercial: btuComercial, thermalStatus: thermalStatus,
@@ -201,6 +211,8 @@
     assert(ts.lbl === 'Adequado', 'thermalStatus adequado');
     var cap = capacidade({ equipes: 2, diasUteis: [1, 2, 3, 4, 5], turnos: [{ horas: 8 }] });
     assert(cap.hAno === 8 * 2 * 5 * 52, 'capacidade hAno');
+    assert(horasUsoEstimado('2025-06-26', 8, 5, '2026-06-26') === 2086, 'horasUso 1 ano (got ' + horasUsoEstimado('2025-06-26', 8, 5, '2026-06-26') + ')');
+    assert(horasUsoEstimado(null, 8, 5) === null, 'horasUso sem instalação');
     console.log('refrig-engine self-test OK');
     return;
   }

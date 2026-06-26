@@ -123,6 +123,7 @@ async def list_servicos(
     categoria: str | None = None,
     codigo: str | None = None,
     ativo: int = 1,
+    materiais: int = 0,
 ):
     """Retorna a versão mais recente de cada serviço (último versao por codigo)."""
     db = _db()
@@ -162,6 +163,23 @@ async def list_servicos(
             row["aplicavel_a"] = json.loads(row["aplicavel_a"] or "{}")
         except (ValueError, TypeError):
             row["aplicavel_a"] = {}
+    if materiais and rows:
+        ids = [r["id"] for r in rows]
+        ph = ",".join("?" * len(ids))
+        mats = await db.fetch_all(
+            f"""SELECT m.servico_id, m.qtd, m.unidade, m.obrigatorio, m.nome_livre,
+                       e.codigo AS estoque_codigo, e.nome AS estoque_nome,
+                       e.qtd_atual, e.qtd_minima
+                FROM catalogo_servico_materiais m
+                LEFT JOIN estoque e ON e.id = m.material_id
+                WHERE m.servico_id IN ({ph})""",
+            ids,
+        )
+        by_svc: dict[str, list] = {}
+        for m in mats:
+            by_svc.setdefault(m["servico_id"], []).append(m)
+        for row in rows:
+            row["materiais"] = by_svc.get(row["id"], [])
     return rows
 
 
