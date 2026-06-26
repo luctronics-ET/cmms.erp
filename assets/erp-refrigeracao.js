@@ -15,7 +15,7 @@
   var TEAM_DEFAULT = { equipes: 1, diasUteis: [1, 2, 3, 4, 5], turnos: [{ horas: 8 }] };
   var TIPO_REV = { AC_SPLIT: 'SPLIT', AC_PISO_TETO: 'PISO/TETO', AC_JANELA: 'JANELA', AC_SELF: 'SELF CONTAINED' };
 
-  var state = { rows: [], equipe: [], sub: 'inventario', loaded: false };
+  var state = { rows: [], equipe: [], servicos: [], sub: 'inventario', loaded: false };
 
   function toEngine(r) {
     return {
@@ -175,11 +175,40 @@
       '<p style="font-size:11px;color:var(--text3,#9fb3cc);margin-top:10px">' + (state.equipe || []).length + ' técnico(s) reais (estrutura/cargos). Capacidade usa equipe-padrão (1 equipe, 8h, seg-sex) — config de turnos é o próximo passo.</p>';
   }
 
+  function _aplic(s) {
+    var ap = s.aplicavel_a;
+    if (!ap) return {};
+    if (typeof ap === 'string') { try { return JSON.parse(ap); } catch (e) { return {}; } }
+    return ap; // já é objeto (API faz parse)
+  }
+  function _tiposDe(s) { return (_aplic(s).tipos || []).join(', '); }
+  function renderServicos() {
+    var svc = state.servicos;
+    var prev = svc.filter(function (s) { return /prevent/i.test(s.nome || ''); });
+    var corr = svc.filter(function (s) { return !/prevent/i.test(s.nome || ''); });
+    function tbl(list) {
+      var body = list.map(function (s) {
+        return '<tr><td class="text-mono">' + esc(s.codigo || '') + '</td><td>' + esc(s.nome) + '</td>' +
+          '<td>' + esc(_tiposDe(s)) + '</td><td>' + (s.tempo_estimado_min ? s.tempo_estimado_min + ' min' : '—') + '</td></tr>';
+      }).join('');
+      return '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Código</th><th>Serviço</th><th>Tipos AC</th><th>Tempo</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+    }
+    var kpis = kpiRow([
+      { label: 'Serviços climatização', value: svc.length },
+      { label: 'Preventivas (PMOC)', value: prev.length, color: '#22c55e' },
+      { label: 'Corretivas / peças (ARP)', value: corr.length, color: '#f59e0b' },
+    ]);
+    return kpis +
+      '<h3 style="margin:18px 0 8px;font-size:14px">Preventivas PMOC (por tipo)</h3>' + (prev.length ? tbl(prev) : '<p style="font-size:12px;color:var(--text3,#9fb3cc)">Nenhuma preventiva.</p>') +
+      '<h3 style="margin:18px 0 8px;font-size:14px">Corretivas e peças (ARP)</h3>' + (corr.length ? tbl(corr) : '<p style="font-size:12px;color:var(--text3,#9fb3cc)">Nenhuma corretiva.</p>');
+  }
+
   var SUBS = [
     { id: 'inventario', label: '📋 Inventário', fn: renderInventario },
     { id: 'alertas', label: '⚠️ Alertas', fn: renderAlertas },
     { id: 'termico', label: '🌡️ Térmico', fn: renderTermico },
     { id: 'pmoc', label: '📅 PMOC', fn: renderPMOC },
+    { id: 'servicos', label: '🛠️ Serviços', fn: renderServicos },
   ];
 
   function paint(container) {
@@ -204,8 +233,11 @@
     Promise.all([
       fetch('/api/pmoc/refrigeracao').then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
       fetch('/api/equipe/refrigeracao').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
+      fetch('/api/catalogo/servicos').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
     ]).then(function (res) {
-      state.rows = res[0] || []; state.equipe = res[1] || []; state.loaded = true; paint(container);
+      state.rows = res[0] || []; state.equipe = res[1] || [];
+      state.servicos = (res[2] || []).filter(function (s) { return (_aplic(s).categorias || []).indexOf('climatizacao') >= 0; });
+      state.loaded = true; paint(container);
     }).catch(function (e) {
       container.innerHTML = '<div style="padding:24px;color:#ef4444">Falha ao carregar /api/pmoc/refrigeracao: ' + esc(e.message) + '</div>';
     });
