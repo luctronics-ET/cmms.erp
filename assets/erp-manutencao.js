@@ -18,13 +18,96 @@
     _fetchError: null,          // { msg, hasCache } — consumido por _showPendingBanner()
   };
 
+  // Navegação: Painel global + uma aba por categoria. Controle/Planos/Catálogo
+  // viraram sub-abas DENTRO de cada categoria (escopadas), não mais globais.
   const TAB_DEFS = [
     { id: 'dashboard', icon: '📊', label: 'Painel' },
-    { id: 'os',        icon: '🧰', label: 'Controle' },
-    { id: 'planos',    icon: '⚙️', label: 'Planos' },
-    { id: 'catalogo',  icon: '📖', label: 'Catálogo de Serviços' },
     { id: 'refrigeracao', icon: '❄️', label: 'Refrigeração' },
+    { id: 'transportes',  icon: '🚚', label: 'Transportes' },
+    { id: 'corte',        icon: '🌿', label: 'Máq. Corte' },
+    { id: 'fonoclama',    icon: '📣', label: 'Fonoclama' },
+    { id: 'registrar-uso', icon: '⏱', label: 'Registrar Uso' },
   ];
+
+  // categoria de navegação → categoria(s) de ativos no DB
+  const CAT_DBCATS = {
+    refrigeracao: ['climatizacao'],
+    transportes:  ['viaturas', 'embarcacoes', 'frota_terrestre', 'frota_naval'],
+    corte:        ['maquinas_corte'],
+    fonoclama:    ['fonoclama'],
+  };
+  const CAT_FICHA_LABEL = {
+    refrigeracao: 'Inventário', transportes: 'Frota', corte: 'Máquinas', fonoclama: 'Dispositivos',
+  };
+
+  // Configuração das fichas PMOC genéricas (mesmo molde de refrigeração, enxuto).
+  const FICHA_CFG = {
+    transportes: {
+      endpoint: '/api/pmoc/transportes',
+      cols: [
+        { key: 'ativo_nome', label: 'Ativo' },
+        { key: 'ativo_tipo', label: 'Tipo', filter: true },
+        { key: 'ativo_categoria', label: 'Frota', filter: true },
+        { key: 'ativo_subtipo', label: 'Lotação', filter: true },
+        { key: 'combustivel', label: 'Combustível', filter: true, format: v => v || '—' },
+      ],
+      edit: [
+        { key: 'estado_operacional', label: 'Estado', opts: ['OP', 'INOP'] },
+        { key: 'criticidade', label: 'Criticidade', opts: ['CRÍTICA', 'ALTA', 'MÉDIA', 'BAIXA'] },
+        { key: 'combustivel', label: 'Combustível', opts: ['', 'diesel', 'gasolina', 'flex'] },
+        { key: 'tanque_l', label: 'Tanque (L)', type: 'number' },
+        { key: 'oleo_ultima_uso', label: 'Óleo: uso na última troca', type: 'number' },
+        { key: 'pneus_estado', label: 'Pneus', opts: ['', 'BOM', 'REGULAR', 'RUIM'] },
+        { key: 'bateria_estado', label: 'Bateria', opts: ['', 'BOM', 'REGULAR', 'RUIM'] },
+        { key: 'casco_estado', label: 'Casco (emb.)', opts: ['', 'BOM', 'REGULAR', 'RUIM'] },
+        { key: 'renavam', label: 'RENAVAM' },
+        { key: 'licenciamento_ate', label: 'Licenciamento até', type: 'date' },
+        { key: 'seguro_ate', label: 'Seguro até', type: 'date' },
+        { key: 'registro_naval', label: 'Registro naval (emb.)' },
+        { key: 'ultima_manutencao', label: 'Última manutenção', type: 'date' },
+        { key: 'obs', label: 'Observações', type: 'textarea' },
+      ],
+    },
+    corte: {
+      endpoint: '/api/pmoc/corte',
+      cols: [
+        { key: 'ativo_nome', label: 'Ativo' },
+        { key: 'ativo_tipo', label: 'Tipo', filter: true },
+        { key: 'motor_tempos', label: 'Motor', filter: true, format: v => v || '—' },
+        { key: 'ferramenta_corte', label: 'Ferramenta', filter: true, format: v => v || '—' },
+      ],
+      edit: [
+        { key: 'estado_operacional', label: 'Estado', opts: ['OP', 'INOP'] },
+        { key: 'criticidade', label: 'Criticidade', opts: ['CRÍTICA', 'ALTA', 'MÉDIA', 'BAIXA'] },
+        { key: 'motor_tempos', label: 'Motor', opts: ['', '2T', '4T', 'diesel'] },
+        { key: 'combustivel', label: 'Combustível', opts: ['', 'gasolina', 'mistura_2t', 'diesel'] },
+        { key: 'oleo_tipo', label: 'Óleo', opts: ['', 'SAE30', '10W-30', '15W-40'] },
+        { key: 'oleo_ultima_uso', label: 'Óleo: horas na última troca', type: 'number' },
+        { key: 'ferramenta_corte', label: 'Ferramenta', opts: ['', 'nylon', 'lamina', 'corrente', 'deck'] },
+        { key: 'ultima_manutencao', label: 'Última manutenção', type: 'date' },
+        { key: 'obs', label: 'Observações', type: 'textarea' },
+      ],
+    },
+    fonoclama: {
+      endpoint: '/api/pmoc/fonoclama',
+      cols: [
+        { key: 'ativo_nome', label: 'Dispositivo' },
+        { key: 'ativo_tipo', label: 'Tipo', filter: true },
+        { key: 'impedancia', label: 'Impedância', filter: true, format: v => v || '—' },
+        { key: 'potencia_w', label: 'Potência (W)', format: v => v || '—' },
+      ],
+      edit: [
+        { key: 'estado_operacional', label: 'Estado', opts: ['OP', 'INOP'] },
+        { key: 'criticidade', label: 'Criticidade', opts: ['CRÍTICA', 'ALTA', 'MÉDIA', 'BAIXA'] },
+        { key: 'potencia_w', label: 'Potência (W)', type: 'number' },
+        { key: 'impedancia', label: 'Impedância', opts: ['', '8Ω', '70V', '100V'] },
+        { key: 'tensao_linha', label: 'Tensão de linha' },
+        { key: 'data_instalacao', label: 'Instalação', type: 'date' },
+        { key: 'ultima_manutencao', label: 'Última manutenção', type: 'date' },
+        { key: 'obs', label: 'Observações', type: 'textarea' },
+      ],
+    },
+  };
 
   // ── persistência filtros ─────────────────────────────────────────────────
   const LS_KEY = 'xerp_manut_cats';
@@ -270,59 +353,22 @@
 
   function renderTopBar() {
     const { el } = window.engine.utils;
-    const chipBox = el('div', { id: 'manut-chips', style: {
-      display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center',
-    } });
-
-    function renderChips() {
-      chipBox.replaceChildren(
-        ...state.catsAvailable.map(cat => {
-          const on = state.cats.has(cat);
-          return el('button', {
-            class: 'pe-btn ' + (on ? 'pe-btn--primary' : 'pe-btn--ghost'),
-            style: { minHeight: '28px', padding: '4px 10px', fontSize: '12px' },
-            onclick: () => {
-              if (on) state.cats.delete(cat); else state.cats.add(cat);
-              saveFilter(); markAllDirty(); renderChips(); renderActiveTab();
-            },
-          }, cat);
-        }),
-        el('button', {
-          class: 'pe-btn pe-btn--ghost',
-          style: { minHeight: '28px', padding: '4px 10px', fontSize: '12px' },
-          onclick: () => { state.cats.clear(); saveFilter(); markAllDirty(); renderChips(); renderActiveTab(); },
-        }, 'Tudo'),
-        el('button', {
-          class: 'pe-btn pe-btn--ghost', title: 'Recarregar do núcleo',
-          style: { minHeight: '28px', padding: '4px 10px', fontSize: '12px' },
-          onclick: () => fetchAll().finally(() => { markAllDirty(); renderActiveTab(); _showPendingBanner(); }),
-        }, '↻'),
-      );
-    }
-    state._renderChips = renderChips;
-    renderChips();
-
     return el('div', { style: {
       position: 'sticky', top: '0', zIndex: '5',
       background: 'var(--bg)', padding: '12px 0', marginBottom: '12px',
       borderBottom: '1px solid var(--line)',
     } },
-      el('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' } },
+      el('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
         el('h2', { style: { margin: 0, fontSize: '18px' } }, 'Manutenção'),
         el('div', { style: { flex: 1 } }),
-        el('button', { class: 'pe-btn', onclick: () => {
-          state.activeTab = 'planos';
-          if (state._updateTabStyles) state._updateTabStyles();
-          renderActiveTab();
-        } }, '+ Plano'),
+        el('button', { class: 'pe-btn pe-btn--ghost', title: 'Recarregar do núcleo',
+          onclick: () => fetchAll().finally(() => { markAllDirty(); renderActiveTab(); _showPendingBanner(); }),
+        }, '↻'),
+        el('button', { class: 'pe-btn', onclick: () => openPlanoCreate() }, '+ Plano'),
         el('button', { class: 'pe-btn pe-btn--primary', onclick: () => {
           if (typeof window.novaOSManut === 'function') window.novaOSManut('');
           else toast('Abra Serviços → Nova OS', 'amber');
         } }, '+ OS'),
-      ),
-      el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
-        el('span', { style: { fontSize: '12px', color: 'var(--ink-3)' } }, 'Categorias:'),
-        chipBox,
       ),
     );
   }
@@ -381,17 +427,25 @@
     state.tabDirty[id] = false;
   }
 
-  // ── helpers de derivação (filtrados pelo state.cats) ─────────────────────
+  // ── helpers de derivação (filtrados pela categoria ativa) ────────────────
+  // _scopeCats = escopo forçado por uma aba de categoria (Refrigeração, etc).
+  // Quando nulo (ex.: Painel), usa o filtro de chips global (state.cats).
+  function activeCats() {
+    if (state._scopeCats && state._scopeCats.length) return new Set(state._scopeCats);
+    return state.cats;
+  }
   function filteredAtivos() {
     const all = state.cache.ativos?.data || [];
-    if (state.cats.size === 0) return all;
-    return all.filter(a => state.cats.has(a.categoria));
+    const cats = activeCats();
+    if (cats.size === 0) return all;
+    return all.filter(a => cats.has(a.categoria));
   }
   /** OS filtradas por categoria. OS sem ativo_id (manuais, sem vínculo)
    *  passam por todos os filtros — são consideradas globais. */
   function filteredOS() {
     const all = state.cache.os?.data || [];
-    if (state.cats.size === 0) return all;
+    const cats = activeCats();
+    if (cats.size === 0) return all;
     const ativosIds = new Set(filteredAtivos().map(a => a.id));
     return all.filter(o => !o.ativo_id || ativosIds.has(o.ativo_id));
   }
@@ -400,14 +454,126 @@
     return all.filter(i => (i.qtd_atual ?? 0) < (i.qtd_minima ?? 0));
   }
 
+  // ── categoria com sub-abas (Ficha · Controle · Planos · Catálogo) ────────
+  function renderCategory(cont, key) {
+    const { el } = window.engine.utils;
+    state._scopeCats = CAT_DBCATS[key] || null;
+
+    // Refrigeração: funde as views do app refrig (Inventário/Alertas/… ) com as
+    // sub-abas genéricas numa ÚNICA linha — evita 3ª fila de abas. As demais
+    // categorias mantêm Ficha/Controle/Vencimentos/Planos/Catálogo.
+    const refrigSubs = (key === 'refrigeracao' && window.erpRefrig && window.erpRefrig.subs) || [];
+    const refrigIds = new Set(refrigSubs.map(s => s.id));
+    const SUBS = key === 'refrigeracao'
+      ? [...refrigSubs,
+         { id: 'os',          label: '🗂️ Controle' },
+         { id: 'vencimentos', label: '⏰ Vencimentos' },
+         { id: 'planos',      label: '📋 Planos' }]
+      : [{ id: 'ficha',       label: CAT_FICHA_LABEL[key] || 'Ficha' },
+         { id: 'os',          label: 'Controle' },
+         { id: 'vencimentos', label: 'Vencimentos' },
+         { id: 'planos',      label: 'Planos' },
+         { id: 'catalogo',    label: 'Catálogo' }];
+
+    // _catSub é global; valida contra as subs desta categoria.
+    let sub = state._catSub;
+    if (!SUBS.some(s => s.id === sub)) sub = state._catSub = SUBS[0].id;
+
+    const bar = el('div', { style: {
+      display: 'flex', gap: '4px', marginBottom: '12px',
+      borderBottom: '1px solid var(--line)', paddingBottom: '8px', flexWrap: 'wrap',
+    } }, ...SUBS.map(s => el('button', {
+      class: 'pe-btn ' + (s.id === sub ? 'pe-btn--primary' : 'pe-btn--ghost'),
+      style: { borderRadius: '6px' },
+      onclick: () => { state._catSub = s.id; renderCategory(cont, key); },
+    }, s.label)));
+    const body = el('div');
+    cont.replaceChildren(bar, body);
+
+    if (refrigIds.has(sub)) {
+      window.erpRefrig.showSub(body, sub);
+    } else if (sub === 'ficha') {
+      renderFichaTab(body, key);
+    } else if (sub === 'os')          RENDERERS.os(body);
+    else if (sub === 'vencimentos')   renderVencimentos(body);
+    else if (sub === 'planos')        RENDERERS.planos(body);
+    else if (sub === 'catalogo')      RENDERERS.catalogo(body);
+  }
+
+  // ── Vencimentos (o que está por vencer, por categoria) ───────────────────
+  async function renderVencimentos(body) {
+    const { el, fmt } = window.engine.utils;
+    body.replaceChildren(el('div', { style: { padding: '16px', color: 'var(--ink-3)' } }, 'Calculando vencimentos...'));
+    const cats = [...activeCats()];
+    let rows = [];
+    try {
+      const reqs = (cats.length ? cats : ['']).map(c =>
+        fetch(apiUrl('/api/manutencao/vencimentos' + (c ? `?categoria=${encodeURIComponent(c)}` : '')))
+          .then(r => r.ok ? r.json() : []));
+      rows = (await Promise.all(reqs)).flat();
+    } catch (e) {
+      body.replaceChildren(el('div', { style: { padding: '16px', color: 'var(--red)' } }, 'Falha: ' + e.message));
+      return;
+    }
+    const wrap = el('div');
+    body.replaceChildren(wrap);
+    if (!rows.length) {
+      wrap.appendChild(el('div', { style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center' } },
+        'Sem planos aplicáveis aos ativos desta categoria (disparo por tempo não é listado).'));
+      return;
+    }
+    window.engine.table(wrap, {
+      cols: [
+        { key: 'status', label: '', format: v => v === 'warn' ? '🟡' : '🟢' },
+        { key: 'ativo_nome', label: 'Ativo', filter: true },
+        { key: 'servico', label: 'Serviço' },
+        { key: 'intervalo', label: 'Intervalo', format: (v, r) => `${v} ${r.unidade || ''}` },
+        { key: 'uso_atual', label: 'Uso', format: (v, r) => `${fmt.num(v || 0, 0)} ${r.unidade || ''}` },
+        { key: 'proximo', label: 'Próximo', format: (v, r) => `${fmt.num(v, 0)} ${r.unidade || ''}` },
+        { key: 'falta', label: 'Falta', format: (v, r) => el('span',
+          { style: { color: r.status === 'warn' ? 'var(--amber)' : 'var(--ink)', fontWeight: r.status === 'warn' ? '700' : '400', fontFamily: 'var(--font-mono)' } },
+          `${fmt.num(v, 0)} ${r.unidade || ''}`) },
+        { key: '_acao', label: '', format: (v, r) => el('div', { style: { display: 'flex', gap: '4px' } },
+          el('button', {
+            class: 'pe-btn pe-btn--primary', style: { padding: '2px 8px', fontSize: '11px' }, title: 'Cria OS direto (liga serviço p/ baixa de estoque)',
+            onclick: async (e) => { e.stopPropagation(); await gerarOsVencimento(r); },
+          }, 'Gerar OS'),
+          el('button', {
+            class: 'pe-btn', style: { padding: '2px 8px', fontSize: '11px' }, title: 'Abre Nova OS preenchida (revisar antes)',
+            onclick: (e) => { e.stopPropagation();
+              if (window.novaOSComContexto) window.novaOSComContexto({
+                ativoId: r.ativo_id, assunto: `${r.servico} · ${r.ativo_nome}`,
+                descricao: `Preventiva do plano "${r.plano_nome}" — a cada ${r.intervalo} ${r.unidade || ''}.`,
+              });
+            },
+          }, 'Nova OS…')) },
+      ],
+      rows,
+      pageSize: Math.max(rows.length, 30),
+    });
+  }
+
+  async function gerarOsVencimento(r) {
+    try {
+      const resp = await fetch(apiUrl('/api/manutencao/os-preventiva'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativo_id: r.ativo_id, servico_id: r.servico_id }),
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const os = await resp.json();
+      toast('OS gerada: ' + (os.codigo || ''), 'green');
+      state.tabDirty.os = true;
+    } catch (e) { toast('Falha ao gerar OS: ' + e.message, 'red'); }
+  }
+
   // ── renderers de cada tab ────────────────────────────────────────────────
   const RENDERERS = {
-    refrigeracao(cont) {
-      if (window.erpRefrig) window.erpRefrig.render(cont);
-      else cont.replaceChildren(window.engine.utils.el('div',
-        { style: { padding: '24px', color: 'var(--ink-3)' } }, 'Módulo Refrigeração não carregado.'));
-    },
+    refrigeracao(cont) { renderCategory(cont, 'refrigeracao'); },
+    transportes(cont)  { renderCategory(cont, 'transportes'); },
+    corte(cont)        { renderCategory(cont, 'corte'); },
+    fonoclama(cont)    { renderCategory(cont, 'fonoclama'); },
     dashboard(cont) {
+      state._scopeCats = null;  // Painel = global (respeita chips)
       const { el, fmt } = window.engine.utils;
       const ativos = filteredAtivos();
       const os = filteredOS();
@@ -535,112 +701,66 @@
           class: 'pe-btn ' + (view === 'lista' ? 'pe-btn--primary' : 'pe-btn--ghost'),
           onclick: () => { state._osView = 'lista'; RENDERERS.os(cont); },
         }, 'Lista'),
+        el('button', {
+          class: 'pe-btn ' + (view === 'calendario' ? 'pe-btn--primary' : 'pe-btn--ghost'),
+          onclick: () => { state._osView = 'calendario'; RENDERERS.os(cont); },
+        }, 'Calendário'),
       );
       const body = el('div');
       cont.replaceChildren(toggleWrap, body);
 
       if (view === 'kanban') renderOsKanban(body);
+      else if (view === 'calendario') renderOsCalendar(body);
       else renderOsLista(body);
     },
 
-    planos(cont) {
+    async planos(cont) {
       const { el } = window.engine.utils;
-      const allRows = getDerivedPlanRows();
-      const wrap = el('div');
-      cont.replaceChildren(wrap);
-      
-      if (!allRows.length) {
-        wrap.appendChild(el('div', { style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center' } },
-          'Nenhum ativo com plano preventivo disponível no filtro atual.'));
+      cont.replaceChildren(el('div', { style: { padding: '16px', color: 'var(--ink-3)' } }, 'Carregando planos...'));
+      const cats = [...activeCats()];
+      let planos = [];
+      try {
+        const reqs = (cats.length ? cats : ['']).map(c =>
+          fetch(apiUrl('/api/catalogo/planos-catalogo' + (c ? `?categoria=${encodeURIComponent(c)}` : '')))
+            .then(r => r.ok ? r.json() : []));
+        planos = (await Promise.all(reqs)).flat();
+      } catch (e) {
+        cont.replaceChildren(el('div', { style: { padding: '16px', color: 'var(--red)' } }, 'Falha ao carregar planos: ' + e.message));
         return;
       }
-
-      // Agrupar por ativo
-      const porAtivo = new Map();
-      allRows.forEach(row => {
-        const ativoId = row.ativo_id || row._ativo?.id || 'sem-ativo';
-        if (!porAtivo.has(ativoId)) {
-          porAtivo.set(ativoId, { ativo: row._ativo, planos: [] });
-        }
-        porAtivo.get(ativoId).planos.push(row);
+      const wrap = el('div');
+      cont.replaceChildren(wrap);
+      if (!planos.length) {
+        wrap.appendChild(el('div', { style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center' } },
+          'Nenhum plano cadastrado para esta categoria. (Plano = pacote nomeado de serviços + disparo por h/km/tempo.)'));
+        return;
+      }
+      window.engine.table(wrap, {
+        cols: [
+          { key: 'codigo', label: 'Código' },
+          { key: 'nome', label: 'Plano' },
+          { key: 'aplicavel_tipos', label: 'Tipos', format: v => {
+            try { return JSON.parse(v || '[]').join(', ') || '—'; } catch (_) { return v || '—'; }
+          } },
+          { key: 'n_servicos', label: 'Serviços', format: (v, r) => `${v || 0} (${r.n_preventivos || 0} prev)` },
+          { key: 'frequencia', label: 'Disparo', format: v => fmtFreq(v) },
+        ],
+        rows: planos,
+        pageSize: Math.max(planos.length, 25),
+        onRowClick: row => openPlanoCatalogoDrawer(row),
       });
-
-      // Renderizar card por ativo
-      const container = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } });
-      
-      porAtivo.forEach(({ ativo, planos }) => {
-        const statusManut = calcProxManut(ativo);
-        const danger = statusManut.filter(p => p.st === 'danger').length;
-        const warn = statusManut.filter(p => p.st === 'warn').length;
-        
-        const badge = danger > 0 ? 'danger' : warn > 0 ? 'warn' : 'ok';
-        const badgeColor = badge === 'danger' ? 'var(--red)' : badge === 'warn' ? 'var(--amber)' : 'var(--green)';
-        const badgeEmoji = badge === 'danger' ? '🔴' : badge === 'warn' ? '🟡' : '🟢';
-        
-        const card = el('div', { style: {
-          background: 'var(--panel)', border: '1px solid var(--line)', borderLeft: `3px solid ${badgeColor}`,
-          borderRadius: '8px', padding: '14px', marginBottom: '0'
-        } },
-          el('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' } },
-            el('span', { style: { fontSize: '20px' } }, badgeEmoji),
-            el('div', { style: { flex: 1 } },
-              el('div', { style: { fontWeight: '600', fontSize: '15px' } }, ativo?.nome || 'Ativo desconhecido'),
-              el('div', { style: { fontSize: '12px', color: 'var(--ink-3)' } }, 
-                `${ativo?.tipo || '—'} · ${planos.length} plano(s)`)
-            ),
-            el('div', { style: { display: 'flex', gap: '8px', flexShrink: 0 } },
-              danger > 0 ? window.engine.badge(`${danger} vencida(s)`, 'red') : null,
-              warn > 0 ? window.engine.badge(`${warn} urgente(s)`, 'amber') : null,
-            )
-          ),
-          
-          el('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
-            ...planos.map(plano => el('div', { style: {
-              padding: '10px', background: 'var(--bg3)', borderRadius: '6px', fontSize: '12px',
-              borderLeft: `2px solid ${
-                plano._status === 'danger' ? 'var(--red)' : 
-                plano._status === 'warn' ? 'var(--amber)' : 
-                plano._status === 'proximo' ? 'var(--acc)' : 
-                'var(--green)'
-              }`, cursor: 'pointer'
-            }, onclick: () => openPlanoDrawer(plano) },
-              el('div', { style: { fontWeight: '600', marginBottom: '6px' } }, plano._svc?.nome || plano.servico_id),
-              el('div', { style: { display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 12px', fontSize: '11px', color: 'var(--ink-2)' } },
-                el('div', { style: { fontWeight: '500' } }, 'Frequência:'),
-                el('div', {}, 
-                  plano.frequencia?.tipo === 'por_uso' 
-                    ? `A cada ${plano.frequencia.valor} ${plano.frequencia.unidade}` 
-                    : 'Periódica'),
-                el('div', { style: { fontWeight: '500' } }, 'Próxima:'),
-                el('div', {}, (() => {
-                  if (!plano._planoItem) return '—';
-                  const color = plano._planoItem.st === 'danger' ? 'var(--red)' : 
-                                 plano._planoItem.st === 'warn' ? 'var(--amber)' : 
-                                 plano._planoItem.st === 'proximo' ? 'var(--acc)' : 'var(--green)';
-                  const label = plano._planoItem.st === 'danger'
-                    ? `Vencida há ${Math.abs(plano._planoItem.falt).toFixed(0)} h`
-                    : `Em ${Math.max(0, plano._planoItem.falt).toFixed(0)} h`;
-                  return el('span', { style: { color, fontWeight: '700' } }, label);
-                })()),
-                el('div', { style: { fontWeight: '500' } }, 'Materiais:'),
-                el('div', {}, 
-                  (plano._svc?.materiais || []).length > 0
-                    ? (plano._svc?.materiais || []).map(m => m.nome_livre || m.nome).join(', ')
-                    : 'Nenhum')
-              )
-            ))
-          )
-        );
-        
-        container.appendChild(card);
-      });
-      
-      wrap.appendChild(container);
     },
 
     catalogo(cont) {
       const { el } = window.engine.utils;
-      const servicos = getCatalogoServicos();
+      const cats = activeCats();
+      let servicos = getCatalogoServicos();
+      if (cats.size > 0) {
+        servicos = servicos.filter(s => {
+          const aplic = s.aplicavel_a?.categorias || [];
+          return aplic.length === 0 ? false : aplic.some(c => cats.has(c));
+        });
+      }
       const wrap = el('div');
       cont.replaceChildren(wrap);
       window.engine.table(wrap, {
@@ -1160,6 +1280,246 @@
           ))),
       );
     },
+
+    async 'registrar-uso'(cont) {
+      state._scopeCats = null;
+      const { el } = window.engine.utils;
+
+      // ── helpers locais (prefixo ru_ para evitar colisão com globals legados) ──
+
+      function ruToken() {
+        return localStorage.getItem('xcmasm_token') || '';
+      }
+
+      function ruAuthHeaders() {
+        return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ruToken() };
+      }
+
+      // Popula o selector de ativos com os dados já carregados pelo módulo
+      function ruBuildAtivoOpts(select) {
+        const ativos = (state.cache.ativos?.data || []).filter(a => a.ativo);
+        select.innerHTML = '<option value="">— selecione um ativo —</option>';
+        ativos.forEach(a => {
+          const opt = document.createElement('option');
+          opt.value = a.id;
+          opt.textContent = `${a.nome} (${a.categoria || '—'})`;
+          opt.dataset.uso = a.uso_atual || '0';
+          opt.dataset.unidade = a.unidade_uso || 'h';
+          select.appendChild(opt);
+        });
+      }
+
+      // Atualiza badge de horímetro quando ativo muda
+      function ruOnAtivoChange(select, badge) {
+        const opt = select.options[select.selectedIndex];
+        if (opt && opt.value) {
+          const uso = parseFloat(opt.dataset.uso || 0);
+          const unidade = opt.dataset.unidade || 'h';
+          badge.textContent = `Horímetro atual: ${uso.toFixed(1)} ${unidade}`;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      // Carrega e exibe registros recentes para o ativo selecionado
+      async function ruCarregarRecentes(ativoId, recDiv) {
+        if (!ativoId) { recDiv.innerHTML = ''; return; }
+        recDiv.innerHTML = '<span style="color:var(--ink-3);font-size:12px">Carregando...</span>';
+        try {
+          const r = await fetch(apiUrl('/api/manutencao/uso?ativo_id=' + encodeURIComponent(ativoId) + '&limit=10'), {
+            headers: { 'Authorization': 'Bearer ' + ruToken() },
+          });
+          if (!r.ok) { recDiv.innerHTML = '<span style="color:var(--red);font-size:12px">Falha ao carregar recentes</span>'; return; }
+          const rows = await r.json();
+          if (!rows.length) { recDiv.innerHTML = '<span style="color:var(--ink-3);font-size:12px">Nenhum registro para este ativo.</span>'; return; }
+          const tbl = el('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: '12px' } },
+            el('thead', {},
+              el('tr', { style: { color: 'var(--ink-3)', textAlign: 'left' } },
+                el('th', { style: { padding: '4px 8px', borderBottom: '1px solid var(--line)' } }, 'Data'),
+                el('th', { style: { padding: '4px 8px', borderBottom: '1px solid var(--line)' } }, 'Delta'),
+                el('th', { style: { padding: '4px 8px', borderBottom: '1px solid var(--line)' } }, 'Anterior'),
+                el('th', { style: { padding: '4px 8px', borderBottom: '1px solid var(--line)' } }, 'Novo'),
+                el('th', { style: { padding: '4px 8px', borderBottom: '1px solid var(--line)' } }, 'Operador'),
+              ),
+            ),
+            el('tbody', {},
+              ...rows.map(row => el('tr', { style: { borderBottom: '1px solid var(--line)' } },
+                el('td', { style: { padding: '4px 8px', fontFamily: 'var(--font-mono)' } }, row.data || '—'),
+                el('td', { style: { padding: '4px 8px', fontFamily: 'var(--font-mono)', color: 'var(--acc)' } }, `+${Number(row.delta || 0).toFixed(1)} ${row.unidade_uso || 'h'}`),
+                el('td', { style: { padding: '4px 8px', fontFamily: 'var(--font-mono)', color: 'var(--ink-2)' } }, Number(row.valor_anterior || 0).toFixed(1)),
+                el('td', { style: { padding: '4px 8px', fontFamily: 'var(--font-mono)' } }, Number(row.valor_novo || 0).toFixed(1)),
+                el('td', { style: { padding: '4px 8px', color: 'var(--ink-2)' } }, row.operador || '—'),
+              )),
+            ),
+          );
+          recDiv.replaceChildren(tbl);
+        } catch (e) {
+          recDiv.innerHTML = '<span style="color:var(--red);font-size:12px">Erro de rede: ' + e.message + '</span>';
+        }
+      }
+
+      // Layout da seção Registrar Uso portado do legado (CMASM_Gestao_v2.html #m-uso)
+      const cardStyle = {
+        background: 'var(--panel)', border: '1px solid var(--line)',
+        borderRadius: '8px', padding: '20px', marginBottom: '14px',
+      };
+      const labelStyle = { fontSize: '12px', color: 'var(--ink-2)', marginBottom: '4px', display: 'block' };
+      const inputStyle = {
+        width: '100%', boxSizing: 'border-box', padding: '7px 10px',
+        background: 'var(--bg2)', border: '1px solid var(--line)',
+        borderRadius: '6px', color: 'var(--ink)', fontSize: '13px',
+      };
+
+      // Ativo selector + badge
+      const ativoSel = el('select', { style: { ...inputStyle } });
+      ruBuildAtivoOpts(ativoSel);
+
+      const horimBadge = el('span', {
+        style: {
+          display: 'none', marginLeft: '10px', fontFamily: 'var(--font-mono)',
+          fontSize: '12px', color: 'var(--acc)', padding: '2px 8px',
+          background: 'var(--bg3)', borderRadius: '4px',
+        },
+      }, '');
+
+      // Inputs
+      const today = new Date().toISOString().slice(0, 10);
+      const deltaInput = el('input', { type: 'number', min: '0.1', step: '0.1', placeholder: '0.0', style: { ...inputStyle } });
+      const dataInput = el('input', { type: 'date', value: today, style: { ...inputStyle } });
+      const obsInput = el('input', { type: 'text', placeholder: 'Observação (opcional)', style: { ...inputStyle } });
+
+      // Feedback + alerta
+      const feedbackDiv = el('div', { style: { marginTop: '8px', fontSize: '13px', color: 'var(--green)', minHeight: '20px' } });
+      const alertaDiv = el('div', {
+        style: {
+          display: 'none', marginTop: '10px', padding: '10px 14px',
+          background: 'var(--bg2)', border: '1px solid var(--amber)',
+          borderRadius: '6px', color: 'var(--amber)', fontSize: '13px',
+        },
+      });
+
+      // Registros recentes
+      const recentesDiv = el('div', { style: { marginTop: '8px' } });
+
+      // Ativo change handler
+      ativoSel.addEventListener('change', () => {
+        ruOnAtivoChange(ativoSel, horimBadge);
+        // Atualiza placeholder do delta com unidade do ativo
+        const opt = ativoSel.options[ativoSel.selectedIndex];
+        if (opt && opt.value) {
+          const un = opt.dataset.unidade || 'h';
+          deltaInput.placeholder = `Incremento em ${un}`;
+        } else {
+          deltaInput.placeholder = '0.0';
+        }
+        feedbackDiv.textContent = '';
+        alertaDiv.style.display = 'none';
+        ruCarregarRecentes(ativoSel.value, recentesDiv);
+      });
+
+      // Botão Registrar
+      const btnRegistrar = el('button', { class: 'pe-btn pe-btn--primary', style: { marginTop: '12px' } }, '⏱ Registrar');
+      btnRegistrar.addEventListener('click', async () => {
+        const ativoId = ativoSel.value;
+        const delta = parseFloat(deltaInput.value);
+        const dataVal = dataInput.value || today;
+        const obs = obsInput.value.trim() || null;
+
+        // Validação client-side (advisory — server valida definitivamente)
+        if (!ativoId) { toast('Selecione um ativo.', 'amber'); return; }
+        if (!delta || delta <= 0) { toast('Informe o incremento de uso (> 0).', 'amber'); return; }
+
+        btnRegistrar.disabled = true;
+        feedbackDiv.textContent = 'Registrando...';
+        alertaDiv.style.display = 'none';
+
+        try {
+          const res = await fetch(apiUrl('/api/manutencao/uso'), {
+            method: 'POST',
+            headers: ruAuthHeaders(),
+            body: JSON.stringify({ ativo_id: ativoId, delta, data: dataVal, observacao: obs }),
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            toast(err.detail || 'Erro ao registrar uso (HTTP ' + res.status + ')', 'red');
+            feedbackDiv.textContent = '';
+            return;
+          }
+
+          const resp = await res.json();
+          const opt = ativoSel.options[ativoSel.selectedIndex];
+          const unidade = (opt && opt.dataset.unidade) || 'h';
+
+          // Atualiza badge de horímetro
+          horimBadge.textContent = `Horímetro atual: ${Number(resp.uso_atual || 0).toFixed(1)} ${unidade}`;
+          if (opt) opt.dataset.uso = resp.uso_atual || 0;
+
+          feedbackDiv.textContent = `Registrado: +${delta.toFixed(1)} ${unidade} → total ${Number(resp.uso_atual || 0).toFixed(1)} ${unidade}`;
+
+          // Alerta de vencimento inline
+          const venc = resp.vencimentos_disparados || [];
+          if (venc.length) {
+            alertaDiv.style.display = 'block';
+            alertaDiv.innerHTML = '<strong>Atenção — serviços preventivos próximos do vencimento:</strong><br>'
+              + venc.map(v => `• ${v.servico} (falta ${Number(v.falta || 0).toFixed(1)} ${v.unidade || unidade})`).join('<br>');
+          } else {
+            alertaDiv.style.display = 'none';
+          }
+
+          // Limpa inputs e atualiza recentes
+          deltaInput.value = '';
+          obsInput.value = '';
+          await ruCarregarRecentes(ativoId, recentesDiv);
+        } catch (e) {
+          toast('Erro de rede: ' + e.message, 'red');
+          feedbackDiv.textContent = '';
+        } finally {
+          btnRegistrar.disabled = false;
+        }
+      });
+
+      // Monta layout
+      cont.replaceChildren(
+        el('div', { style: { maxWidth: '640px' } },
+          el('h3', { style: { marginTop: '0', marginBottom: '16px', fontWeight: '600' } }, '⏱ Registrar Uso'),
+
+          // Formulário
+          el('div', { style: cardStyle },
+            el('div', { style: { marginBottom: '14px' } },
+              el('label', { style: labelStyle }, 'Ativo *'),
+              el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+                ativoSel, horimBadge,
+              ),
+            ),
+            el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' } },
+              el('div', {},
+                el('label', { style: labelStyle }, 'Data *'),
+                dataInput,
+              ),
+              el('div', {},
+                el('label', { style: labelStyle }, 'Horas / km *'),
+                deltaInput,
+              ),
+            ),
+            el('div', { style: { marginBottom: '14px' } },
+              el('label', { style: labelStyle }, 'Observações'),
+              obsInput,
+            ),
+            btnRegistrar,
+            feedbackDiv,
+            alertaDiv,
+          ),
+
+          // Registros recentes
+          el('div', { style: cardStyle },
+            el('div', { style: { fontWeight: '600', marginBottom: '10px' } }, 'Registros Recentes'),
+            recentesDiv,
+          ),
+        ),
+      );
+    },
   };
 
   const OS_STATUS_ORDEM = ['aberta', 'autorizada', 'iniciada', 'em_execucao', 'espera', 'pronto', 'concluida', 'cancelada'];
@@ -1200,7 +1560,7 @@
           // reverte client-side
           const card = k._cards?.find(c => c.id === id);
           if (card) card.columnId = from;
-          state.tabDirty.os = true; RENDERERS.os(document.getElementById('manut-tab-content'));
+          state.tabDirty.os = true; renderActiveTab();
           return;
         }
         try {
@@ -1214,7 +1574,7 @@
           toast(`OS movida: ${from} → ${to}`, 'green');
         } catch (e) {
           toast(`Falha ao mover OS: ${e.message}`, 'red');
-          state.tabDirty.os = true; RENDERERS.os(document.getElementById('manut-tab-content'));
+          state.tabDirty.os = true; renderActiveTab();
         }
       },
     });
@@ -1238,6 +1598,34 @@
       ],
       rows: os,
       onRowClick: openOsDrawer,
+    });
+  }
+
+  function renderOsCalendar(body) {
+    const { el } = window.engine.utils;
+    const os = filteredOS();
+    const colorByStatus = s => s === 'concluida' ? 'var(--green)'
+      : s === 'cancelada' ? 'var(--red)'
+      : (s === 'em_execucao' || s === 'pronto') ? 'var(--blue)' : 'var(--amber)';
+    // data da OS: prevista > conclusão > abertura
+    const events = os.map(o => {
+      const d = o.data_prevista || o.data_conclusao || o.data_abertura;
+      if (!d) return null;
+      return { id: o.id, date: String(d).slice(0, 10), title: o.codigo || o.titulo || o.id,
+               color: colorByStatus(o.status), _raw: o };
+    }).filter(Boolean);
+    const wrap = el('div');
+    body.replaceChildren(wrap);
+    if (!events.length) {
+      wrap.appendChild(el('div', { style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center' } },
+        'Nenhuma OS com data nesta categoria.'));
+      return;
+    }
+    // ponytail: read-only (não há PUT geral de OS p/ reagendar via drag). Clique abre a OS.
+    window.engine.calendar(wrap, {
+      events,
+      draggable: false,
+      onEventClick: ev => openOsDrawer(ev._raw),
     });
   }
 
@@ -1286,7 +1674,7 @@
             toast(`OS → ${t}`, 'green');
             m.close();
             state.tabDirty.os = true;
-            if (state.activeTab === 'os') RENDERERS.os(document.getElementById('manut-tab-content'));
+            renderActiveTab();
           } catch (e) { toast(`Falha: ${e.message}`, 'red'); }
         } }, `→ ${t}`)),
         el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Fechar'),
@@ -1634,6 +2022,150 @@
     return 'ok';
   }
 
+  // ── Planos nomeados (catalogo_planos) ────────────────────────────────────
+  function fmtFreq(v) {
+    if (!v) return '—';
+    let f; try { f = typeof v === 'string' ? JSON.parse(v) : v; } catch (_) { return String(v); }
+    if (!f || f.valor == null) return '—';
+    const un = f.tipo === 'por_tempo' ? (f.unidade || 'meses') : (f.unidade || 'h');
+    return `a cada ${f.valor} ${un}`;
+  }
+
+  function _field(label, inp) {
+    const { el } = window.engine.utils;
+    return el('div', {}, el('label', { style: { display: 'block', fontSize: '11px', color: 'var(--ink-3)', marginBottom: '3px' } }, label), inp);
+  }
+
+  async function openPlanoCatalogoDrawer(plano) {
+    const { el } = window.engine.utils;
+    let d;
+    try {
+      d = await fetch(apiUrl(`/api/catalogo/planos-catalogo/${plano.id}`)).then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status); return r.json();
+      });
+    } catch (e) { toast('Falha ao carregar plano: ' + e.message, 'red'); return; }
+    let tipos = '—';
+    try { tipos = JSON.parse(d.aplicavel_tipos || '[]').join(', ') || d.tipo_codigo || '—'; }
+    catch (_) { tipos = d.tipo_codigo || '—'; }
+    const itens = d.itens || [];
+    const reabrir = () => { m.close(); openPlanoCatalogoDrawer(plano); };
+    const body = el('div', { style: { fontSize: '13px' } },
+      el('div', { style: { marginBottom: '10px', color: 'var(--ink-2)' } },
+        `Categoria: ${d.categoria} · Tipos: ${tipos} · Disparo default: ${fmtFreq(d.frequencia)}`),
+      el('div', { style: { fontWeight: '600', marginBottom: '6px' } }, `Serviços do plano (${itens.length})`),
+      ...itens.map(it => el('div', { style: { padding: '8px 10px', background: 'var(--bg3)', borderRadius: '6px', marginBottom: '6px' } },
+        el('div', { style: { display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'baseline' } },
+          el('div', { style: { fontWeight: '600' } }, `${it.classe === 'corr' ? '🔧 ' : ''}${it.nome}`),
+          el('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
+            el('span', { style: { color: 'var(--acc)', fontFamily: 'var(--font-mono)', fontSize: '12px', whiteSpace: 'nowrap' } }, fmtFreq(it.frequencia)),
+            el('button', { class: 'pe-btn', style: { padding: '0 6px', fontSize: '11px' }, title: 'Remover serviço',
+              onclick: async () => {
+                if (!confirm(`Remover "${it.nome}" do plano?`)) return;
+                await fetch(apiUrl(`/api/catalogo/planos-catalogo/${d.id}/itens/${encodeURIComponent(it.servico_id)}`), { method: 'DELETE' });
+                reabrir();
+              } }, '✕'))),
+        (it.materiais && it.materiais.length)
+          ? el('div', { style: { fontSize: '11px', color: 'var(--ink-3)', marginTop: '4px' } },
+              'Materiais: ' + it.materiais.map(m => `${m.material_nome || m.nome_livre} (${m.qtd} ${m.unidade || 'un'})`).join(', '))
+          : null,
+      )),
+    );
+    const m = window.engine.modal({
+      title: `${d.codigo} — ${d.nome}`,
+      body,
+      footer: [
+        el('button', { class: 'pe-btn pe-btn--primary', onclick: () => openAddServicoToPlano(d, reabrir) }, '+ Serviço'),
+        el('button', { class: 'pe-btn', onclick: async () => {
+          if (!confirm(`Excluir o plano "${d.nome}"? (desativa)`)) return;
+          await fetch(apiUrl(`/api/catalogo/planos-catalogo/${d.id}`), { method: 'DELETE' });
+          toast('Plano excluído', 'green'); m.close(); renderActiveTab();
+        } }, '🗑 Excluir'),
+        el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Fechar'),
+      ],
+    });
+    m.open();
+  }
+
+  async function openAddServicoToPlano(plano, onDone) {
+    const { el } = window.engine.utils;
+    let servicos = [];
+    try {
+      servicos = await fetch(apiUrl('/api/catalogo/servicos')).then(r => r.ok ? r.json() : []);
+    } catch (_) {}
+    // filtra por categoria do plano (via aplicavel_a)
+    servicos = servicos.filter(s => {
+      try { return (s.aplicavel_a?.categorias || JSON.parse(s.aplicavel_a || '{}').categorias || []).includes(plano.categoria); }
+      catch (_) { return true; }
+    });
+    const sel = el('select', { class: 'pe-input pe-select' },
+      ...servicos.map(s => el('option', { value: s.id }, `${s.codigo || ''} — ${s.nome}`)));
+    const fval = el('input', { class: 'pe-input', type: 'number', placeholder: 'ex: 50' });
+    const fun = el('select', { class: 'pe-input pe-select' }, ...['h', 'km', 'meses'].map(u => el('option', { value: u }, u)));
+    const body = el('div', { style: { display: 'grid', gap: '10px', fontSize: '13px' } },
+      _field('Serviço', sel),
+      el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } },
+        _field('Disparo: a cada', fval), _field('Unidade', fun)));
+    const m = window.engine.modal({
+      title: 'Adicionar serviço ao plano',
+      body,
+      footer: [
+        el('button', { class: 'pe-btn pe-btn--primary', onclick: async () => {
+          if (!sel.value) { toast('Selecione um serviço', 'amber'); return; }
+          const freq = fval.value ? { tipo: fun.value === 'meses' ? 'por_tempo' : 'por_uso', valor: parseFloat(fval.value), unidade: fun.value } : null;
+          await fetch(apiUrl(`/api/catalogo/planos-catalogo/${plano.id}/itens`), {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ servico_id: sel.value, frequencia: freq }),
+          });
+          m.close(); onDone && onDone();
+        } }, 'Adicionar'),
+        el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Cancelar'),
+      ],
+    });
+    m.open();
+  }
+
+  function openPlanoCreate() {
+    const { el } = window.engine.utils;
+    const catDefault = (state._scopeCats && state._scopeCats[0]) || 'climatizacao';
+    const nome = el('input', { class: 'pe-input' });
+    const cat = el('input', { class: 'pe-input' }); cat.value = catDefault;
+    const tipos = el('input', { class: 'pe-input', placeholder: 'VTR_PICKUP, GAR (vírgula)' });
+    const ftipo = el('select', { class: 'pe-input pe-select' },
+      el('option', { value: 'por_uso' }, 'por uso (h/km)'), el('option', { value: 'por_tempo' }, 'por tempo'));
+    const fval = el('input', { class: 'pe-input', type: 'number', placeholder: 'opcional' });
+    const fun = el('select', { class: 'pe-input pe-select' }, ...['h', 'km', 'meses'].map(u => el('option', { value: u }, u)));
+    const body = el('div', { style: { display: 'grid', gap: '10px', fontSize: '13px' } },
+      _field('Nome do plano', nome),
+      _field('Categoria', cat),
+      _field('Tipos aplicáveis', tipos),
+      el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' } },
+        _field('Disparo default', ftipo), _field('A cada', fval), _field('Unidade', fun)));
+    const m = window.engine.modal({
+      title: 'Novo plano',
+      body,
+      footer: [
+        el('button', { class: 'pe-btn pe-btn--primary', onclick: async () => {
+          if (!nome.value.trim()) { toast('Informe o nome', 'amber'); return; }
+          const tiposArr = tipos.value.split(',').map(s => s.trim()).filter(Boolean);
+          const freq = fval.value ? { tipo: ftipo.value, valor: parseFloat(fval.value), unidade: fun.value } : null;
+          let novo;
+          try {
+            novo = await fetch(apiUrl('/api/catalogo/planos-catalogo'), {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ nome: nome.value.trim(), categoria: cat.value.trim(), aplicavel_tipos: tiposArr, frequencia: freq }),
+            }).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+          } catch (e) { toast('Falha ao criar: ' + e.message, 'red'); return; }
+          toast('Plano criado', 'green');
+          m.close();
+          renderActiveTab();
+          openPlanoCatalogoDrawer(novo);  // abre p/ adicionar serviços
+        } }, 'Criar'),
+        el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Cancelar'),
+      ],
+    });
+    m.open();
+  }
+
   function openPlanoDrawer(plano) {
     const { el } = window.engine.utils;
     const svc = resolvePlanoServico(plano);
@@ -1673,6 +2205,104 @@
     m.open();
   }
 
+  // ── Fichas PMOC genéricas (transportes, corte) ───────────────────────────
+  const _fichaCache = {};
+  async function renderFichaTab(cont, kind) {
+    const { el, fmt } = window.engine.utils;
+    const cfg = FICHA_CFG[kind];
+    cont.replaceChildren(el('div', { style: { padding: '16px', color: 'var(--ink-3)' } }, 'Carregando...'));
+    let rows;
+    try {
+      rows = await fetch(apiUrl(cfg.endpoint)).then(r => {
+        if (!r.ok) throw new Error(cfg.endpoint + ' ' + r.status); return r.json();
+      });
+    } catch (e) {
+      cont.replaceChildren(el('div', { style: { padding: '16px', color: 'var(--red)' } },
+        'Falha ao carregar: ' + e.message)); return;
+    }
+    _fichaCache[kind] = rows;
+    const critColor = v => ({ 'CRÍTICA': 'red', 'ALTA': 'amber', 'MÉDIA': 'blue', 'BAIXA': 'green' })[v] || 'gray';
+    const inop = rows.filter(r => r.estado_operacional === 'INOP').length;
+    const crit = rows.filter(r => r.criticidade === 'CRÍTICA').length;
+    const kpis = el('div', { style: { display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' } },
+      ...[['Ativos', rows.length], ['INOP', inop], ['Críticos', crit]].map(([l, v]) =>
+        el('div', { style: { background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: '8px', padding: '10px 14px' } },
+          el('div', { style: { fontSize: '11px', color: 'var(--ink-3)', textTransform: 'uppercase' } }, l),
+          el('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '22px', color: 'var(--acc)', fontWeight: '700' } }, String(v)))));
+    const wrap = el('div'); const tableWrap = el('div');
+    wrap.appendChild(kpis); wrap.appendChild(tableWrap);
+    cont.replaceChildren(wrap);
+    window.engine.table(tableWrap, {
+      cols: [
+        { key: 'estado_operacional', label: '', format: v => v === 'INOP' ? '🔴' : '🟢' },
+        ...cfg.cols,
+        { key: 'uso_atual', label: 'Uso', format: (v, row) => `${fmt.num(v || 0, 0)} ${row.unidade_uso || ''}` },
+        { key: 'criticidade', label: 'Criticidade', filter: true, format: v => v ? window.engine.badge(v, critColor(v)) : '—' },
+        { key: '_os', label: '', format: (v, row) => el('button', {
+          class: 'pe-btn pe-btn--primary', style: { padding: '2px 8px', fontSize: '11px' }, title: 'Nova OS para este ativo',
+          onclick: (e) => { e.stopPropagation();
+            if (window.novaOSComContexto) window.novaOSComContexto({ ativoId: row.ativo_id, assunto: `Manutenção — ${row.ativo_nome}` });
+          },
+        }, 'Nova OS') },
+      ],
+      rows,
+      pageSize: Math.max(rows.length, 25),
+      onRowClick: row => openFichaEdit(kind, row, cont),
+    });
+  }
+
+  function openFichaEdit(kind, row, cont) {
+    const { el } = window.engine.utils;
+    const cfg = FICHA_CFG[kind];
+    const inputs = {};
+    const fields = cfg.edit.map(f => {
+      let inp;
+      if (f.opts) {
+        inp = el('select', { class: 'pe-input pe-select' }, ...f.opts.map(o => el('option', { value: o }, o || '—')));
+      } else if (f.type === 'textarea') {
+        inp = el('textarea', { class: 'pe-input', rows: '2' });
+      } else {
+        inp = el('input', { class: 'pe-input', type: f.type || 'text' });
+      }
+      inp.value = row[f.key] == null ? '' : String(row[f.key]);
+      inputs[f.key] = { inp, type: f.type };
+      return el('div', { style: f.type === 'textarea' ? { gridColumn: '1 / -1' } : {} },
+        el('label', { style: { display: 'block', fontSize: '11px', color: 'var(--ink-3)', marginBottom: '3px' } }, f.label),
+        inp);
+    });
+    const body = el('div', { style: { fontSize: '13px' } },
+      el('div', { style: { marginBottom: '10px', color: 'var(--ink-2)' } },
+        `${row.ativo_nome} · ${row.ativo_tipo || ''} · uso ${Math.round(row.uso_atual || 0)} ${row.unidade_uso || ''}`),
+      el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' } }, ...fields));
+    const m = window.engine.modal({
+      title: `Editar ficha — ${row.ativo_nome}`,
+      body,
+      footer: [
+        el('button', {
+          class: 'pe-btn pe-btn--primary', onclick: async () => {
+            const payload = {};
+            for (const [k, { inp, type }] of Object.entries(inputs)) {
+              let v = inp.value;
+              if (v === '') v = null;
+              else if (type === 'number') v = parseFloat(v);
+              payload[k] = v;
+            }
+            try {
+              const r = await fetch(apiUrl(`${cfg.endpoint}/${row.ativo_id}`), {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+              });
+              if (!r.ok) throw new Error('PUT ' + r.status);
+              m.close();
+              renderFichaTab(cont, kind);
+            } catch (e) { alert('Falha ao salvar: ' + e.message); }
+          },
+        }, 'Salvar'),
+        el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Fechar'),
+      ],
+    });
+    m.open();
+  }
+
   function openCatalogoDrawer(svc) {
     const { el } = window.engine.utils;
     const m = window.engine.modal({
@@ -1700,7 +2330,15 @@
               return el('li', {}, `${q?.nome || p.qualificacao_codigo} ×${p.qtd}${p.opcional ? ' (opcional)' : ''}`);
             }))) : null,
       ),
-      footer: [el('button', { class: 'pe-btn pe-btn--primary', onclick: () => m.close() }, 'Fechar')],
+      footer: [
+        el('button', { class: 'pe-btn pe-btn--primary', onclick: () => {
+          m.close();
+          if (window.novaOSComContexto) window.novaOSComContexto({
+            servicoId: svc.id, assunto: svc.nome, descricao: svc.descricao || '',
+          });
+        } }, 'Nova OS com este serviço'),
+        el('button', { class: 'pe-btn', onclick: () => m.close() }, 'Fechar'),
+      ],
     });
     m.open();
   }
@@ -2035,12 +2673,12 @@
     if (banner) banner.remove();
     const work = (async () => {
       try {
-        const [ativos, os, estoque, servicosBase, planos] = await Promise.all([
+        // planos_manutencao APOSENTADO — planos vêm de catalogo_planos (sub-aba Planos/Vencimentos).
+        const [ativos, os, estoque, servicosBase] = await Promise.all([
           fetch(apiUrl('/api/ativos')).then(r => { if (!r.ok) throw new Error('ativos ' + r.status); return r.json(); }),
           fetch(apiUrl('/api/os')).then(r => { if (!r.ok) throw new Error('os ' + r.status); return r.json(); }),
           fetch(apiUrl('/api/estoque')).then(r => { if (!r.ok) throw new Error('estoque ' + r.status); return r.json(); }),
           fetch(apiUrl('/api/catalogo/servicos')).then(r => { if (!r.ok) throw new Error('catalogo/servicos ' + r.status); return r.json(); }),
-          fetch(apiUrl('/api/catalogo/planos')).then(r => { if (!r.ok) throw new Error('catalogo/planos ' + r.status); return r.json(); }),
         ]);
         const servicos = await Promise.all((servicosBase || []).map(servico =>
           fetch(apiUrl(`/api/catalogo/servicos/${encodeURIComponent(servico.id)}`))
@@ -2051,7 +2689,7 @@
         state.cache.os       = { data: os,       ts: Date.now() };
         state.cache.estoque  = { data: estoque,  ts: Date.now() };
         state.cache.catalogo_servicos = { data: servicos, ts: Date.now() };
-        state.cache.planos_manutencao = { data: planos, ts: Date.now() };
+        state.cache.planos_manutencao = { data: [], ts: Date.now() };  // aposentado
         state.catsAvailable = [...new Set(ativos.map(a => a.categoria).filter(Boolean))].sort();
         if (state._renderChips) state._renderChips();
       } catch (e) {
