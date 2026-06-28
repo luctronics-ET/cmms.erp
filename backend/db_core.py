@@ -8,6 +8,7 @@ _SCHEMAS = [
     os.path.join(_DATA_DIR, "schema_core.sql"),
     os.path.join(_DATA_DIR, "schema_grama.sql"),
     os.path.join(_DATA_DIR, "schema_catalogo.sql"),
+    os.path.join(_DATA_DIR, "schema_manutencao.sql"),   # fase 01 — uso_registros
 ]
 
 
@@ -58,6 +59,10 @@ class CoreDB:
                 ("servico_snapshot",        "ALTER TABLE ordens_servico ADD COLUMN servico_snapshot TEXT"),
                 ("hora_inicio",             "ALTER TABLE ordens_servico ADD COLUMN hora_inicio TEXT"),
                 ("hora_fim",                "ALTER TABLE ordens_servico ADD COLUMN hora_fim TEXT"),
+                ("categoria",               "ALTER TABLE ordens_servico ADD COLUMN categoria TEXT"),
+                ("subcategoria",            "ALTER TABLE ordens_servico ADD COLUMN subcategoria TEXT"),
+                ("servicos",                "ALTER TABLE ordens_servico ADD COLUMN servicos TEXT"),
+                ("veiculos",                "ALTER TABLE ordens_servico ADD COLUMN veiculos TEXT"),
             ]:
                 if col not in os_existing:
                     await db.execute(ddl)
