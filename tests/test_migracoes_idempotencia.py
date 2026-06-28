@@ -6,7 +6,6 @@ Satisfaz QA-02: esquema carrega do zero e é idempotente (sem "duplicate column 
 from __future__ import annotations
 
 import importlib
-import sqlite3
 import sys
 
 import pytest
