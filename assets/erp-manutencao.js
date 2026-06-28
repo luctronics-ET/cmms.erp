@@ -1462,8 +1462,12 @@
           const venc = resp.vencimentos_disparados || [];
           if (venc.length) {
             alertaDiv.style.display = 'block';
-            alertaDiv.innerHTML = '<strong>Atenção — serviços preventivos próximos do vencimento:</strong><br>'
-              + venc.map(v => `• ${v.servico} (falta ${Number(v.falta || 0).toFixed(1)} ${v.unidade || unidade})`).join('<br>');
+            alertaDiv.replaceChildren(
+              el('strong', {}, 'Atenção — serviços preventivos próximos do vencimento:'),
+              ...venc.map(v =>
+                el('div', {}, `• ${v.servico} (falta ${Number(v.falta || 0).toFixed(1)} ${v.unidade || unidade})`)
+              ),
+            );
           } else {
             alertaDiv.style.display = 'none';
           }
