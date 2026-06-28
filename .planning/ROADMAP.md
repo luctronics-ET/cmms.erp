@@ -32,7 +32,9 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
   3. Técnico consegue ver os registros recentes de uso do ativo na aba ("Registros Recentes")
   4. `pytest tests/` verde (sem regressão nos testes existentes); `test_migracoes_idempotencia` passa: `db.init()` executado duas vezes contra o mesmo banco sem erro de "duplicate column name"
   5. `backend/manutencao.py` registrado em `main.py` via `include_router`; `data/schema_manutencao.sql` adicionado à lista `CoreDB._SCHEMAS` com todas as tabelas novas em `CREATE TABLE IF NOT EXISTS`
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 01-01-PLAN.md — Backend slice: schema_manutencao.sql + _SCHEMAS, manutencao.py router (atomic POST/GET + vencimentos), include_router em main.py
+- [ ] 01-02-PLAN.md — Frontend "Registrar Uso" tab (API-backed) + async test fixture (asgi-lifespan) + teste de idempotência + regressão da suíte
 **UI hint**: yes
 
 ### Phase 2: Plano no Ativo
