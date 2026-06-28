@@ -16,7 +16,7 @@ from datetime import date
 from typing import Optional
 
 import aiosqlite
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Query
 from pydantic import BaseModel, field_validator
 
 router = APIRouter(prefix="/api/manutencao", tags=["manutencao"])
@@ -202,13 +202,18 @@ async def registrar_uso(body: UsoIn, authorization: str | None = Header(None)):
 
 
 @router.get("/uso")
-async def listar_uso(ativo_id: Optional[str] = None, limit: int = 20):
+async def listar_uso(
+    ativo_id: Optional[str] = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    authorization: str | None = Header(None),
+):
     """Retorna registros de uso recentes, ordenados mais novos primeiro.
 
     Parâmetros:
       ativo_id — filtra por ativo específico (opcional)
-      limit    — máx de linhas retornadas (padrão 20)
+      limit    — máx de linhas retornadas (padrão 50, min 1, max 200)
     """
+    await _require_auth(authorization)
     db = _db()
     if ativo_id:
         rows = await db.fetch_all(
