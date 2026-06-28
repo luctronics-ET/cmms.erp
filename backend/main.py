@@ -20,6 +20,7 @@ from .db_core import CoreDB
 from .catalogo import router as catalogo_router
 from .grama import router as grama_router, init_grama
 from .sync import router as sync_router
+from .manutencao import router as manutencao_router
 
 # ── Config ────────────────────────────────────────────────────────────────────
 from tools.telegram_spike import _load_dotenv as _load_env  # noqa: E402
@@ -278,6 +279,39 @@ _MANUT_TIPOS_PLANOS = {
             {"id": "p09", "iv": 1000, "n": "Revisao geral motor diesel", "its": ["Kit juntas cabecote", "Glow plugs x4"]},
         ],
     },
+    # ── Fonoclama (sistema de aviso sonoro) — legado de xFonoclama/fonoclama.html ──
+    "AMPLIFICADOR": {
+        "nome": "Amplificador", "categoria": "fonoclama",
+        "plano": [
+            {"id": "am01", "iv": 180, "n": "Inspecao de ventilacao e conexoes", "its": ["Conector P10", "Terminal de audio"]},
+            {"id": "am02", "iv": 720, "n": "Teste de potencia e distorcao", "its": ["Fusivel", "Cooler 12V"]},
+        ],
+    },
+    "CONSOLE": {
+        "nome": "Console / microfone", "categoria": "fonoclama",
+        "plano": [
+            {"id": "co01", "iv": 180, "n": "Teste funcional de acionamento", "its": ["Cabo XLR", "Conector XLR"]},
+            {"id": "co02", "iv": 720, "n": "Revisao de cabeamento e contatos", "its": ["Limpador de contato"]},
+        ],
+    },
+    "ALTO_FALANTE": {
+        "nome": "Alto-falante / corneta", "categoria": "fonoclama",
+        "plano": [
+            {"id": "af01", "iv": 240, "n": "Inspecao de fixacao e resposta sonora", "its": ["Suporte metalico", "Conector de linha"]},
+        ],
+    },
+    "LINHA_70V": {
+        "nome": "Linha 70V / distribuicao", "categoria": "fonoclama",
+        "plano": [
+            {"id": "l701", "iv": 360, "n": "Teste de continuidade e isolacao", "its": ["Cabo 2x1,5mm", "Conector de linha"]},
+        ],
+    },
+    "SIRENE": {
+        "nome": "Sirene / aviso sonoro", "categoria": "fonoclama",
+        "plano": [
+            {"id": "si01", "iv": 180, "n": "Teste de acionamento e intensidade", "its": ["Fusivel", "Rele"]},
+        ],
+    },
 }
 
 app = FastAPI(title="xCore API", version="1.0.0", docs_url="/docs")
@@ -292,6 +326,7 @@ db = CoreDB(DB_PATH)
 app.include_router(grama_router)
 app.include_router(sync_router)
 app.include_router(catalogo_router)
+app.include_router(manutencao_router)
 
 # Serve xCore frontend files (HTMLs, JS, CSS, assets)
 _FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..")
@@ -301,6 +336,16 @@ app.mount("/static", StaticFiles(directory=_FRONTEND_DIR), name="static")
 app.mount("/assets", StaticFiles(directory=_SHARED_ASSETS_DIR), name="assets")
 if os.path.isdir(_PMOC_DIR):
     app.mount("/pmoc", StaticFiles(directory=_PMOC_DIR, html=True), name="pmoc")
+
+
+@app.middleware("http")
+async def _no_cache_html_js(request, call_next):
+    """Evita servir HTML/JS velho do cache do browser (fim dos hard-refresh em dev)."""
+    resp = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.endswith((".html", ".js", ".css")):
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
 
 
 async def _seed_colab_if_empty() -> None:
@@ -421,7 +466,7 @@ def _derive_catalogo_seed() -> tuple[list[tuple], list[tuple]]:
 
 
 async def _seed_catalogo_manut_if_empty() -> None:
-    servicos, planos = _derive_catalogo_seed()
+    servicos, _planos_legado = _derive_catalogo_seed()  # planos_manutencao APOSENTADO (catalogo_planos é a fonte)
     await db.executemany(
         "INSERT OR IGNORE INTO catalogo_servicos (id, codigo, nome, descricao, escopo, versao, pop_doc_id, tempo_estimado_min, servico_pai_id, aplicavel_a, criado_por_modulo) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         servicos,
@@ -450,11 +495,202 @@ async def _seed_catalogo_manut_if_empty() -> None:
             "INSERT OR IGNORE INTO catalogo_servico_materiais (servico_id, material_id, nome_livre, qtd, unidade, obrigatorio, obs) VALUES (?,?,?,?,?,?,?)",
             materiais_rows,
         )
+    # planos_manutencao NÃO é mais seedado — catalogo_planos é a fonte única.
 
-    await db.executemany(
-        "INSERT OR IGNORE INTO planos_manutencao (id, servico_id, servico_versao_pin, ativo_id, tipo_codigo, frequencia, criticidade_override, janela_permitida, proxima_execucao, ultima_execucao, responsavel_pmoc, obs, criado_por_modulo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        planos,
+
+async def _migrate_catalogo_planos_cols() -> None:
+    """Migração aditiva: colunas de disparo no plano nomeado (PRAGMA antes de ALTER)."""
+    pcols = {c["name"] for c in await db.fetch_all("PRAGMA table_info(catalogo_planos)")}
+    if "frequencia" not in pcols:
+        await db.execute("ALTER TABLE catalogo_planos ADD COLUMN frequencia TEXT")
+    if "aplicavel_tipos" not in pcols:
+        await db.execute("ALTER TABLE catalogo_planos ADD COLUMN aplicavel_tipos TEXT")
+    icols = {c["name"] for c in await db.fetch_all("PRAGMA table_info(catalogo_plano_itens)")}
+    if "frequencia" not in icols:
+        await db.execute("ALTER TABLE catalogo_plano_itens ADD COLUMN frequencia TEXT")
+    # Disparo default dos planos de climatização (ATA2 não trouxe intervalo) = 90 dias.
+    # Preserva o comportamento do antigo planos_manutencao no sync do PMOC.
+    await db.execute(
+        "UPDATE catalogo_planos SET frequencia = ? "
+        "WHERE categoria = 'climatizacao' AND (frequencia IS NULL OR frequencia = '')",
+        ('{"tipo": "por_tempo", "valor": 90, "unidade": "dias"}',),
     )
+
+
+async def _seed_grama_if_empty() -> None:
+    """Seed inicial de Controle Vegetal (máquinas + áreas) se as tabelas estiverem
+    vazias. Conjunto modesto e editável — base p/ o módulo não nascer vazio."""
+    row = await db.fetch_one("SELECT COUNT(*) AS n FROM grama_maquinas")
+    if not row or row["n"] == 0:
+        maquinas = [
+            ("gmaq-fs220-1", "Roçadeira FS220 #1", "FS220", "roçadeira", "Stihl", 142.5),
+            ("gmaq-fs220-2", "Roçadeira FS220 #2", "FS220", "roçadeira", "Stihl", 198.2),
+            ("gmaq-fs220-3", "Roçadeira FS220 #3", "FS220", "roçadeira", "Stihl", 76.0),
+            ("gmaq-fs220-4", "Roçadeira FS220 #4", "FS220", "roçadeira", "Stihl", 33.5),
+            ("gmaq-fs220-5", "Roçadeira FS220 #5", "FS220", "roçadeira", "Stihl", 12.0),
+            ("gmaq-gar-1", "Cortador GAR #1", "GAR-53", "cortador_grama", "Garthen", 85.4),
+            ("gmaq-gar-2", "Cortador GAR #2", "GAR-53", "cortador_grama", "Garthen", 60.1),
+            ("gmaq-gar-3", "Cortador GAR #3", "GAR-53", "cortador_grama", "Garthen", 25.0),
+            ("gmaq-ms650", "Motosserra MS650", "MS650", "motosserra", "Stihl", 42.0),
+            ("gmaq-sopra-1", "Soprador BR600", "BR600", "soprador", "Stihl", 18.0),
+            ("gmaq-ts114-1", "Cortadora concreto TS114", "TS114", "altra", "Stihl", 30.0),
+            ("gmaq-sol", "Trator de corte SOL", "SOL-1200", "altra", "Solaris", 220.1),
+        ]
+        for mid, nome, modelo, tipo, fab, horas in maquinas:
+            await db.execute(
+                "INSERT OR IGNORE INTO grama_maquinas (id, nome, modelo, tipo, fabricante, horas_uso, status) "
+                "VALUES (?,?,?,?,?,?, 'operacional')",
+                (mid, nome, modelo, tipo, fab, horas),
+            )
+    row = await db.fetch_one("SELECT COUNT(*) AS n FROM grama_areas")
+    if not row or row["n"] == 0:
+        areas = [
+            ("garea-cais-norte", "Cais Norte", "jardim", 1200.0, "gramado", "plano"),
+            ("garea-campo-honra", "Campo de Honra", "jardim", 3500.0, "gramado", "plano"),
+            ("garea-entrada", "Entrada Principal", "canteiro", 800.0, "gramado", "moderado"),
+            ("garea-estac", "Estacionamentos", "area_recreativa", 2400.0, "gramado", "plano"),
+            ("garea-desportivo", "Campo Desportivo", "area_recreativa", 6000.0, "gramado", "plano"),
+            ("garea-bosque", "Bosque Interno", "bosque", 4200.0, "mata_fechada", "acentuado"),
+        ]
+        for aid, nome, tipo, m2, flora, inclin in areas:
+            await db.execute(
+                "INSERT OR IGNORE INTO grama_areas (id, nome, tipo, area_m2, flora, inclinacao, limpeza, ativa) "
+                "VALUES (?,?,?,?,?,?, 'media', 1)",
+                (aid, nome, tipo, m2, flora, inclin),
+            )
+
+
+async def _migrate_modulo_transportes_categorias() -> None:
+    """Corrige registro pmoc_transportes: categorias reais dos ativos são
+    'viaturas'/'embarcacoes' (não 'frota_terrestre'/'frota_naval'). Sem essa
+    correção o manifest do PMOC transportes retorna 0 ativos/serviços."""
+    await db.execute(
+        "UPDATE modulos_registrados SET categorias_atend = ? "
+        "WHERE nome = 'pmoc_transportes' AND categorias_atend = ?",
+        ('["viaturas","embarcacoes"]', '["frota_terrestre","frota_naval"]'),
+    )
+
+
+async def _migrate_catalogo_servicos_taxon() -> None:
+    """Migração aditiva: taxonomia de serviço (categoria/subcategoria) em
+    catalogo_servicos + backfill a partir de aplicavel_a (categoria de ativo legada)."""
+    import json
+    cols = {c["name"] for c in await db.fetch_all("PRAGMA table_info(catalogo_servicos)")}
+    if "categoria" not in cols:
+        await db.execute("ALTER TABLE catalogo_servicos ADD COLUMN categoria TEXT")
+    if "subcategoria" not in cols:
+        await db.execute("ALTER TABLE catalogo_servicos ADD COLUMN subcategoria TEXT")
+    _MAP = {
+        "climatizacao": ("MANUTENCAO", "REFRIGERACAO"), "eletrica": ("MANUTENCAO", "ELETRICA"),
+        "predial": ("MANUTENCAO", "EDIFICACAO"), "instrumentos": ("MANUTENCAO", "ELETRONICA"),
+        "frota_terrestre": ("TRANSPORTE", ""), "frota_naval": ("TRANSPORTE", ""),
+        "viaturas": ("TRANSPORTE", ""), "embarcacoes": ("TRANSPORTE", ""),
+        "maquinas_corte": ("CONTROLE VEGETAL", ""),
+    }
+    rows = await db.fetch_all(
+        "SELECT id, aplicavel_a FROM catalogo_servicos WHERE categoria IS NULL OR categoria = ''"
+    )
+    for r in rows:
+        try:
+            cats = (json.loads(r["aplicavel_a"] or "{}").get("categorias")) or []
+        except (ValueError, TypeError):
+            cats = []
+        m = _MAP.get(cats[0]) if cats else None
+        if not m:
+            continue
+        await db.execute(
+            "UPDATE catalogo_servicos SET categoria = ?, subcategoria = ? WHERE id = ?",
+            (m[0], m[1], r["id"]),
+        )
+
+
+async def _seed_catalogo_planos_from_tipos() -> None:
+    """Migra os planos hardcoded (_MANUT_TIPOS_PLANOS: corte + fonoclama) para o
+    modelo nomeado catalogo_planos + catalogo_plano_itens. Disparo por serviço
+    (frequencia no item). Idempotente. Climatização já vem do import ATA2."""
+    import json
+    for tipo_codigo, tipo in _MANUT_TIPOS_PLANOS.items():
+        if tipo["categoria"] == "maquinas_corte":
+            cat = "maquinas_corte"
+        elif tipo["categoria"] == "fonoclama":
+            cat = "fonoclama"
+        else:
+            continue  # climatização tem seu próprio import
+        plano_id = f"plano-{tipo_codigo.lower()}"
+        await db.execute(
+            "INSERT OR IGNORE INTO catalogo_planos (id, codigo, nome, categoria, tipo_codigo, aplicavel_tipos, fonte, ativo) "
+            "VALUES (?,?,?,?,?,?,?,1)",
+            (plano_id, tipo_codigo, f"Plano {tipo['nome']}", cat, tipo_codigo,
+             json.dumps([tipo_codigo]), "Migrado de _MANUT_TIPOS_PLANOS"),
+        )
+        for seq, step in enumerate(tipo["plano"]):
+            servico_id = f"svc-plano-{tipo_codigo.lower()}-{step['id']}"
+            freq = json.dumps({"tipo": "por_uso", "valor": step["iv"], "unidade": "h"})
+            await db.execute(
+                "INSERT OR IGNORE INTO catalogo_plano_itens (plano_id, servico_id, seq, classe, frequencia) "
+                "VALUES (?,?,?, 'prev', ?)",
+                (plano_id, servico_id, seq, freq),
+            )
+
+
+# Planos padrão de transportes (km/h) — fonte: Regras de Negócio e Fluxos.md
+_TRANSP_PLANOS = {
+    "VTR_PICKUP": {"nome": "Viatura de passeio/pickup", "cat": "viaturas", "un": "km", "plano": [
+        {"id": "p01", "iv": 5000,  "n": "Troca de óleo + filtro",      "its": ["Óleo 5W-30 sintético 4L", "Filtro de óleo"]},
+        {"id": "p02", "iv": 10000, "n": "Inspeção/troca de freios",    "its": ["Pastilhas de freio"]},
+        {"id": "p03", "iv": 10000, "n": "Rodízio de pneus",            "its": []},
+        {"id": "p04", "iv": 15000, "n": "Troca filtro de ar e combustível", "its": ["Filtro de ar", "Filtro de combustível"]},
+        {"id": "p05", "iv": 40000, "n": "Revisão geral + correias",    "its": ["Correia dentada", "Kit tensor"]},
+    ]},
+    "VTR_CARGA": {"nome": "Viatura de carga/caminhão", "cat": "viaturas", "un": "km", "plano": [
+        {"id": "p01", "iv": 10000, "n": "Troca óleo + filtro (diesel)", "its": ["Óleo 15W-40 diesel", "Filtro de óleo"]},
+        {"id": "p02", "iv": 20000, "n": "Inspeção freios + lonas",      "its": ["Lona/pastilha de freio"]},
+        {"id": "p03", "iv": 20000, "n": "Troca filtro combustível diesel", "its": ["Filtro combustível diesel"]},
+        {"id": "p04", "iv": 50000, "n": "Revisão geral",                "its": ["Kit revisão pesada"]},
+    ]},
+    "EMB_LANCHA": {"nome": "Lancha / embarcação", "cat": "embarcacoes", "un": "h", "plano": [
+        {"id": "p01", "iv": 50,  "n": "Troca de óleo do motor de popa", "its": ["Óleo náutico", "Filtro de óleo"]},
+        {"id": "p02", "iv": 100, "n": "Limpeza/inspeção de casco",      "its": []},
+        {"id": "p03", "iv": 200, "n": "Troca do rotor da bomba d'água", "its": ["Rotor/impeller"]},
+        {"id": "p04", "iv": 300, "n": "Inspeção hélice + ânodos",       "its": ["Ânodo de zinco"]},
+        {"id": "p05", "iv": 500, "n": "Revisão geral do motor",         "its": ["Kit junta", "Velas náuticas"]},
+    ]},
+}
+
+
+async def _seed_planos_transportes_if_empty() -> None:
+    """Cria serviços + materiais + planos nomeados (km/h) para viaturas e
+    embarcações. Idempotente (INSERT OR IGNORE)."""
+    import json
+    for tipo_codigo, t in _TRANSP_PLANOS.items():
+        plano_id = f"plano-{tipo_codigo.lower()}"
+        await db.execute(
+            "INSERT OR IGNORE INTO catalogo_planos (id, codigo, nome, categoria, tipo_codigo, aplicavel_tipos, fonte, ativo) "
+            "VALUES (?,?,?,?,?,?,?,1)",
+            (plano_id, tipo_codigo, f"Plano {t['nome']}", t["cat"], tipo_codigo,
+             json.dumps([tipo_codigo]), "Regras de Negócio e Fluxos.md"),
+        )
+        for seq, step in enumerate(t["plano"]):
+            servico_id = f"svc-transp-{tipo_codigo.lower()}-{step['id']}"
+            await db.execute(
+                "INSERT OR IGNORE INTO catalogo_servicos (id, codigo, nome, descricao, escopo, versao, aplicavel_a, criado_por_modulo) "
+                "VALUES (?,?,?,?, 'central', 1, ?, 'manutencao')",
+                (servico_id, f"{tipo_codigo}_{step['id'].upper()}", step["n"],
+                 f"Serviço preventivo de {t['nome']}.",
+                 json.dumps({"categorias": [t["cat"]], "tipos": [tipo_codigo]})),
+            )
+            for mat in step["its"]:
+                await db.execute(
+                    "INSERT OR IGNORE INTO catalogo_servico_materiais (servico_id, material_id, nome_livre, qtd, unidade, obrigatorio) "
+                    "VALUES (?, NULL, ?, 1, 'un', 1)",
+                    (servico_id, mat),
+                )
+            freq = json.dumps({"tipo": "por_uso", "valor": step["iv"], "unidade": t["un"]})
+            await db.execute(
+                "INSERT OR IGNORE INTO catalogo_plano_itens (plano_id, servico_id, seq, classe, frequencia) "
+                "VALUES (?,?,?, 'prev', ?)",
+                (plano_id, servico_id, seq, freq),
+            )
 
 
 @app.get("/")
@@ -566,6 +802,14 @@ async def startup():
     init_grama(db)
     await _seed_colab_if_empty()
     await _seed_catalogo_manut_if_empty()
+    await _migrate_catalogo_planos_cols()
+    await _migrate_catalogo_servicos_taxon()
+    await _migrate_modulo_transportes_categorias()
+    await _seed_grama_if_empty()
+    await _seed_catalogo_planos_from_tipos()
+    await _seed_planos_transportes_if_empty()
+    await _seed_fonoclama_if_empty()
+    await _seed_pmoc_frota_corte_if_empty()
     # Catálogo de climatização vem de tools/import_ata2_climatizacao.py (serviços +
     # catalogo_planos/itens a partir do HTML da ATA2). Import manual, não no boot.
 
@@ -901,55 +1145,60 @@ async def update_refrigeracao(ativo_id: str, body: dict):
 
 @app.post("/api/pmoc/refrigeracao/{ativo_id}/os-preventiva", status_code=201)
 async def gerar_os_preventiva(ativo_id: str):
-    """Fecha o ciclo plano→OS: cria uma OS preventiva para a máquina, ligada ao
-    serviço preventivo do seu plano, com etapas (checklist) vindas da descrição."""
-    ativo = await db.fetch_one(
-        "SELECT id, nome, local_id FROM ativos WHERE id = ?", (ativo_id,)
-    )
+    """Cria OS preventiva PMOC ligada a um plano de climatização (catalogo_planos),
+    resolvido pelo tipo do ativo (fallback: 1º plano de climatização). Etapas =
+    serviços preventivos do plano; servico_id = 1º (débito de estoque pelo #1)."""
+    import json
+    ativo = await db.fetch_one("SELECT id, nome, tipo, local_id FROM ativos WHERE id = ?", (ativo_id,))
     if not ativo:
         raise HTTPException(404, "Ativo não encontrado")
-    plano = await db.fetch_one(
-        "SELECT servico_id, obs FROM planos_manutencao "
-        "WHERE ativo_id = ? AND criado_por_modulo = 'refrigeracao' AND ativo = 1 LIMIT 1",
-        (ativo_id,),
+    planos = await db.fetch_all(
+        "SELECT id, aplicavel_tipos, tipo_codigo FROM catalogo_planos "
+        "WHERE categoria = 'climatizacao' AND ativo = 1 ORDER BY codigo"
     )
-    if not plano:
-        raise HTTPException(400, "Sem plano preventivo para esta máquina")
-    servico = await db.fetch_one(
-        "SELECT id, nome, descricao FROM catalogo_servicos WHERE id = ?", (plano["servico_id"],)
+    chosen = None
+    for p in planos:
+        tipos = []
+        try:
+            tipos = json.loads(p["aplicavel_tipos"] or "[]")
+        except Exception:
+            tipos = []
+        if p["tipo_codigo"] and p["tipo_codigo"] not in tipos:
+            tipos.append(p["tipo_codigo"])
+        if ativo["tipo"] in tipos:
+            chosen = p; break
+    if not chosen and planos:
+        chosen = planos[0]  # fallback: tipos sem plano próprio (AC_JANELA/PISO_TETO/SELF)
+    if not chosen:
+        raise HTTPException(400, "Sem plano de climatização cadastrado")
+    itens = await db.fetch_all(
+        "SELECT s.id AS servico_id, s.nome FROM catalogo_plano_itens i "
+        "JOIN catalogo_servicos s ON s.id = i.servico_id "
+        "WHERE i.plano_id = ? AND i.classe = 'prev' ORDER BY i.seq",
+        (chosen["id"],),
     )
-    crit = "media"
-    obs = plano["obs"] or ""
-    if "CRÍTICA" in obs:
-        crit = "critica"
-    elif "ALTA" in obs:
-        crit = "alta"
-    elif "BAIXA" in obs:
-        crit = "baixa"
-    local_id = ativo["local_id"] or (
-        await db.fetch_one("SELECT local_id FROM pmoc_refrigeracao WHERE ativo_id = ?", (ativo_id,)) or {}
-    ).get("local_id")
+    if not itens:
+        raise HTTPException(400, "Plano sem serviços preventivos")
+    pm = await db.fetch_one("SELECT criticidade, local_id FROM pmoc_refrigeracao WHERE ativo_id = ?", (ativo_id,)) or {}
+    crit = {"CRÍTICA": "critica", "ALTA": "alta", "MÉDIA": "media", "BAIXA": "baixa"}.get(
+        (pm.get("criticidade") or "").upper(), "media")
+    local_id = ativo["local_id"] or pm.get("local_id")
     oid = str(uuid.uuid4())
     codigo = await _gen_os_codigo()
-    titulo = f"Preventiva PMOC — {ativo['nome']}"
     await db.execute(
         """INSERT INTO ordens_servico
            (id, codigo, titulo, descricao, tipo, prioridade, modulo_origem,
             local_id, ativo_id, servico_id)
            VALUES (?,?,?,?, 'preventiva', ?, 'refrigeracao', ?, ?, ?)""",
-        (oid, codigo, titulo, (servico or {}).get("nome"), crit, local_id, ativo_id, plano["servico_id"]),
+        (oid, codigo, f"Preventiva PMOC — {ativo['nome']}", itens[0]["nome"], crit,
+         local_id, ativo_id, itens[0]["servico_id"]),
     )
     await db.execute(
         "INSERT INTO os_historico (os_id, status_de, status_para, obs) VALUES (?,?,?,?)",
-        (oid, None, "aberta", "OS preventiva gerada do plano (refrigeração)"),
+        (oid, None, "aberta", "OS preventiva gerada de plano de climatização"),
     )
-    # etapas = checklist do serviço (descrição com tarefas separadas por ' ; ')
-    desc = (servico or {}).get("descricao") or ""
-    tarefas = [t.strip() for t in desc.split(" ; ") if t.strip()]
-    for i, t in enumerate(tarefas):
-        await db.execute(
-            "INSERT INTO os_etapas (os_id, titulo, ordem) VALUES (?,?,?)", (oid, t, i)
-        )
+    for i, it in enumerate(itens):
+        await db.execute("INSERT INTO os_etapas (os_id, titulo, ordem) VALUES (?,?,?)", (oid, it["nome"], i))
     return await get_os(oid)
 
 
@@ -1857,7 +2106,41 @@ async def update_os_status(oid: str, body: OSStatusIn):
         "INSERT INTO os_historico (os_id, status_de, status_para, obs, usuario_id) VALUES (?,?,?,?,?)",
         (oid, row["status"], body.para_status, body.obs, body.usuario_id),
     )
+    # Debita estoque ao concluir (regra de negócio). Só na transição p/ concluída,
+    # evita débito duplo se status já era concluída.
+    if body.para_status == "concluida" and row["status"] != "concluida":
+        await _debitar_estoque_os(oid, body.usuario_id)
     return await get_os(oid)
+
+
+async def _debitar_estoque_os(oid: str, usuario_id: int | None) -> None:
+    """Baixa do estoque os materiais do serviço da OS (catálogo). Idempotência:
+    chamado só na transição p/ concluída. Materiais sem item de estoque (nome
+    livre) são ignorados. Estoque insuficiente debita o disponível e anota a falta."""
+    os_row = await db.fetch_one("SELECT servico_id FROM ordens_servico WHERE id = ?", (oid,))
+    if not os_row or not os_row["servico_id"]:
+        return
+    materiais = await db.fetch_all(
+        "SELECT material_id, qtd FROM catalogo_servico_materiais "
+        "WHERE servico_id = ? AND material_id IS NOT NULL AND qtd > 0",
+        (os_row["servico_id"],),
+    )
+    for m in materiais:
+        item = await db.fetch_one("SELECT qtd_atual FROM estoque WHERE id = ?", (m["material_id"],))
+        if not item:
+            continue
+        pedido = m["qtd"]
+        debita = min(pedido, item["qtd_atual"])
+        if debita <= 0:
+            continue
+        falta = pedido - debita
+        obs = f"Consumo OS {oid}" + (f" (estoque insuficiente: faltaram {falta})" if falta else "")
+        await db.execute("UPDATE estoque SET qtd_atual = qtd_atual - ? WHERE id = ?", (debita, m["material_id"]))
+        await db.execute(
+            "INSERT INTO estoque_movimentos (item_id, tipo, quantidade, os_id, usuario_id, obs) "
+            "VALUES (?, 'saida', ?, ?, ?, ?)",
+            (m["material_id"], debita, oid, usuario_id, obs),
+        )
 
 
 @app.post("/api/os/{oid}/etapas", status_code=201)
@@ -2146,6 +2429,261 @@ async def delete_pmoc_refrig(pid: int, arquivar_ativo: int = 0):
     if arquivar_ativo and row["ativo_id"]:
         await db.execute("UPDATE ativos SET ativo = 0 WHERE id = ?", (row["ativo_id"],))
     return {"ok": True}
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# PMOC genérico: Transportes (viaturas+embarcações) e Corte (máquinas de corte)
+# Mesmo molde de refrigeração: ficha de detalhe 1:1 com ativos, editável (whitelist).
+# OS preventiva usa o fluxo genérico POST /api/os (servico_id) + débito ao concluir.
+# ════════════════════════════════════════════════════════════════════════════
+_TRANSP_EDIT = {
+    "estado_operacional", "est_idade", "criticidade", "obs", "renavam",
+    "licenciamento_ate", "seguro_ate", "registro_naval", "combustivel", "tanque_l",
+    "oleo_ultima_uso", "pneus_estado", "bateria_estado", "casco_estado",
+    "motor_obs", "data_aquisicao", "ultima_manutencao",
+}
+_CORTE_EDIT = {
+    "estado_operacional", "est_idade", "criticidade", "obs", "motor_tempos",
+    "combustivel", "oleo_tipo", "oleo_ultima_uso", "ferramenta_corte",
+    "data_aquisicao", "ultima_manutencao",
+}
+_FONO_EDIT = {
+    "estado_operacional", "est_idade", "criticidade", "obs", "potencia_w",
+    "impedancia", "tensao_linha", "data_instalacao", "ultima_manutencao",
+}
+
+
+async def _pmoc_ficha_list(tabela: str) -> list[dict]:
+    """Lista fichas PMOC de uma categoria (detalhe + ativo + local). Mesmo shape
+    do list_refrigeracao para a página de Manutenção consumir."""
+    return await db.fetch_all(
+        f"""
+        SELECT p.*,
+               a.nome AS ativo_nome, a.tipo AS ativo_tipo, a.subtipo AS ativo_subtipo,
+               a.categoria AS ativo_categoria, a.pat AS ativo_pat, a.placa AS ativo_placa,
+               a.loc AS loc_txt, a.uso_atual, a.unidade_uso, a.ativo AS ativo_ativo,
+               l.nome AS local_nome
+        FROM {tabela} p
+        JOIN ativos a      ON a.id = p.ativo_id
+        LEFT JOIN locais l ON l.id = p.local_id
+        ORDER BY a.nome
+        """
+    )
+
+
+async def _pmoc_ficha_edit(tabela: str, whitelist: set, ativo_id: str, body: dict) -> dict:
+    """Edita ficha PMOC (campos da tabela detalhe + subset de ativos). Whitelist."""
+    row = await db.fetch_one(f"SELECT ativo_id FROM {tabela} WHERE ativo_id = ?", (ativo_id,))
+    if not row:
+        raise HTTPException(404, "Ficha não encontrada")
+    det = [(k, v) for k, v in body.items() if k in whitelist]
+    if det:
+        sets = ", ".join(f"{k} = ?" for k, _ in det)
+        await db.execute(
+            f"UPDATE {tabela} SET {sets}, atualizado_em = CURRENT_TIMESTAMP WHERE ativo_id = ?",
+            [v for _, v in det] + [ativo_id],
+        )
+    ativo = [(k, v) for k, v in body.items() if k in _ATIVO_EDIT]
+    if ativo:
+        sets = ", ".join(f"{k} = ?" for k, _ in ativo)
+        await db.execute(
+            f"UPDATE ativos SET {sets} WHERE id = ?", [v for _, v in ativo] + [ativo_id]
+        )
+    return await db.fetch_one(
+        f"SELECT p.*, a.nome AS ativo_nome FROM {tabela} p JOIN ativos a ON a.id = p.ativo_id WHERE p.ativo_id = ?",
+        (ativo_id,),
+    )
+
+
+@app.get("/api/pmoc/transportes")
+async def list_transportes():
+    return await _pmoc_ficha_list("pmoc_transportes")
+
+
+@app.put("/api/pmoc/transportes/{ativo_id}")
+async def update_transportes(ativo_id: str, body: dict):
+    return await _pmoc_ficha_edit("pmoc_transportes", _TRANSP_EDIT, ativo_id, body)
+
+
+@app.get("/api/pmoc/corte")
+async def list_corte():
+    return await _pmoc_ficha_list("pmoc_corte")
+
+
+@app.put("/api/pmoc/corte/{ativo_id}")
+async def update_corte(ativo_id: str, body: dict):
+    return await _pmoc_ficha_edit("pmoc_corte", _CORTE_EDIT, ativo_id, body)
+
+
+@app.get("/api/pmoc/fonoclama")
+async def list_fonoclama():
+    return await _pmoc_ficha_list("pmoc_fonoclama")
+
+
+@app.put("/api/pmoc/fonoclama/{ativo_id}")
+async def update_fonoclama(ativo_id: str, body: dict):
+    return await _pmoc_ficha_edit("pmoc_fonoclama", _FONO_EDIT, ativo_id, body)
+
+
+# ── Vencimentos: o que está por vencer (plano↔tipo + uso_atual do ativo) ────────
+@app.get("/api/manutencao/vencimentos")
+async def manutencao_vencimentos(categoria: str | None = None):
+    """Para cada ativo, resolve o plano pelo tipo (aplicavel_tipos) e calcula o
+    próximo vencimento de cada serviço por uso (h/km). Disparo por tempo é omitido
+    (sem base de data confiável). Plano↔tipo É a atribuição (decisão do modelo)."""
+    import json, math
+    planos = await db.fetch_all("SELECT * FROM catalogo_planos WHERE ativo = 1")
+    plano_by_tipo: dict[str, list] = {}
+    for p in planos:
+        tipos = []
+        try:
+            tipos = json.loads(p["aplicavel_tipos"] or "[]")
+        except Exception:
+            tipos = []
+        if p["tipo_codigo"] and p["tipo_codigo"] not in tipos:
+            tipos.append(p["tipo_codigo"])
+        for t in tipos:
+            plano_by_tipo.setdefault(t, []).append(p)
+    q = "SELECT id, nome, tipo, categoria, uso_atual, unidade_uso FROM ativos WHERE ativo = 1"
+    params: list = []
+    if categoria:
+        q += " AND categoria = ?"; params.append(categoria)
+    ativos = await db.fetch_all(q, tuple(params))
+    out: list[dict] = []
+    for a in ativos:
+        for p in plano_by_tipo.get(a["tipo"], []):
+            itens = await db.fetch_all(
+                "SELECT i.frequencia, i.servico_id, s.nome FROM catalogo_plano_itens i "
+                "JOIN catalogo_servicos s ON s.id = i.servico_id WHERE i.plano_id = ? ORDER BY i.seq",
+                (p["id"],),
+            )
+            for it in itens:
+                raw = it["frequencia"] or p["frequencia"]
+                if not raw:
+                    continue
+                try:
+                    f = json.loads(raw)
+                except Exception:
+                    continue
+                if f.get("tipo") != "por_uso" or not f.get("valor"):
+                    continue
+                iv = f["valor"]; uso = a["uso_atual"] or 0
+                prox = (math.floor(uso / iv) + 1) * iv
+                falta = prox - uso
+                st = "warn" if falta <= iv * 0.15 else "ok"
+                out.append({
+                    "ativo_id": a["id"], "ativo_nome": a["nome"], "tipo": a["tipo"],
+                    "categoria": a["categoria"], "plano_id": p["id"], "plano_nome": p["nome"],
+                    "servico_id": it["servico_id"], "servico": it["nome"],
+                    "intervalo": iv, "unidade": f.get("unidade"), "uso_atual": uso,
+                    "proximo": prox, "falta": falta, "pct": round((uso % iv) / iv * 100),
+                    "status": st,
+                })
+    out.sort(key=lambda x: x["falta"])
+    return out
+
+
+@app.post("/api/manutencao/os-preventiva", status_code=201)
+async def gerar_os_servico(body: dict):
+    """Gera OS preventiva para (ativo, serviço) — usada pela tela de Vencimentos.
+    Liga servico_id (débito de estoque ao concluir vem do #1). Etapas = descrição."""
+    ativo_id = body.get("ativo_id"); servico_id = body.get("servico_id")
+    if not ativo_id or not servico_id:
+        raise HTTPException(400, "ativo_id e servico_id obrigatórios")
+    ativo = await db.fetch_one("SELECT id, nome, local_id FROM ativos WHERE id = ?", (ativo_id,))
+    if not ativo:
+        raise HTTPException(404, "Ativo não encontrado")
+    servico = await db.fetch_one("SELECT id, nome, descricao FROM catalogo_servicos WHERE id = ?", (servico_id,))
+    if not servico:
+        raise HTTPException(404, "Serviço não encontrado")
+    oid = str(uuid.uuid4())
+    codigo = await _gen_os_codigo()
+    await db.execute(
+        "INSERT INTO ordens_servico (id, codigo, titulo, descricao, tipo, prioridade, modulo_origem, local_id, ativo_id, servico_id) "
+        "VALUES (?,?,?,?, 'preventiva', 'media', 'manutencao', ?, ?, ?)",
+        (oid, codigo, f"Preventiva — {servico['nome']} · {ativo['nome']}",
+         servico["nome"], ativo.get("local_id"), ativo_id, servico_id),
+    )
+    await db.execute(
+        "INSERT INTO os_historico (os_id, status_de, status_para, obs) VALUES (?,?,?,?)",
+        (oid, None, "aberta", "OS preventiva gerada de vencimento"),
+    )
+    desc = (servico.get("descricao") or "")
+    for i, t in enumerate([x.strip() for x in desc.split(" ; ") if x.strip()]):
+        await db.execute("INSERT INTO os_etapas (os_id, titulo, ordem) VALUES (?,?,?)", (oid, t, i))
+    return await get_os(oid)
+
+
+async def _seed_pmoc_frota_corte_if_empty() -> None:
+    """Backfill: cria fichas pmoc_transportes/pmoc_corte para ativos existentes
+    que ainda não têm ficha. Idempotente (só insere o que falta)."""
+    # Transportes: viaturas + embarcações
+    novos = await db.fetch_all(
+        "SELECT id FROM ativos WHERE categoria IN ('viaturas','embarcacoes','frota_terrestre','frota_naval') "
+        "AND id NOT IN (SELECT ativo_id FROM pmoc_transportes WHERE ativo_id IS NOT NULL)"
+    )
+    for a in novos:
+        await db.execute("INSERT INTO pmoc_transportes (ativo_id) VALUES (?)", (a["id"],))
+    # Corte: máquinas de corte
+    novos_c = await db.fetch_all(
+        "SELECT id FROM ativos WHERE categoria = 'maquinas_corte' "
+        "AND id NOT IN (SELECT ativo_id FROM pmoc_corte WHERE ativo_id IS NOT NULL)"
+    )
+    for a in novos_c:
+        await db.execute("INSERT INTO pmoc_corte (ativo_id) VALUES (?)", (a["id"],))
+    # Fonoclama
+    novos_f = await db.fetch_all(
+        "SELECT id FROM ativos WHERE categoria = 'fonoclama' "
+        "AND id NOT IN (SELECT ativo_id FROM pmoc_fonoclama WHERE ativo_id IS NOT NULL)"
+    )
+    for a in novos_f:
+        await db.execute("INSERT INTO pmoc_fonoclama (ativo_id) VALUES (?)", (a["id"],))
+    if novos or novos_c or novos_f:
+        print(f"  seed PMOC: +{len(novos)} transportes, +{len(novos_c)} corte, +{len(novos_f)} fonoclama")
+
+
+# Inventário inicial fonoclama (legado de xFonoclama/fonoclama.html)
+_FONOCLAMA_ATIVOS = [
+    ("fono01", "AMPLIFICADOR", "AMP-CPD-01", "Rack da central de sonorização — CPD"),
+    ("fono02", "AMPLIFICADOR", "AMP-COM-02", "Amplificador redundante — Centro de operações"),
+    ("fono03", "CONSOLE", "CON-MESA-01", "Console principal de avisos gerais"),
+    ("fono04", "CONSOLE", "MIC-DESP-01", "Microfone de despacho — sala de serviço"),
+    ("fono05", "ALTO_FALANTE", "AF-CORR-01", "Corneta corredor bloco administrativo"),
+    ("fono06", "ALTO_FALANTE", "AF-PATIO-02", "Corneta pátio operacional"),
+    ("fono07", "ALTO_FALANTE", "AF-CAIS-03", "Corneta área do cais"),
+    ("fono08", "LINHA_70V", "L70-SETOR-A", "Linha de distribuição 70V setor administrativo"),
+    ("fono09", "LINHA_70V", "L70-SETOR-B", "Linha de distribuição 70V setor operacional"),
+    ("fono10", "SIRENE", "SIR-EMG-01", "Sirene de emergência do pátio principal"),
+]
+_FONOCLAMA_PECAS = [
+    ("Conector XLR", "un", "audio"), ("Cabo XLR", "m", "audio"),
+    ("Terminal de audio", "un", "audio"), ("Limpador de contato", "un", "quimico"),
+    ("Fusivel", "un", "eletric"), ("Cooler 12V", "un", "eletric"),
+    ("Cabo 2x1,5mm", "m", "audio"), ("Rele", "un", "eletric"),
+    ("Suporte metalico", "un", "fixacao"), ("Conector de linha", "un", "audio"),
+]
+
+
+async def _seed_fonoclama_if_empty() -> None:
+    """Cria ativos e peças de fonoclama se ainda não existirem (idempotente).
+    Os planos preventivos já vêm do catálogo (_MANUT_TIPOS_PLANOS)."""
+    existe = await db.fetch_one("SELECT 1 FROM ativos WHERE categoria = 'fonoclama' LIMIT 1")
+    if not existe:
+        for aid, tipo, nome, obs in _FONOCLAMA_ATIVOS:
+            await db.execute(
+                "INSERT OR IGNORE INTO ativos (id, tipo, categoria, nome, obs, uso_atual, unidade_uso, ativo) "
+                "VALUES (?, ?, 'fonoclama', ?, ?, 0, 'h', 1)",
+                (aid, tipo, nome, obs),
+            )
+        print(f"  seed fonoclama: +{len(_FONOCLAMA_ATIVOS)} ativos")
+    for nome, un, cat in _FONOCLAMA_PECAS:
+        ja = await db.fetch_one("SELECT 1 FROM estoque WHERE nome = ? LIMIT 1", (nome,))
+        if not ja:
+            await db.execute(
+                "INSERT INTO estoque (nome, categoria, unidade, qtd_atual, qtd_minima, ativo) "
+                "VALUES (?, 'consumivel', ?, 0, 1, 1)",
+                (nome, un),
+            )
 
 
 @app.post("/api/estoque/{iid}/movimentos", status_code=201)
