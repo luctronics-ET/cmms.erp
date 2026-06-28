@@ -101,35 +101,37 @@ async def _vencimentos_para_ativo(ativo_id: str, uso_atual_novo: float) -> list[
             (p["id"],),
         )
         for it in itens:
-            raw = it["frequencia"] or p.get("frequencia")
-            if not raw:
-                continue
             try:
+                raw = it["frequencia"] or p.get("frequencia")
+                if not raw:
+                    continue
                 f = json.loads(raw)
+                if not isinstance(f, dict):
+                    continue                       # guard: bare number/array/string
+                if f.get("tipo") != "por_uso" or not f.get("valor"):
+                    continue
+                iv = float(f["valor"])             # coerce string to float defensively
+                if iv <= 0:
+                    continue
+                prox = (math.floor(uso / iv) + 1) * iv
+                falta = prox - uso
+                if falta <= iv * 0.15:   # dentro da janela de alerta (mesma constante de main.py:2571)
+                    out.append({
+                        "ativo_id": ativo_id,
+                        "ativo_nome": ativo["nome"],
+                        "plano_id": p["id"],
+                        "plano_nome": p["nome"],
+                        "servico_id": it["servico_id"],
+                        "servico": it["nome"],
+                        "intervalo": iv,
+                        "unidade": f.get("unidade"),
+                        "uso_atual": uso,
+                        "proximo": prox,
+                        "falta": falta,
+                        "pct": round((uso % iv) / iv * 100),
+                    })
             except Exception:
-                continue
-            if f.get("tipo") != "por_uso" or not f.get("valor"):
-                continue
-            iv = f["valor"]
-            if iv <= 0:
-                continue
-            prox = (math.floor(uso / iv) + 1) * iv
-            falta = prox - uso
-            if falta <= iv * 0.15:   # dentro da janela de alerta (mesma constante de main.py:2571)
-                out.append({
-                    "ativo_id": ativo_id,
-                    "ativo_nome": ativo["nome"],
-                    "plano_id": p["id"],
-                    "plano_nome": p["nome"],
-                    "servico_id": it["servico_id"],
-                    "servico": it["nome"],
-                    "intervalo": iv,
-                    "unidade": f.get("unidade"),
-                    "uso_atual": uso,
-                    "proximo": prox,
-                    "falta": falta,
-                    "pct": round((uso % iv) / iv * 100),
-                })
+                continue                           # skip malformed item — never crash after commit
     return out
 
 
