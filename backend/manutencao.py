@@ -30,9 +30,8 @@ def _db():
 
 
 async def _require_auth(authorization: str | None) -> dict:
-    from fastapi import HTTPException as _HTTPException
     if not authorization or not authorization.startswith("Bearer "):
-        raise _HTTPException(401, "Token ausente")
+        raise HTTPException(401, "Token ausente")
     token = authorization[7:]
     row = await _db().fetch_one(
         "SELECT s.usuario_id, u.nome, u.mat, u.role "
@@ -41,7 +40,7 @@ async def _require_auth(authorization: str | None) -> dict:
         (token,),
     )
     if not row:
-        raise _HTTPException(401, "Token inválido ou expirado")
+        raise HTTPException(401, "Token inválido ou expirado")
     return row
 
 
