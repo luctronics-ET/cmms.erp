@@ -891,6 +891,14 @@ async def listar_movimentos(
     """
     await _require_auth(authorization)
     db = _db()
+
+    # Consistent with other endpoints: 404 for non-existent / soft-deleted item (IN-01).
+    row = await db.fetch_one(
+        "SELECT id FROM sobressalentes WHERE id = ? AND ativo = 1", (item_id,)
+    )
+    if not row:
+        raise HTTPException(404, "Peça não encontrada")
+
     rows = await db.fetch_all(
         "SELECT * FROM sobressalentes_movimentos "
         "WHERE item_id = ? "
