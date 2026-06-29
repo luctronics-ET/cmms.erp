@@ -893,6 +893,7 @@ class LocalIn(BaseModel):
     estrutura_id: Optional[str] = None
     descricao: Optional[str] = None
     area_m2: Optional[float] = None
+    altura_m: Optional[float] = None
 
 
 # ── Ordens de Serviço ─────────────────────────────────────────────────────────
@@ -1927,8 +1928,8 @@ async def get_local(lid: int):
 @app.post("/api/locais", status_code=201)
 async def create_local(body: LocalIn):
     lid = await db.execute(
-        "INSERT INTO locais (codigo, neo, nome, tipo, area, restricao, parent_id, estrutura_id, descricao, area_m2) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        (body.codigo, body.neo, body.nome, body.tipo, body.area, body.restricao, body.parent_id, body.estrutura_id, body.descricao, body.area_m2),
+        "INSERT INTO locais (codigo, neo, nome, tipo, area, restricao, parent_id, estrutura_id, descricao, area_m2, altura_m) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (body.codigo, body.neo, body.nome, body.tipo, body.area, body.restricao, body.parent_id, body.estrutura_id, body.descricao, body.area_m2, body.altura_m),
     )
     return await get_local(lid)
 
@@ -1937,8 +1938,8 @@ async def create_local(body: LocalIn):
 async def update_local(lid: int, body: LocalIn):
     await get_local(lid)
     await db.execute(
-        "UPDATE locais SET codigo=?, neo=?, nome=?, tipo=?, area=?, restricao=?, parent_id=?, estrutura_id=?, descricao=?, area_m2=? WHERE id=?",
-        (body.codigo, body.neo, body.nome, body.tipo, body.area, body.restricao, body.parent_id, body.estrutura_id, body.descricao, body.area_m2, lid),
+        "UPDATE locais SET codigo=?, neo=?, nome=?, tipo=?, area=?, restricao=?, parent_id=?, estrutura_id=?, descricao=?, area_m2=?, altura_m=? WHERE id=?",
+        (body.codigo, body.neo, body.nome, body.tipo, body.area, body.restricao, body.parent_id, body.estrutura_id, body.descricao, body.area_m2, body.altura_m, lid),
     )
     return await get_local(lid)
 
