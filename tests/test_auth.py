@@ -107,6 +107,17 @@ def _seed_empty_hash_user(main, mat: str, nome: str) -> int:
     return rows[0]["id"]
 
 
+def _seed_malformed_argon2_user(main, mat: str, nome: str, bad_hash: str) -> int:
+    """Insert a user with a malformed $argon2 hash (truncated/corrupted). Returns the user id."""
+    _exec(
+        main,
+        "INSERT INTO usuarios (nome, mat, pw_hash, role, ativo) VALUES (?, ?, ?, 'admin', 1)",
+        (nome, mat, bad_hash),
+    )
+    rows = _query(main, "SELECT id FROM usuarios WHERE mat = ?", (mat,))
+    return rows[0]["id"]
+
+
 def _get_pw_hash(main, user_id: int) -> str | None:
     """Fetch the current pw_hash for a user directly from the DB."""
     rows = _query(main, "SELECT pw_hash FROM usuarios WHERE id = ?", (user_id,))
@@ -232,7 +243,35 @@ def test_empty_pw_hash_returns_401(app_client):
     )
     # Error message must not distinguish empty-hash from wrong-password (no enumeration signal)
     body = resp.json()
-    assert "inválidas" in body.get("detail", "").lower() or resp.status_code == 401
+    assert "inválidas" in body.get("detail", "").lower(), (
+        f"Expected 'inválidas' in detail, got: {body.get('detail')!r}"
+    )
+
+
+def test_malformed_argon2_hash_returns_401_not_500(app_client):
+    """CR-01 regression: malformed/truncated $argon2 stored hash must return 401, not HTTP 500.
+
+    argon2.exceptions.VerificationError (parent of VerifyMismatchError) is raised by
+    _ph.verify() when the stored hash starts with '$argon2' but is structurally invalid.
+    Previously this exception was not caught and escaped as HTTP 500.
+    """
+    client, main = app_client
+    malformed_hashes = [
+        "$argon2id$",
+        "$argon2id$v=19$",
+        "$argon2id$v=19$m=65536,t=3,p=4$",
+        "$argon2id$v=19$m=65536,t=3,p=4$aaaa$",
+    ]
+    for i, bad_hash in enumerate(malformed_hashes):
+        mat = f"MALARG{i:03d}"
+        _seed_malformed_argon2_user(main, mat, f"Malformed Argon {i}", bad_hash)
+        resp = client.post("/api/auth/login", json={"mat": mat, "senha": "qualquer"})
+        assert resp.status_code == 401, (
+            f"Expected 401 for malformed hash {bad_hash!r}, got {resp.status_code}: {resp.text}"
+        )
+        assert "inválidas" in resp.json().get("detail", "").lower(), (
+            f"Expected generic 'inválidas' detail for {bad_hash!r}, got: {resp.json().get('detail')!r}"
+        )
 
 
 # ─────────────────── SEC-02 write-path tests (POST/PUT /api/usuarios) ─────────

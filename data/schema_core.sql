@@ -287,6 +287,73 @@ CREATE INDEX IF NOT EXISTS idx_pmoc_refrig_local  ON pmoc_refrigeracao(local_id)
 CREATE INDEX IF NOT EXISTS idx_pmoc_refrig_estado ON pmoc_refrigeracao(estado_operacional);
 CREATE INDEX IF NOT EXISTS idx_pmoc_refrig_crit   ON pmoc_refrigeracao(criticidade);
 
+-- PMOC de Transportes (viaturas e embarcações)
+CREATE TABLE IF NOT EXISTS pmoc_transportes (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  ativo_id            TEXT REFERENCES ativos(id),
+  local_id            INTEGER REFERENCES locais(id),
+  estado_operacional  TEXT DEFAULT 'OP',
+  est_idade           TEXT,
+  criticidade         TEXT DEFAULT 'operacional',
+  obs                 TEXT,
+  renavam             TEXT,
+  licenciamento_ate   TEXT,
+  seguro_ate          TEXT,
+  registro_naval      TEXT,
+  combustivel         TEXT,
+  tanque_l            REAL,
+  oleo_ultima_uso     REAL,
+  pneus_estado        TEXT,
+  bateria_estado      TEXT,
+  casco_estado        TEXT,
+  motor_obs           TEXT,
+  data_aquisicao      TEXT,
+  ultima_manutencao   TEXT,
+  criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_pmoc_transp_ativo  ON pmoc_transportes(ativo_id);
+
+-- PMOC de Corte (máquinas de corte de grama)
+CREATE TABLE IF NOT EXISTS pmoc_corte (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  ativo_id            TEXT REFERENCES ativos(id),
+  local_id            INTEGER REFERENCES locais(id),
+  estado_operacional  TEXT DEFAULT 'OP',
+  est_idade           TEXT,
+  criticidade         TEXT DEFAULT 'operacional',
+  obs                 TEXT,
+  motor_tempos        INTEGER,
+  combustivel         TEXT,
+  oleo_tipo           TEXT,
+  oleo_ultima_uso     REAL,
+  ferramenta_corte    TEXT,
+  data_aquisicao      TEXT,
+  ultima_manutencao   TEXT,
+  criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_pmoc_corte_ativo   ON pmoc_corte(ativo_id);
+
+-- PMOC de Fonoclama (alto-falantes / ramais)
+CREATE TABLE IF NOT EXISTS pmoc_fonoclama (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  ativo_id            TEXT REFERENCES ativos(id),
+  local_id            INTEGER REFERENCES locais(id),
+  estado_operacional  TEXT DEFAULT 'OP',
+  est_idade           TEXT,
+  criticidade         TEXT DEFAULT 'operacional',
+  obs                 TEXT,
+  potencia_w          REAL,
+  impedancia          REAL,
+  tensao_linha        REAL,
+  data_instalacao     TEXT,
+  ultima_manutencao   TEXT,
+  criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_pmoc_fono_ativo    ON pmoc_fonoclama(ativo_id);
+
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_usuarios_mat    ON usuarios(mat);
 CREATE INDEX IF NOT EXISTS idx_usuarios_ativo  ON usuarios(ativo);
