@@ -16,6 +16,7 @@ import re
 import sqlite3
 import sys
 import time
+from argon2 import PasswordHasher
 
 BASE = os.path.join(os.path.dirname(__file__), "..")
 DOCS = os.path.join(BASE, "..", "xCMASM", ".docs_cmasm")
@@ -24,18 +25,11 @@ if not os.path.isdir(DOCS):
 DB_PATH = os.path.join(BASE, "data", "core.db")
 LEGACY_HTML = os.path.join(BASE, "..", "xCMASM", ".delete", ".old", "CMASM_Gestao_v2.html")
 
-DEFAULT_PW = "170842"  # hashPw('1234') djb2 hex
-
-def djb2_hex(s: str) -> str:
-    """Mesmo algoritmo do backend (main.py _djb2)."""
-    h = 0
-    for c in s:
-        h = ((h << 5) - h + ord(c)) & 0xFFFFFFFF
-        if h >= 0x80000000:
-            h -= 0x100000000
-    return format(h, 'x') if h >= 0 else format(h & 0xFFFFFFFF, 'x')
-
-assert djb2_hex('1234') == DEFAULT_PW, f"hash check failed: {djb2_hex('1234')} != {DEFAULT_PW}"
+# Senha de bootstrap — deve ser alterada no primeiro login.
+# Gerada com Argon2id (mesma lib usada pelo backend). djb2 removido.
+INITIAL_PW = "ChangeMe@Boot"
+_ph_seed = PasswordHasher()
+DEFAULT_PW = _ph_seed.hash(INITIAL_PW)
 
 def read_csv(path, encoding='utf-8-sig'):
     if not os.path.exists(path):
@@ -351,6 +345,7 @@ for t in ['usuarios', 'cargos', 'estrutura', 'locais', 'ativos', 'estoque']:
 print()
 print("✅ Importação completa!")
 print()
-print("Login: qualquer nome da lista acima + senha '1234'")
-print(f"       Ex: Ramalho / 1234")
+print(f"Login: qualquer nome da lista acima + senha bootstrap: {INITIAL_PW!r}")
+print(f"       Ex: Ramalho / {INITIAL_PW}")
+print("       ATENÇÃO: altere a senha após o primeiro login.")
 db.close()

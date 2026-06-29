@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Insere os usuários seed diretamente do ERP_core (sem precisar de exportação JSON)."""
 import os, sqlite3, sys
+from argon2 import PasswordHasher
 
 SEED = [
     {"id": 1775404932660, "nome": "Ramalho",         "role": "admin",  "cargo_id": "CMASM-01"},
@@ -17,8 +18,11 @@ SEED = [
     {"id": 1775404932718, "nome": "Tarik",            "role": "admin",  "cargo_id": "CMASM-30"},
 ]
 
-# Hash djb2 de '1234' (mesmo que o ERP_core) = "170842" (hex com sinal)
-DEFAULT_PW = "170842"
+# Senha de bootstrap — deve ser alterada no primeiro login.
+# Gerada com Argon2id (mesma lib usada pelo backend).
+INITIAL_PW = "ChangeMe@Boot"
+_ph_seed = PasswordHasher()
+DEFAULT_PW = _ph_seed.hash(INITIAL_PW)
 
 db_path = os.path.join(os.path.dirname(__file__), "..", "data", "core.db")
 schema   = os.path.join(os.path.dirname(__file__), "..", "data", "schema_core.sql")
@@ -41,4 +45,4 @@ for u in SEED:
 con.commit()
 con.close()
 print(f"✓ {len(SEED)} usuários seed inseridos → {db_path}")
-print("  Senha padrão: 1234")
+print(f"  Senha bootstrap: {INITIAL_PW!r} (Argon2id) — ALTERE APÓS O PRIMEIRO LOGIN")

@@ -15,6 +15,7 @@ Execução:
 
 from __future__ import annotations
 import csv, json, os, re, sys, sqlite3
+from argon2 import PasswordHasher
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(BASE, "..")
@@ -23,7 +24,10 @@ SCH  = os.path.join(ROOT, "data", "schema_core.sql")
 BCK  = os.path.join(ROOT, ".docs_cmasm", "cmasm_backup.json")
 TMFT = os.path.join(ROOT, ".docs_cmasm", "TMFT - CMASM-10.csv")
 
-DEFAULT_PW = "170842"   # djb2-hex de "1234"
+# Senha de bootstrap — deve ser alterada no primeiro login.
+INITIAL_PW = "ChangeMe@Boot"
+_ph_seed = PasswordHasher()
+DEFAULT_PW = _ph_seed.hash(INITIAL_PW)
 
 # ── helpers ────────────────────────────────────────────────────────────────
 def normalize_nome(s: str) -> str:
@@ -125,7 +129,7 @@ for u in users_data:
         ),
     )
     ucount += 1
-print(f"✓ usuarios: {ucount} importados (senha padrão: 1234)")
+print(f"✓ usuarios: {ucount} importados (senha bootstrap: {INITIAL_PW!r} — ALTERE APÓS O PRIMEIRO LOGIN)")
 
 # ── 4. LOCAIS — limpar org units, preservar físicos ───────────────────────
 # Tipos que são unidades organizacionais (não locais físicos)
@@ -223,4 +227,4 @@ for table in ("estrutura","cargos","usuarios","locais","ativos","estoque"):
     except: pass
 db2.close()
 print()
-print("✓ Importação concluída. Login: qualquer nome · senha: 1234")
+print(f"✓ Importação concluída. Login: qualquer nome · senha bootstrap: {INITIAL_PW!r} — ALTERE APÓS O PRIMEIRO LOGIN")
