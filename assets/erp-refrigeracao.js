@@ -471,7 +471,7 @@
         ov.querySelector('#ficha-form').onsubmit = function (ev) { ev.preventDefault(); saveFicha(ativoId, ev.target, container); };
         ov.querySelector('#ficha-gerar-os').onclick = function () {
           if (!confirm('Gerar OS preventiva para esta máquina?')) return;
-          fetch('/api/pmoc/refrigeracao/' + encodeURIComponent(ativoId) + '/os-preventiva', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+          fetch('/api/pmoc/refrigeracao/' + encodeURIComponent(ativoId) + '/os-preventiva', { method: 'POST', headers: _authHeaders() })
             .then(function (res) { if (!res.ok) return res.json().then(function (j) { throw new Error(j.detail || ('HTTP ' + res.status)); }); return res.json(); })
             .then(function (os) {
               closeFicha();
@@ -495,7 +495,7 @@
     // ativo nome vai pra ativos; patrimonio existe nos dois — manda nos dois
     if (body.patrimonio != null) body.pat = body.patrimonio;
     fetch('/api/pmoc/refrigeracao/' + encodeURIComponent(ativoId), {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      method: 'PUT', headers: _authHeaders(), body: JSON.stringify(body),
     }).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
