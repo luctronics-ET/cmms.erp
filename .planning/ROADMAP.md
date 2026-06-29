@@ -137,7 +137,10 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
   4. Cálculo térmico usa `locais.area_m2` e `altura_m` quando preenchidos — e não quebra quando esses campos são NULL (fallback seguro)
   5. Rotas de escrita (`POST /api/os`, `POST /api/ativos`, `POST /api/estoque/{id}/movimentos`, etc.) retornam HTTP 403 para usuários com role `visualizador`; leitura (`GET`) continua funcionando
 
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 06-01-PLAN.md — Schema migration altura_m + por_tempo trigger in both vencimento paths + thermal NULL-safe (RES-01, RES-04)
+- [ ] 06-02-PLAN.md — departamento on OS + local_id migration/backfill + visualizador 403 guard with external-module path preserved (RES-02, RES-03, RES-05)
+- [ ] 06-03-PLAN.md — Frontend SR prefill (ativo+item) + refri171 local assignable via ficha (RES-02, RES-03)
 
 ### Phase 7: Auth Hardening
 
@@ -177,7 +180,7 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 | 2. Plano no Ativo | 2/2 | Complete    | 2026-06-29 |
 | 3. Estoque Sobressalentes | 2/2 | Complete    | 2026-06-29 |
 | 4. Equipe Tecnica | 2/2 | Complete    | 2026-06-29 |
-| 5. Cronograma Preventivo | 2/2 | Complete   | 2026-06-29 |
-| 6. Residuais Funcionais | 0/? | Not started | - |
+| 5. Cronograma Preventivo | 2/2 | Complete    | 2026-06-29 |
+| 6. Residuais Funcionais | 0/3 | Planned | - |
 | 7. Auth Hardening | 0/? | Not started | - |
 | 8. Limpeza Final | 0/? | Not started | - |
