@@ -458,3 +458,158 @@ def test_sobressalentes(app_client):
     assert db_qtd_after_neg[0]["qtd_atual"] == 3.0, (
         f"Atomic rollback failed: qtd_atual changed after rejected saida; got {db_qtd_after_neg[0]['qtd_atual']}"
     )
+
+
+# ──────────────────────────── Fase 04: Equipe Técnica ────────────────────────
+
+
+def test_equipe_tecnica(app_client):
+    """CRUD de membros + config singleton + capacidade derivada para /equipe/*.
+
+    Covers (per IMP-04 plan):
+      1. Auth: GET /equipe/membros sem Bearer → 401.
+      2. CRUD: POST membro → 201 + id; GET lista contém membro ativo.
+      3. Edit: PUT /{id} {especialidade:"X"} → 200; GET reflete mudança.
+      4. Soft-delete: PUT /{id} {ativo:0} → 200; ausente do GET default;
+         presente em ?incluir_inativos=1; row ainda existe no DB (nunca hard-delete).
+      5. Config default: GET /equipe/config em banco limpo →
+         capacidade == {h_dia_equipe:4, h_dia_total:4, h_semana:20, h_ano:1040}.
+      6. Config save + recompute: PUT /equipe/config {num_equipes:2, 5 dias, turnos 4h+4h}
+         → 200 e capacidade == {h_dia_equipe:8, h_dia_total:16, h_semana:80, h_ano:4160};
+         re-GET retorna a mesma config + capacidade (persistência singleton id=1).
+      7. Capacity independence: adicionar/desativar membros NÃO altera capacidade da config.
+    """
+    client, main = app_client
+    headers = _auth(main)
+
+    # ── 1. Auth: GET sem Bearer → 401 ────────────────────────────────────────
+    r_unauth = client.get("/api/manutencao/equipe/membros")
+    assert r_unauth.status_code == 401, f"Expected 401, got {r_unauth.status_code}"
+
+    # ── 2. CRUD: POST membro → 201 + id ──────────────────────────────────────
+    r_create = client.post(
+        "/api/manutencao/equipe/membros",
+        json={"nome": "João Silva", "posto_grad": "SGT", "especialidade": "Refrigeração"},
+        headers=headers,
+    )
+    assert r_create.status_code == 201, f"Expected 201, got {r_create.status_code}: {r_create.text}"
+    membro_id = r_create.json()["id"]
+    assert isinstance(membro_id, int) and membro_id > 0
+
+    # GET default list contains the new member (ativo=1)
+    r_list = client.get("/api/manutencao/equipe/membros", headers=headers)
+    assert r_list.status_code == 200
+    membros = r_list.json()
+    found = [m for m in membros if m["id"] == membro_id]
+    assert len(found) == 1, f"Membro {membro_id} not found in roster: {membros}"
+    assert found[0]["nome"] == "João Silva"
+    assert found[0]["posto_grad"] == "SGT"
+    assert found[0]["ativo"] == 1
+
+    # ── 3. Edit: PUT /{id} → 200; GET reflete mudança ────────────────────────
+    r_edit = client.put(
+        f"/api/manutencao/equipe/membros/{membro_id}",
+        json={"especialidade": "Elétrica"},
+        headers=headers,
+    )
+    assert r_edit.status_code == 200, f"Expected 200, got {r_edit.status_code}: {r_edit.text}"
+    assert r_edit.json().get("ok") is True
+
+    r_after_edit = client.get("/api/manutencao/equipe/membros", headers=headers)
+    edited = next(m for m in r_after_edit.json() if m["id"] == membro_id)
+    assert edited["especialidade"] == "Elétrica", f"especialidade not updated: {edited}"
+
+    # ── 4. Soft-delete: PUT /{id} {ativo:0} ──────────────────────────────────
+    r_delete = client.put(
+        f"/api/manutencao/equipe/membros/{membro_id}",
+        json={"ativo": 0},
+        headers=headers,
+    )
+    assert r_delete.status_code == 200, f"Expected 200, got {r_delete.status_code}: {r_delete.text}"
+
+    # Absent from default GET (ativo=1 only)
+    r_default = client.get("/api/manutencao/equipe/membros", headers=headers)
+    ids_ativo = [m["id"] for m in r_default.json()]
+    assert membro_id not in ids_ativo, f"Deactivated member {membro_id} still in default list: {ids_ativo}"
+
+    # Present in ?incluir_inativos=1
+    r_all = client.get("/api/manutencao/equipe/membros?incluir_inativos=1", headers=headers)
+    ids_all = [m["id"] for m in r_all.json()]
+    assert membro_id in ids_all, f"Deactivated member {membro_id} missing from incluir_inativos list"
+
+    # Row still exists in DB (never hard-deleted — T-04-05)
+    db_rows = _query(main, "SELECT id, ativo FROM equipe_membros WHERE id = ?", (membro_id,))
+    assert len(db_rows) == 1, f"Row deleted from DB — must be soft-delete only (T-04-05)"
+    assert db_rows[0]["ativo"] == 0, f"Expected ativo=0, got {db_rows[0]['ativo']}"
+
+    # ── 5. Config default: GET /equipe/config em banco limpo ─────────────────
+    # (banco é limpo — fixture; equipe_config vazia → defaults do schema)
+    r_cfg_default = client.get("/api/manutencao/equipe/config", headers=headers)
+    assert r_cfg_default.status_code == 200, f"Expected 200, got {r_cfg_default.status_code}"
+    body_default = r_cfg_default.json()
+    assert "config" in body_default
+    assert "capacidade" in body_default
+
+    cap_default = body_default["capacidade"]
+    # Legacy defaults: num_equipes=1, 5 dias, turnos=[2h,2h] → h_dia_equipe=4, h_dia_total=4, h_semana=20, h_ano=1040
+    assert cap_default["h_dia_equipe"] == 4, f"h_dia_equipe: expected 4, got {cap_default['h_dia_equipe']}"
+    assert cap_default["h_dia_total"] == 4, f"h_dia_total: expected 4, got {cap_default['h_dia_total']}"
+    assert cap_default["h_semana"] == 20, f"h_semana: expected 20, got {cap_default['h_semana']}"
+    assert cap_default["h_ano"] == 1040, f"h_ano: expected 1040, got {cap_default['h_ano']}"
+
+    # ── 6. Config save + recompute ────────────────────────────────────────────
+    # {num_equipes:2, dias_semana:seg-sex (5 dias), turnos:[4h+4h]} →
+    # h_dia_equipe=8, h_dia_total=16, h_semana=80, h_ano=4160
+    r_put = client.put(
+        "/api/manutencao/equipe/config",
+        json={
+            "num_equipes": 2,
+            "dias_semana": ["seg", "ter", "qua", "qui", "sex"],
+            "turnos": [{"nome": "Manhã", "horas": 4}, {"nome": "Tarde", "horas": 4}],
+        },
+        headers=headers,
+    )
+    assert r_put.status_code == 200, f"Expected 200, got {r_put.status_code}: {r_put.text}"
+    body_put = r_put.json()
+    cap_put = body_put["capacidade"]
+    assert cap_put["h_dia_equipe"] == 8, f"h_dia_equipe: expected 8, got {cap_put['h_dia_equipe']}"
+    assert cap_put["h_dia_total"] == 16, f"h_dia_total: expected 16, got {cap_put['h_dia_total']}"
+    assert cap_put["h_semana"] == 80, f"h_semana: expected 80, got {cap_put['h_semana']}"
+    assert cap_put["h_ano"] == 4160, f"h_ano: expected 4160, got {cap_put['h_ano']}"
+
+    # Re-GET → mesma config + capacidade (persistence singleton id=1)
+    r_reget = client.get("/api/manutencao/equipe/config", headers=headers)
+    assert r_reget.status_code == 200
+    body_reget = r_reget.json()
+    cap_reget = body_reget["capacidade"]
+    assert cap_reget["h_dia_equipe"] == 8, f"Persisted h_dia_equipe: expected 8, got {cap_reget['h_dia_equipe']}"
+    assert cap_reget["h_dia_total"] == 16
+    assert cap_reget["h_semana"] == 80
+    assert cap_reget["h_ano"] == 4160
+
+    # Verify singleton: exactly 1 row with id=1
+    cfg_rows = _query(main, "SELECT id, num_equipes FROM equipe_config")
+    assert len(cfg_rows) == 1, f"Expected exactly 1 row in equipe_config, got {len(cfg_rows)}"
+    assert cfg_rows[0]["id"] == 1
+    assert cfg_rows[0]["num_equipes"] == 2
+
+    # ── 7. Capacity independence from members ─────────────────────────────────
+    # Adding another member and deactivating should NOT change config capacidade
+    r_new_member = client.post(
+        "/api/manutencao/equipe/membros",
+        json={"nome": "Maria Souza", "posto_grad": "2ºT", "especialidade": "Elétrica"},
+        headers=headers,
+    )
+    assert r_new_member.status_code == 201
+    new_id = r_new_member.json()["id"]
+
+    # Deactivate this member too
+    client.put(f"/api/manutencao/equipe/membros/{new_id}", json={"ativo": 0}, headers=headers)
+
+    # Capacidade must still be the same config-only numbers (legacy formula — config-only)
+    r_cfg_final = client.get("/api/manutencao/equipe/config", headers=headers)
+    cap_final = r_cfg_final.json()["capacidade"]
+    assert cap_final["h_dia_equipe"] == 8, "Capacity must not change when members added/deactivated"
+    assert cap_final["h_dia_total"] == 16
+    assert cap_final["h_semana"] == 80
+    assert cap_final["h_ano"] == 4160
