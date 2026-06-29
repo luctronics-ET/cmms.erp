@@ -1961,7 +1961,11 @@
 
         // detail line via textContent
         const detalheEl = el('div', { style: { fontSize: '10px', color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' } });
-        detalheEl.textContent = 'A cada ' + item.intervalo + ' ' + unidade + ' · faltam ' + Math.max(0, falta).toFixed(0) + ' ' + unidade;
+        if (item.por_tempo || item.intervalo === null) {
+          detalheEl.textContent = 'Frequência por tempo — verificar calendário';
+        } else {
+          detalheEl.textContent = 'A cada ' + item.intervalo + ' ' + unidade + ' · faltam ' + Math.max(0, falta).toFixed(0) + ' ' + unidade;
+        }
 
         const badgeEl = window.engine.badge(statusLabel, kind);
 
@@ -1973,8 +1977,10 @@
             background: 'var(--panel)', marginBottom: '6px', transition: 'all .1s',
           },
           onclick: () => {
-            lbl.style.borderColor = cb.checked ? 'var(--acc)' : 'var(--line)';
-            lbl.style.background = cb.checked ? 'rgba(0,180,216,.08)' : 'var(--panel)';
+            // cb.checked is pre-toggle at label onclick time — negate to get post-toggle state
+            const willBeChecked = !cb.checked;
+            lbl.style.borderColor = willBeChecked ? 'var(--acc)' : 'var(--line)';
+            lbl.style.background  = willBeChecked ? 'rgba(0,180,216,.08)' : 'var(--panel)';
           },
         }, cb, el('div', { style: { flex: '1', minWidth: '0' } }, nomeEl, bar, detalheEl), badgeEl);
 
