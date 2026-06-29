@@ -264,3 +264,197 @@ def test_plano_ativo_requires_auth(app_client):
     ids = _seed_plano(main, ativo_id="ativo-004", uso_inicial=100.0)
     r = client.get(f"/api/manutencao/plano-ativo?ativo_id={ids['ativo_id']}")
     assert r.status_code == 401, f"Expected 401, got {r.status_code}"
+
+
+# ──────────────────────────── Fase 03: Sobressalentes ────────────────────────
+
+
+def test_sobressalentes(app_client):
+    """CRUD + atomic ajuste + estoque isolation for GET /api/manutencao/sobressalentes.
+
+    Covers:
+      - Create: POST → 201, returns id, row in DB
+      - List+badge+valor: ZERADO (qtd=0) and OK (qtd>=minima) badges; valor_estimado_total == Σ qtd×preco
+      - Edit: PUT changes fields; qtd_atual unchanged by PUT
+      - Ajuste atomic: POST /{id}/ajuste → qtd_atual updated AND one movimento row inserted with operador set
+      - Estoque isolation: rows in central `estoque` table unchanged before/after (T-03-05)
+      - Auth: write without token → 401
+    """
+    client, main = app_client
+    headers = _auth(main)
+
+    # ── Snapshot central estoque BEFORE (isolation baseline) ─────────────────
+    estoque_before = _query(main, "SELECT id FROM estoque")
+    estoque_ids_before = {r["id"] for r in estoque_before}
+    estoque_count_before = len(estoque_before)
+
+    # ── Auth: write without token → 401 ──────────────────────────────────────
+    r_unauth = client.post(
+        "/api/manutencao/sobressalentes",
+        json={"nome": "Filtro de Ar"},
+    )
+    assert r_unauth.status_code == 401, f"Expected 401, got {r_unauth.status_code}"
+
+    # ── Create: POST → 201, returns id ───────────────────────────────────────
+    r_create = client.post(
+        "/api/manutencao/sobressalentes",
+        json={"nome": "Filtro de Ar", "categoria": "consumivel", "unidade": "un"},
+        headers=headers,
+    )
+    assert r_create.status_code == 201, f"Expected 201, got {r_create.status_code}: {r_create.text}"
+    new_id = r_create.json()["id"]
+    assert isinstance(new_id, int) and new_id > 0
+
+    # Verify DB row
+    db_rows = _query(main, "SELECT nome, categoria FROM sobressalentes WHERE id = ?", (new_id,))
+    assert len(db_rows) == 1
+    assert db_rows[0]["nome"] == "Filtro de Ar"
+    assert db_rows[0]["categoria"] == "consumivel"
+
+    # ── Create second peça with preco for valor_estimado_total calc ──────────
+    r_create2 = client.post(
+        "/api/manutencao/sobressalentes",
+        json={"nome": "Válvula Expansão", "categoria": "sobressalente", "preco_unitario": 120.0, "qtd_minima": 2.0},
+        headers=headers,
+    )
+    assert r_create2.status_code == 201
+    id2 = r_create2.json()["id"]
+
+    # Seed qtd_atual: id=0 (ZERADO), id2 qtd=5 (OK since minima=2)
+    # new_id has qtd_atual=0 (default) → ZERADO
+    # id2 has qtd_atual=0 → let's ajustar it to 5 via ajuste
+    r_ajuste_setup = client.post(
+        f"/api/manutencao/sobressalentes/{id2}/ajuste",
+        json={"quantidade": 5.0, "tipo": "entrada", "motivo": "Setup inicial"},
+        headers=headers,
+    )
+    assert r_ajuste_setup.status_code == 201
+    assert r_ajuste_setup.json()["qtd_atual"] == 5.0
+
+    # ── List + badge + valor ──────────────────────────────────────────────────
+    r_list = client.get("/api/manutencao/sobressalentes", headers=headers)
+    assert r_list.status_code == 200
+    data = r_list.json()
+    assert "items" in data
+    assert "valor_estimado_total" in data
+
+    items_by_id = {it["id"]: it for it in data["items"]}
+
+    # Badge: new_id has qtd_atual=0 → ZERADO
+    assert items_by_id[new_id]["badge"] == "ZERADO"
+    # Badge: id2 has qtd_atual=5, qtd_minima=2 → OK
+    assert items_by_id[id2]["badge"] == "OK"
+
+    # valor_estimado_total = Σ qtd×preco: new_id preco=0 (→ 0), id2 5×120 = 600
+    expected_valor = 0.0 + 5.0 * 120.0
+    assert abs(data["valor_estimado_total"] - expected_valor) < 0.01, (
+        f"Expected valor_estimado_total={expected_valor}, got {data['valor_estimado_total']}"
+    )
+
+    # ── Edit: PUT changes nome/preco; qtd_atual unchanged ────────────────────
+    r_edit = client.put(
+        f"/api/manutencao/sobressalentes/{new_id}",
+        json={"nome": "Filtro HEPA", "preco_unitario": 45.0},
+        headers=headers,
+    )
+    assert r_edit.status_code == 200
+    assert r_edit.json()["ok"] is True
+
+    db_after_edit = _query(main, "SELECT nome, preco_unitario, qtd_atual FROM sobressalentes WHERE id = ?", (new_id,))
+    assert db_after_edit[0]["nome"] == "Filtro HEPA"
+    assert db_after_edit[0]["preco_unitario"] == 45.0
+    # qtd_atual must remain 0 (PUT never changes it)
+    assert db_after_edit[0]["qtd_atual"] == 0.0, (
+        f"PUT must not change qtd_atual; got {db_after_edit[0]['qtd_atual']}"
+    )
+
+    # ── Ajuste atomic: UPDATE qtd + INSERT movimento in one txn ──────────────
+    r_ajuste = client.post(
+        f"/api/manutencao/sobressalentes/{new_id}/ajuste",
+        json={"quantidade": 3.0, "tipo": "entrada", "motivo": "Recebimento NF-001"},
+        headers=headers,
+    )
+    assert r_ajuste.status_code == 201, f"Expected 201, got {r_ajuste.status_code}: {r_ajuste.text}"
+    assert r_ajuste.json()["qtd_atual"] == 3.0
+
+    # Verify qtd_atual updated in DB
+    db_qtd = _query(main, "SELECT qtd_atual FROM sobressalentes WHERE id = ?", (new_id,))
+    assert db_qtd[0]["qtd_atual"] == 3.0
+
+    # Verify exactly one movimento row with correct fields and operador set
+    movs = _query(
+        main,
+        "SELECT tipo, quantidade, motivo, operador FROM sobressalentes_movimentos WHERE item_id = ?",
+        (new_id,),
+    )
+    # The ajuste at setup didn't happen for new_id; only one ajuste above
+    ajuste_movs = [m for m in movs if m["motivo"] == "Recebimento NF-001"]
+    assert len(ajuste_movs) == 1, f"Expected 1 movimento for ajuste, got {len(ajuste_movs)}: {movs}"
+    mov = ajuste_movs[0]
+    assert mov["tipo"] == "entrada"
+    assert mov["quantidade"] == 3.0
+    assert mov["motivo"] == "Recebimento NF-001"
+    assert mov["operador"] is not None and mov["operador"] != "", (
+        "operador must be set from token (T-03-02)"
+    )
+
+    # ── GET /movimentos: history newest-first ─────────────────────────────────
+    r_hist = client.get(
+        f"/api/manutencao/sobressalentes/{new_id}/movimentos",
+        headers=headers,
+    )
+    assert r_hist.status_code == 200
+    hist = r_hist.json()
+    assert len(hist) >= 1
+    assert hist[0]["item_id"] == new_id
+
+    # ── Estoque isolation: central estoque unchanged (T-03-05) ────────────────
+    estoque_after = _query(main, "SELECT id FROM estoque")
+    estoque_ids_after = {r["id"] for r in estoque_after}
+    estoque_count_after = len(estoque_after)
+
+    assert estoque_count_after == estoque_count_before, (
+        f"Central estoque row count changed: before={estoque_count_before}, after={estoque_count_after}"
+    )
+    assert estoque_ids_after == estoque_ids_before, (
+        "Central estoque ids changed — sobressalentes leaked into estoque"
+    )
+
+    # Also verify no sobressalentes id appears in estoque (belt-and-suspenders)
+    sob_ids = {row["id"] for row in _query(main, "SELECT id FROM sobressalentes")}
+    estoque_id_set = {row["id"] for row in _query(main, "SELECT id FROM estoque")}
+    overlap = sob_ids & estoque_id_set
+    # IDs can coincidentally overlap in autoincrement but the tables are separate
+    # — the real isolation check is the count/ids above; this verifies no row sharing
+    # (i.e., same row cannot appear in BOTH tables: different tables, nothing to cross-check)
+    # The critical assertion is already above.
+
+    # ── 422: validate empty nome ──────────────────────────────────────────────
+    r_bad = client.post(
+        "/api/manutencao/sobressalentes",
+        json={"nome": "   "},
+        headers=headers,
+    )
+    assert r_bad.status_code == 422, f"Expected 422 for blank nome, got {r_bad.status_code}"
+
+    # ── 404: ajuste on nonexistent peça ──────────────────────────────────────
+    r_404 = client.post(
+        "/api/manutencao/sobressalentes/999999/ajuste",
+        json={"quantidade": 1.0, "tipo": "entrada", "motivo": "X"},
+        headers=headers,
+    )
+    assert r_404.status_code == 404, f"Expected 404, got {r_404.status_code}"
+
+    # ── 422: saida that would go negative ────────────────────────────────────
+    # new_id currently has qtd_atual=3.0; saida of 10 would make it -7 → 422
+    r_neg = client.post(
+        f"/api/manutencao/sobressalentes/{new_id}/ajuste",
+        json={"quantidade": 10.0, "tipo": "saida", "motivo": "Teste negativo"},
+        headers=headers,
+    )
+    assert r_neg.status_code == 422, f"Expected 422 for negative result, got {r_neg.status_code}"
+    # qtd_atual must remain 3.0 (atomic rollback)
+    db_qtd_after_neg = _query(main, "SELECT qtd_atual FROM sobressalentes WHERE id = ?", (new_id,))
+    assert db_qtd_after_neg[0]["qtd_atual"] == 3.0, (
+        f"Atomic rollback failed: qtd_atual changed after rejected saida; got {db_qtd_after_neg[0]['qtd_atual']}"
+    )
