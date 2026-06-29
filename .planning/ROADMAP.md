@@ -17,8 +17,8 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 - [x] **Phase 4: Equipe Tecnica** - Import do cadastro de equipe e configuração de capacidade (completed 2026-06-29)
 - [x] **Phase 5: Cronograma Preventivo** - Import do cronograma calculado com packing diário por capacidade de equipe (completed 2026-06-29)
 - [x] **Phase 6: Residuais Funcionais** - Disparo por_tempo, departamento na OS, religar local_id, térmico real, role visualizador (completed 2026-06-29)
-- [ ] **Phase 7: Auth Hardening** - Substituir djb2 por Argon2id com upgrade lazy; remover senha default; expandir pytest
-- [ ] **Phase 8: Módulo Ajuda & Documentação** - Ajuda contextual + repositório de documentos/formulários versionado por categoria + guias de normas
+- [x] **Phase 7: Auth Hardening** - Substituir djb2 por Argon2id com upgrade lazy; remover senha default; expandir pytest (completed 2026-06-29)
+- [ ] **Phase 8: Ajuda e Documentacao** - Ajuda contextual + repositório de documentos/formulários versionado por categoria + guias de normas
 - [ ] **Phase 9: Limpeza Final** - Remover HTMLs legados de referência após verificação; checkpoint git
 
 ## Phase Details
@@ -159,11 +159,11 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 
 **Plans**: 3 plans
 
-- [ ] 07-01-PLAN.md — SEC-01: argon2-cffi + dual-hash verify + lazy upgrade no login (prova de não-lockout via test_auth.py)
-- [ ] 07-02-PLAN.md — SEC-02: remover senha default `1234` do login + POST/PUT usuarios (hash NULL/vazio → 401)
-- [ ] 07-03-PLAN.md — QA-01: auditar/preencher cobertura das rotas das Fases 1–5 + gate de suíte completa sem regressão
+- [x] 07-01-PLAN.md — SEC-01: argon2-cffi + dual-hash verify + lazy upgrade no login (prova de não-lockout via test_auth.py)
+- [x] 07-02-PLAN.md — SEC-02: remover senha default `1234` do login + POST/PUT usuarios (hash NULL/vazio → 401)
+- [x] 07-03-PLAN.md — QA-01: auditar/preencher cobertura das rotas das Fases 1–5 + gate de suíte completa sem regressão
 
-### Phase 8: Módulo Ajuda & Documentação
+### Phase 8: Ajuda e Documentacao
 
 **Goal**: Módulo de ajuda contextual + repositório de documentos/formulários com controle de versão e guias de normas técnicas, armazenado localmente pelo cmasm.erp e organizado por categoria
 **Mode:** mvp
@@ -204,6 +204,6 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 | 4. Equipe Tecnica | 2/2 | Complete    | 2026-06-29 |
 | 5. Cronograma Preventivo | 2/2 | Complete    | 2026-06-29 |
 | 6. Residuais Funcionais | 3/3 | Complete    | 2026-06-29 |
-| 7. Auth Hardening | 0/? | Not started | - |
-| 8. Módulo Ajuda & Documentação | 0/? | Not started | - |
+| 7. Auth Hardening | 3/3 | Complete    | 2026-06-29 |
+| 8. Ajuda e Documentacao | 0/? | Not started | - |
 | 9. Limpeza Final | 0/? | Not started | - |
