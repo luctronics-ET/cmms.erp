@@ -820,10 +820,12 @@ def test_cronograma_requires_auth(app_client):
 def test_local_altura_m_persists(app_client):
     """POST /api/locais with altura_m persists it; GET returns the value (RES-04)."""
     client, main = app_client
+    headers = _auth(main)  # RES-05: POST /api/locais agora requer autenticação
 
     r_create = client.post(
         "/api/locais",
         json={"nome": "Sala Teste", "tipo": "sala", "area": "OPE", "area_m2": 25.5, "altura_m": 2.7},
+        headers=headers,
     )
     assert r_create.status_code == 201, f"Expected 201, got {r_create.status_code}: {r_create.text}"
     body = r_create.json()
@@ -848,11 +850,13 @@ def test_local_altura_m_null_safe_listagem(app_client):
     Also verifies the refrigeração endpoint does not crash when locais has NULL fields (RES-04).
     """
     client, main = app_client
+    headers = _auth(main)  # RES-05: POST /api/locais agora requer autenticação
 
     # Create a local without area_m2 or altura_m (both None)
     r_create = client.post(
         "/api/locais",
         json={"nome": "Sala Sem Medidas", "tipo": "sala", "area": "OPE"},
+        headers=headers,
     )
     assert r_create.status_code == 201, f"Expected 201, got {r_create.status_code}: {r_create.text}"
     body = r_create.json()

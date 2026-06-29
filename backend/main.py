@@ -839,6 +839,13 @@ async def _require_auth(authorization: str | None) -> dict:
     return row
 
 
+def _require_escrita(user: dict) -> None:
+    """RES-05: lança 403 se role == 'visualizador'. Chamar APÓS _require_auth.
+    Padrão espelhado de backend/manutencao.py:724-726."""
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não têm permissão de escrita")
+
+
 # ── Models ────────────────────────────────────────────────────────────────────
 class LoginIn(BaseModel):
     mat: str
@@ -1118,9 +1125,11 @@ _ATIVO_EDIT = {"nome", "obs", "pat", "loc", "local_id"}
 
 
 @app.put("/api/pmoc/refrigeracao/{ativo_id}")
-async def update_refrigeracao(ativo_id: str, body: dict):
+async def update_refrigeracao(ativo_id: str, body: dict, authorization: str | None = Header(None)):
     """Edita a ficha de uma máquina de refrigeração: campos de pmoc_refrigeracao
     e/ou ativos. Whitelist por segurança."""
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     row = await db.fetch_one("SELECT ativo_id FROM pmoc_refrigeracao WHERE ativo_id = ?", (ativo_id,))
     if not row:
         raise HTTPException(404, "Refrigeração não encontrada")
@@ -1147,10 +1156,12 @@ async def update_refrigeracao(ativo_id: str, body: dict):
 
 
 @app.post("/api/pmoc/refrigeracao/{ativo_id}/os-preventiva", status_code=201)
-async def gerar_os_preventiva(ativo_id: str):
+async def gerar_os_preventiva(ativo_id: str, authorization: str | None = Header(None)):
     """Cria OS preventiva PMOC ligada a um plano de climatização (catalogo_planos),
     resolvido pelo tipo do ativo (fallback: 1º plano de climatização). Etapas =
     serviços preventivos do plano; servico_id = 1º (débito de estoque pelo #1)."""
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     import json
     ativo = await db.fetch_one("SELECT id, nome, tipo, local_id FROM ativos WHERE id = ?", (ativo_id,))
     if not ativo:
@@ -1236,7 +1247,9 @@ async def get_ativo(aid: str):
 
 
 @app.post("/api/ativos", status_code=201)
-async def create_ativo(body: AtivoIn):
+async def create_ativo(body: AtivoIn, authorization: str | None = Header(None)):
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     aid = str(uuid.uuid4())[:8]
     await db.execute(
         "INSERT INTO ativos (id, tipo, categoria, nome, pat, placa, subtipo, loc, obs, uso_atual, unidade_uso, ativo) "
@@ -1248,7 +1261,9 @@ async def create_ativo(body: AtivoIn):
 
 
 @app.put("/api/ativos/{aid}")
-async def update_ativo(aid: str, body: AtivoIn):
+async def update_ativo(aid: str, body: AtivoIn, authorization: str | None = Header(None)):
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     row = await db.fetch_one("SELECT id FROM ativos WHERE id = ?", (aid,))
     if not row:
         raise HTTPException(404, "Ativo não encontrado")
@@ -1928,7 +1943,9 @@ async def get_local(lid: int):
 
 
 @app.post("/api/locais", status_code=201)
-async def create_local(body: LocalIn):
+async def create_local(body: LocalIn, authorization: str | None = Header(None)):
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     lid = await db.execute(
         "INSERT INTO locais (codigo, neo, nome, tipo, area, restricao, parent_id, estrutura_id, descricao, area_m2, altura_m) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         (body.codigo, body.neo, body.nome, body.tipo, body.area, body.restricao, body.parent_id, body.estrutura_id, body.descricao, body.area_m2, body.altura_m),
@@ -1937,7 +1954,9 @@ async def create_local(body: LocalIn):
 
 
 @app.put("/api/locais/{lid}")
-async def update_local(lid: int, body: LocalIn):
+async def update_local(lid: int, body: LocalIn, authorization: str | None = Header(None)):
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     await get_local(lid)
     await db.execute(
         "UPDATE locais SET codigo=?, neo=?, nome=?, tipo=?, area=?, restricao=?, parent_id=?, estrutura_id=?, descricao=?, area_m2=?, altura_m=? WHERE id=?",
@@ -2047,7 +2066,14 @@ async def get_os(oid: str):
 
 
 @app.post("/api/os", status_code=201)
-async def create_os(body: OSIn):
+async def create_os(body: OSIn, authorization: str | None = Header(None)):
+    # RES-05: autenticação CONDICIONAL — veja MODULOS_EXTERNOS.md.
+    # Módulos externos (aguada-web, xSeguranca, etc.) enviam modulo_origem sem token
+    # de usuário interativo. Quando modulo_origem está presente, o path externo é
+    # permitido sem auth. Quando ausente (usuário ERP), exige auth + guard de escrita.
+    if not body.modulo_origem:
+        user = await _require_auth(authorization)
+        _require_escrita(user)
     oid = str(uuid.uuid4())
     codigo = await _gen_os_codigo()
     await db.execute(
@@ -2093,7 +2119,9 @@ async def _notify_os_responsavel(oid: str) -> None:
 
 
 @app.put("/api/os/{oid}/status")
-async def update_os_status(oid: str, body: OSStatusIn):
+async def update_os_status(oid: str, body: OSStatusIn, authorization: str | None = Header(None)):
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     row = await db.fetch_one("SELECT status FROM ordens_servico WHERE id = ?", (oid,))
     if not row:
         raise HTTPException(404, "OS não encontrada")
@@ -2194,7 +2222,9 @@ async def get_estoque_item(iid: int):
 
 
 @app.post("/api/estoque", status_code=201)
-async def create_estoque(body: EstoqueIn):
+async def create_estoque(body: EstoqueIn, authorization: str | None = Header(None)):
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     iid = await db.execute(
         "INSERT INTO estoque (codigo, nome, categoria, unidade, qtd_atual, qtd_minima, preco_unitario, local_id, obs) VALUES (?,?,?,?,?,?,?,?,?)",
         (body.codigo, body.nome, body.categoria, body.unidade, body.qtd_atual, body.qtd_minima, body.preco_unitario, body.local_id, body.obs),
@@ -2203,7 +2233,9 @@ async def create_estoque(body: EstoqueIn):
 
 
 @app.put("/api/estoque/{iid}")
-async def update_estoque(iid: int, body: EstoqueIn):
+async def update_estoque(iid: int, body: EstoqueIn, authorization: str | None = Header(None)):
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     await get_estoque_item(iid)
     await db.execute(
         "UPDATE estoque SET codigo=?, nome=?, categoria=?, unidade=?, qtd_minima=?, preco_unitario=?, local_id=?, obs=? WHERE id=?",
@@ -2616,9 +2648,11 @@ async def manutencao_vencimentos(categoria: str | None = None):
 
 
 @app.post("/api/manutencao/os-preventiva", status_code=201)
-async def gerar_os_servico(body: dict):
+async def gerar_os_servico(body: dict, authorization: str | None = Header(None)):
     """Gera OS preventiva para (ativo, serviço) — usada pela tela de Vencimentos.
     Liga servico_id (débito de estoque ao concluir vem do #1). Etapas = descrição."""
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     ativo_id = body.get("ativo_id"); servico_id = body.get("servico_id")
     if not ativo_id or not servico_id:
         raise HTTPException(400, "ativo_id e servico_id obrigatórios")
@@ -2719,7 +2753,9 @@ async def _seed_fonoclama_if_empty() -> None:
 
 
 @app.post("/api/estoque/{iid}/movimentos", status_code=201)
-async def create_movimento(iid: int, body: MovimentoIn):
+async def create_movimento(iid: int, body: MovimentoIn, authorization: str | None = Header(None)):
+    user = await _require_auth(authorization)
+    _require_escrita(user)
     item = await db.fetch_one("SELECT qtd_atual FROM estoque WHERE id = ?", (iid,))
     if not item:
         raise HTTPException(404, "Item não encontrado")
