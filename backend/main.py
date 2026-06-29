@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError, InvalidHash
+from argon2.exceptions import VerifyMismatchError, InvalidHash, VerificationError
 
 from .db_core import CoreDB
 from .catalogo import router as catalogo_router
@@ -834,6 +834,11 @@ def _djb2(pw: str) -> str:
 # Usada em todo o ciclo de vida do processo — thread-safe, sem estado mutável.
 _ph = PasswordHasher()
 
+# Hash constante usado no caminho "usuário não encontrado" para equalizar o tempo de resposta
+# com o caminho "senha incorreta" (ambos executam _ph.verify). Sem isso, a ausência do
+# usuário retorna em ~0ms enquanto senha errada leva ~100ms — enumeração por timing.
+_DUMMY_HASH: str = _ph.hash("dummy-constant-time-placeholder")
+
 
 async def _require_auth(authorization: str | None) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
@@ -980,6 +985,12 @@ async def login(body: LoginIn):
         (body.mat, body.mat),
     )
     if not user:
+        # Dummy verify equaliza o tempo de resposta com o caminho de senha incorreta,
+        # impedindo enumeração de usuários por medição de latência (timing oracle).
+        try:
+            _ph.verify(_DUMMY_HASH, body.senha)
+        except Exception:
+            pass
         raise HTTPException(401, "Credenciais inválidas")
 
     stored = user.get("pw_hash")
@@ -992,7 +1003,9 @@ async def login(body: LoginIn):
         # Caminho Argon2id: verificação moderna.
         try:
             _ph.verify(stored, body.senha)
-        except (VerifyMismatchError, InvalidHash):
+        except (VerificationError, InvalidHash):
+            # VerificationError covers VerifyMismatchError (wrong password) and
+            # decode/structural failures (malformed/truncated $argon2 hash). Both → 401.
             raise HTTPException(401, "Credenciais inválidas")
         # Re-hash se os parâmetros do PasswordHasher mudaram (future-proof).
         if _ph.check_needs_rehash(stored):
