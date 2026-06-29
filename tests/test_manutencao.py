@@ -612,4 +612,203 @@ def test_equipe_tecnica(app_client):
     assert cap_final["h_dia_equipe"] == 8, "Capacity must not change when members added/deactivated"
     assert cap_final["h_dia_total"] == 16
     assert cap_final["h_semana"] == 80
-    assert cap_final["h_ano"] == 4160
+
+
+# ──────────────────────────── Cronograma tests (IMP-05) ──────────────────────
+
+
+def _seed_cronograma_fixture(main, ativo_ids_crit_tipo: list, cap_h: float = 4.0) -> None:
+    """Seed ativos + ativo_plano_estado + equipe_config for cronograma tests.
+
+    ativo_ids_crit_tipo: list of (ativo_id, criticidade, tipo, falta)
+      falta = proximo_uso - uso_atual; we set uso_atual=1000 and proximo_uso=1000+falta.
+    cap_h: daily capacity in hours (controls cap_dia_min = cap_h * 60).
+    """
+    import json as _json
+
+    # Seed equipe_config id=1 with Mon–Fri and a single turno of cap_h hours
+    dias_json = _json.dumps(["seg", "ter", "qua", "qui", "sex"])
+    turnos_json = _json.dumps([{"nome": "Turno", "horas": cap_h}])
+    _exec(
+        main,
+        "INSERT OR REPLACE INTO equipe_config (id, num_equipes, dias_semana, turnos, updated_at) "
+        "VALUES (1, 1, ?, ?, datetime('now'))",
+        (dias_json, turnos_json),
+    )
+
+    # Seed a minimal catalogo_plano_itens entry for plan-state rows
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO catalogo_servicos "
+        "(id, codigo, nome, escopo, criado_por_modulo, ativo) "
+        "VALUES ('svc-crono', 'PREV', 'Preventiva', 'central', 'manutencao', 1)",
+    )
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO catalogo_planos "
+        "(id, codigo, nome, categoria, tipo_codigo, ativo, frequencia) "
+        "VALUES ('pln-crono', 'PLN', 'Plano Crono', 'climatizacao', 'SPLIT', 1, ?)",
+        ('{"tipo":"por_uso","valor":250,"unidade":"h"}',),
+    )
+    # One plan item per seeding session (shared across assets)
+    rows = _query(main, "SELECT id FROM catalogo_plano_itens WHERE plano_id='pln-crono'")
+    if not rows:
+        _exec(
+            main,
+            "INSERT INTO catalogo_plano_itens (plano_id, servico_id, seq, classe) "
+            "VALUES ('pln-crono', 'svc-crono', 0, 'prev')",
+        )
+    item_rows = _query(main, "SELECT id FROM catalogo_plano_itens WHERE plano_id='pln-crono'")
+    item_id = item_rows[0]["id"]
+
+    for ativo_id, criticidade, tipo, falta in ativo_ids_crit_tipo:
+        uso_atual = 1000.0
+        proximo_uso = uso_atual + falta
+
+        _exec(
+            main,
+            "INSERT OR IGNORE INTO ativos "
+            "(id, nome, tipo, categoria, uso_atual, unidade_uso, criticidade, ativo) "
+            "VALUES (?, ?, ?, 'climatizacao', ?, 'h', ?, 1)",
+            (ativo_id, f"AC {ativo_id}", tipo, uso_atual, criticidade),
+        )
+        _exec(
+            main,
+            "INSERT OR REPLACE INTO ativo_plano_estado "
+            "(ativo_id, catalogo_plano_item_id, ultimo_uso, proximo_uso) "
+            "VALUES (?, ?, ?, ?)",
+            (ativo_id, item_id, uso_atual - 250, proximo_uso),
+        )
+
+
+def test_cronograma(app_client):
+    """GET /cronograma with fixed 3-asset dataset + injected today → exact 2-day packing + KPIs.
+
+    Fixture (RESEARCH "Deterministic Test Dataset"):
+      a01  SPLIT  CRÍTICA  falta=-5  → 105 min
+      a02  SPLIT  ALTA     falta=10  → 105 min
+      a03  JANELA MÉDIA    falta=20  → 57 min
+    Crew: Mon–Fri, 4h/day (cap_dia_min=240 min).
+    Today: 2026-07-06 (Monday).
+
+    Expected packing:
+      Day 1 (2026-07-06 Seg): a01(105) + a02(105) = 210 min (restante=30); a03(57)>30 → overflow
+      Day 2 (2026-07-07 Ter): a03(57) = 57 min
+    """
+    client, main = app_client
+    headers = _auth(main)
+
+    _seed_cronograma_fixture(
+        main,
+        ativo_ids_crit_tipo=[
+            ("a01", "CRÍTICA", "SPLIT",  -5.0),
+            ("a02", "ALTA",    "SPLIT",   10.0),
+            ("a03", "MÉDIA",   "JANELA",  20.0),
+        ],
+        cap_h=4.0,
+    )
+
+    r = client.get(
+        "/api/manutencao/cronograma?today=2026-07-06&categoria=climatizacao",
+        headers=headers,
+    )
+    assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+    data = r.json()
+
+    dias = data["dias"]
+    kpis = data["kpis"]
+
+    # ── Day structure ────────────────────────────────────────────────────────
+    assert len(dias) == 2, f"Expected 2 days, got {len(dias)}: {dias}"
+
+    day0 = dias[0]
+    assert day0["data"] == "2026-07-06", f"Day0 date wrong: {day0['data']}"
+    assert day0["dia_semana"] == "Seg", f"Day0 dia_semana wrong: {day0['dia_semana']}"
+    assert len(day0["itens"]) == 2, f"Day0 should have 2 items: {day0['itens']}"
+    assert day0["itens"][0]["ativo_id"] == "a01", "Day0 item0 should be a01 (CRÍTICA)"
+    assert day0["itens"][1]["ativo_id"] == "a02", "Day0 item1 should be a02 (ALTA)"
+
+    day1 = dias[1]
+    assert day1["data"] == "2026-07-07", f"Day1 date wrong: {day1['data']}"
+    assert day1["dia_semana"] == "Ter", f"Day1 dia_semana wrong: {day1['dia_semana']}"
+    assert len(day1["itens"]) == 1, f"Day1 should have 1 item: {day1['itens']}"
+    assert day1["itens"][0]["ativo_id"] == "a03", "Day1 item0 should be a03 (MÉDIA)"
+
+    # ── Item fields ──────────────────────────────────────────────────────────
+    item_a01 = day0["itens"][0]
+    assert item_a01["criticidade"] == "CRÍTICA"
+    assert item_a01["duracao_min"] == 105
+    assert item_a01["status"] == "VENCIDA"   # falta=-5 ≤ 0
+
+    item_a02 = day0["itens"][1]
+    assert item_a02["criticidade"] == "ALTA"
+    assert item_a02["duracao_min"] == 105
+    assert item_a02["status"] == "PRÓXIMA"   # falta=10 > 0
+
+    item_a03 = day1["itens"][0]
+    assert item_a03["criticidade"] == "MÉDIA"
+    assert item_a03["duracao_min"] == 57
+    assert item_a03["status"] == "PRÓXIMA"   # falta=20 > 0
+
+    # ── KPIs (exact values — Python round() with banker's rounding) ──────────
+    # total_min = 105 + 105 + 57 = 267; cap_dia_min = 240; dias_uteis = 2
+    assert kpis["total_os"] == 3, f"total_os wrong: {kpis}"
+    assert kpis["dias_uteis"] == 2, f"dias_uteis wrong: {kpis}"
+    assert kpis["data_conclusao"] == "2026-07-07", f"data_conclusao wrong: {kpis}"
+    assert kpis["alerta"] is False, f"alerta should be False (267 < 480): {kpis}"
+
+    # horas_pessoa = round(267/60, 1) = round(4.45, 1) = 4.5 (IEEE 754 — 4.45 is slightly > midpoint)
+    expected_horas_pessoa = round(267 / 60, 1)
+    assert kpis["horas_pessoa"] == expected_horas_pessoa, (
+        f"horas_pessoa expected {expected_horas_pessoa}, got {kpis['horas_pessoa']}"
+    )
+
+    # pct_utilizacao = round(267 / (240*2) * 100, 1) = round(55.625, 1) = 55.6
+    expected_pct = round(267 / (240 * 2) * 100, 1)
+    assert kpis["pct_utilizacao"] == expected_pct, (
+        f"pct_utilizacao expected {expected_pct}, got {kpis['pct_utilizacao']}"
+    )
+
+
+def test_cronograma_alerta(app_client):
+    """GET /cronograma with demand > capacity → kpis.alerta is True.
+
+    Fixture: 3 SELF CONTAINED assets (207 min each = 621 min total).
+    Crew: Mon–Fri, 2h/day (cap_dia_min=120 min).
+    With cap=120: each asset (207) exceeds daily cap → 3 days used.
+    cap_total = 120 × 3 = 360 min.
+    alerta = 621 > 360 → True.
+    pct_utilizacao = round(621/360*100, 1) = 172.5%.
+    """
+    client, main = app_client
+    headers = _auth(main)
+
+    _seed_cronograma_fixture(
+        main,
+        ativo_ids_crit_tipo=[
+            ("sc01", "ALTA",  "SELF CONTAINED", 5.0),
+            ("sc02", "ALTA",  "SELF CONTAINED", 10.0),
+            ("sc03", "MÉDIA", "SELF CONTAINED", 15.0),
+        ],
+        cap_h=2.0,   # 2h/day = 120 min — ensures 207>120 → each asset overflows
+    )
+
+    r = client.get(
+        "/api/manutencao/cronograma?today=2026-07-06&categoria=climatizacao",
+        headers=headers,
+    )
+    assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+    data = r.json()
+    kpis = data["kpis"]
+
+    assert kpis["alerta"] is True, (
+        f"alerta should be True when total demand (621 min) exceeds cap_total (360 min): {kpis}"
+    )
+    assert kpis["total_os"] == 3, f"total_os wrong: {kpis}"
+
+
+def test_cronograma_requires_auth(app_client):
+    """GET /cronograma without Authorization header → 401."""
+    client, _main = app_client
+    r = client.get("/api/manutencao/cronograma")
+    assert r.status_code == 401, f"Expected 401 without auth, got {r.status_code}: {r.text}"

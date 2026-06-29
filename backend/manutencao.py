@@ -1529,7 +1529,6 @@ async def get_cronograma(
         WHERE a.ativo = 1
           AND (? IS NULL OR a.categoria = ?)
           AND ape.proximo_uso <= a.uso_atual + 500
-        ORDER BY a.id
 
         UNION ALL
 
