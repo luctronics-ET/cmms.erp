@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import math
 import sys
-from datetime import date
+from datetime import date, timedelta  # timedelta needed by _vencimentos_para_ativo (por_tempo branch)
 from typing import Optional
 
 import aiosqlite
@@ -1285,8 +1285,6 @@ async def put_config(
 # ── Cronograma Preventivo — scheduling helpers (IMP-05) ──────────────────────
 # Porta exata de pmocCronograma() — .docs_cmasm/referencias/cmasm13-govbr-v8_3.html
 # linhas 1983-2086.
-
-from datetime import timedelta  # noqa: E402 — stdlib already imported above via `from datetime import date`
 
 # Duration estimation constants (verbatim from legacy lines 911-917)
 MIN_POR_ITEM = 10          # minutes per checklist item
