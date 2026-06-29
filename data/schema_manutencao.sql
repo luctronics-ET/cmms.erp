@@ -91,3 +91,40 @@ CREATE TABLE IF NOT EXISTS sobressalentes_movimentos (
 
 -- Índice composto para histórico newest-first por item (ORDER BY created_at DESC).
 CREATE INDEX IF NOT EXISTS idx_sob_mov_item ON sobressalentes_movimentos(item_id, created_at DESC);
+
+-- ============================================================
+-- Fase 04: Equipe Técnica — IMP-04 (CONTEXT.md Phase 4).
+-- Roster de membros + configuração singleton de capacidade.
+-- Aditivo: CREATE TABLE IF NOT EXISTS, nunca DROP/ALTER.
+-- Capacidade NÃO é coluna — é derivada no endpoint (config-only).
+-- ============================================================
+
+-- Roster da equipe técnica. Membros com ou sem login no sistema.
+-- Contexto naval: posto_grad = posto/graduação militar (ex. SGT, 2ºT, CF).
+-- Soft-delete via ativo=0 — nunca hard delete (regra do domínio).
+CREATE TABLE IF NOT EXISTS equipe_membros (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome         TEXT    NOT NULL,                                    -- nome completo do membro (obrigatório)
+  posto_grad   TEXT,                                               -- posto ou graduação militar (ex. SGT, 2ºT)
+  especialidade TEXT,                                              -- especialidade técnica (ex. Refrigeração, Elétrica)
+  tem_login    INTEGER NOT NULL DEFAULT 0,                          -- 1 se o membro tem login no sistema
+  usuario_mat  TEXT,                                               -- matrícula no sistema (nullable — link opcional a usuarios.mat)
+  ativo        INTEGER NOT NULL DEFAULT 1,                          -- soft-delete: 0 = inativo, 1 = ativo
+  created_at   TEXT    NOT NULL DEFAULT (datetime('now'))          -- timestamp de criação (ISO 8601)
+);
+
+-- Índice para filtrar roster por ativo (DEFAULT WHERE ativo=1).
+CREATE INDEX IF NOT EXISTS idx_equipe_membros_ativo ON equipe_membros(ativo);
+
+-- Configuração única (singleton id=1) da equipe para cálculo de capacidade.
+-- dias_semana: JSON array de tokens de dias úteis (ex. ["seg","ter","qua","qui","sex"]).
+-- turnos: JSON array de {nome, horas} (ex. [{"nome":"Manhã","horas":4},{"nome":"Tarde","horas":4}]).
+-- Capacidade (h/dia, h/semana, h/ano) é DERIVADA no endpoint — nunca armazenada.
+-- id fixo = 1 (singleton); PUT faz UPSERT via INSERT OR REPLACE com id=1.
+CREATE TABLE IF NOT EXISTS equipe_config (
+  id           INTEGER PRIMARY KEY,                                -- sempre 1 (singleton)
+  num_equipes  INTEGER NOT NULL DEFAULT 1,                          -- número de equipes de trabalho
+  dias_semana  TEXT    NOT NULL DEFAULT '["seg","ter","qua","qui","sex"]',  -- dias úteis (JSON)
+  turnos       TEXT    NOT NULL DEFAULT '[{"nome":"Manhã","horas":2},{"nome":"Tarde","horas":2}]',  -- turnos com horas (JSON)
+  updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))          -- timestamp da última atualização
+);
