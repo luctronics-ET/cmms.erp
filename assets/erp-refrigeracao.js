@@ -355,13 +355,27 @@
         ';color:' + (on ? 'var(--acc,#00b4d8)' : 'var(--text2,#9fb3cc)') + ';cursor:pointer;font-size:13px;font-weight:600">' + s.label + '</button>';
     }).join('');
     var cur = SUBS.find(function (s) { return s.id === state.sub; });
+    state._painter = paint;
     container.innerHTML = '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">' + bar + '</div>' +
       '<div id="refrig-sub-body">' + cur.fn() + '</div>';
     container.querySelectorAll('[data-sub]').forEach(function (b) {
       b.onclick = function () { state.sub = b.dataset.sub; paint(container); };
     });
+    wire(container);
+  }
+
+  // paint só o corpo da sub-aba (sem barra própria) — usado quando a barra
+  // vem do shell de Manutenção (evita 3ª linha de abas).
+  function paintBody(container) {
+    var cur = SUBS.find(function (s) { return s.id === state.sub; }) || SUBS[0];
+    state._painter = paintBody;
+    container.innerHTML = cur.fn();
+    wire(container);
+  }
+
+  function wire(container) {
     container.querySelectorAll('[data-invview]').forEach(function (b) {
-      b.onclick = function () { state.invView = b.dataset.invview; paint(container); };
+      b.onclick = function () { state.invView = b.dataset.invview; (state._painter || paint)(container); };
     });
     container.querySelectorAll('[data-ativo]').forEach(function (el) {
       el.addEventListener('click', function () { openFicha(el.dataset.ativo, container); });
@@ -401,6 +415,19 @@
   var _fichaOverlay = null;
   function closeFicha() { if (_fichaOverlay) { _fichaOverlay.remove(); _fichaOverlay = null; } }
 
+  // RES-03: constrói HTML de select de locais para o campo local_id da ficha.
+  // locais: array [{id, nome, parent_id?, ...}] retornado por /api/locais.
+  // curLocalId: valor atual de pmoc_refrigeracao.local_id (pré-seleção).
+  function _localSelect(locais, curLocalId) {
+    var style = 'width:100%;padding:6px 8px;border-radius:7px;border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text1,#e6eefc)';
+    var opts = '<option value="">— sem local —</option>';
+    (locais || []).forEach(function (l) {
+      var sel = (curLocalId != null && String(l.id) === String(curLocalId)) ? ' selected' : '';
+      opts += '<option value="' + esc(l.id) + '"' + sel + '>' + esc(l.nome) + '</option>';
+    });
+    return '<label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text3,#9fb3cc)">Local<select name="local_id" style="' + style + '">' + opts + '</select></label>';
+  }
+
   function openFicha(ativoId, container) {
     var E = window.RefrigEngine;
     var r = state.rows.find(function (x) { return String(x.ativo_id) === String(ativoId); });
@@ -410,49 +437,56 @@
     closeFicha();
     var ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px';
-    var derived = '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2,#9fb3cc);background:var(--bg3,#0a1828);border-radius:8px;padding:10px 12px;margin-bottom:14px">' +
-      '<span>Gás (est.): <b style="color:var(--text1,#e6eefc)">' + esc(g.gas) + ' · ' + g.carga + 'g</b></span>' +
-      '<span>Potência: <b style="color:var(--text1,#e6eefc)">' + E.estimatePower(e.btu) + ' W</b></span>' +
-      (function () { var u = E.horasUsoEstimado(r.data_instalacao, r.horas_dia, r.dias_semana); return '<span>Uso est.: <b style="color:var(--text1,#e6eefc)">' + (u == null ? '— (preencha instalação)' : u + ' h') + '</b></span>'; })() +
-      '<span>Criticidade (auto): ' + critBadge(crit) + '</span>' +
-      '<span>PMOC: <b style="color:var(--text1,#e6eefc)">' + esc((E.PMOC_INT[crit] || {}).desc || '') + '</b></span></div>';
-    ov.innerHTML = '<div style="background:var(--bg2,#0d1e33);border:1px solid var(--border,#1c3350);border-radius:14px;max-width:760px;width:100%;padding:20px;color:var(--text1,#e6eefc)">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
-      '<h2 style="margin:0;font-size:18px">❄️ ' + esc(r.ativo_nome || r.ativo_id) + '</h2>' +
-      '<button id="ficha-x" style="background:none;border:none;color:var(--text3,#9fb3cc);font-size:22px;cursor:pointer">×</button></div>' +
-      '<div style="font-size:12px;color:var(--text3,#9fb3cc);margin-bottom:14px">' + esc(r.ativo_id) + ' · ' + esc(loc) + '</div>' +
-      derived +
-      '<div style="margin-bottom:14px"><button type="button" id="ficha-gerar-os" style="padding:8px 16px;border-radius:8px;border:1px solid var(--green,#22c55e);background:transparent;color:var(--green,#22c55e);font-weight:700;cursor:pointer">🧰 Gerar OS preventiva</button></div>' +
-      '<form id="ficha-form">' +
-      grp('Identificação', fld('Nome', 'nome', r.ativo_nome) + fld('Patrimônio', 'patrimonio', r.patrimonio) + fld('Fabricante', 'fabricante', r.fabricante) + fld('BTU', 'btu', r.btu, 'number')) +
-      grp('Estado', fld('Funciona', 'funciona', r.funciona) + fld('Conservação', 'estado_conservacao', r.estado_conservacao) + fld('Criticidade (manual)', 'criticidade', r.criticidade)) +
-      grp('Elétrico', fld('Tensão (V)', 'tensao_nominal', r.tensao_nominal, 'number') + fld('Corrente (A)', 'corrente_nominal', r.corrente_nominal, 'number') + fld('Quadro', 'quadro', r.quadro) + fld('Disjuntor', 'disjuntor', r.disjuntor) + fld('Cabo', 'cabo', r.cabo)) +
-      grp('Uso / PMOC', fld('h/dia', 'horas_dia', r.horas_dia, 'number') + fld('dias/semana', 'dias_semana', r.dias_semana, 'number') + fld('Permanente 24h', 'permanencia', r.permanencia, 'check') + fld('Instalação', 'data_instalacao', (r.data_instalacao || '').slice(0, 10), 'date') + fld('Última manutenção', 'ultima_manutencao', (r.ultima_manutencao || '').slice(0, 10), 'date')) +
-      grp('Observações', '<label style="grid-column:1/-1;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text3,#9fb3cc)">Obs<textarea name="obs" rows="2" style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:7px;border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text1,#e6eefc)">' + esc(r.obs || '') + '</textarea></label>') +
-      '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">' +
-      '<button type="button" id="ficha-cancel" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border,#1c3350);background:transparent;color:var(--text2,#9fb3cc);cursor:pointer">Cancelar</button>' +
-      '<button type="submit" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc,#00b4d8);color:#001018;font-weight:700;cursor:pointer">Salvar</button></div>' +
-      '</form></div>';
+    // RES-03: buscar locais para o select; construir ficha após resposta
+    fetch('/api/locais').then(function (res) { return res.ok ? res.json() : []; }).catch(function () { return []; })
+      .then(function (locais) {
+        var derived = '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2,#9fb3cc);background:var(--bg3,#0a1828);border-radius:8px;padding:10px 12px;margin-bottom:14px">' +
+          '<span>Gás (est.): <b style="color:var(--text1,#e6eefc)">' + esc(g.gas) + ' · ' + g.carga + 'g</b></span>' +
+          '<span>Potência: <b style="color:var(--text1,#e6eefc)">' + E.estimatePower(e.btu) + ' W</b></span>' +
+          (function () { var u = E.horasUsoEstimado(r.data_instalacao, r.horas_dia, r.dias_semana); return '<span>Uso est.: <b style="color:var(--text1,#e6eefc)">' + (u == null ? '— (preencha instalação)' : u + ' h') + '</b></span>'; })() +
+          '<span>Criticidade (auto): ' + critBadge(crit) + '</span>' +
+          '<span>PMOC: <b style="color:var(--text1,#e6eefc)">' + esc((E.PMOC_INT[crit] || {}).desc || '') + '</b></span></div>';
+        ov.innerHTML = '<div style="background:var(--bg2,#0d1e33);border:1px solid var(--border,#1c3350);border-radius:14px;max-width:760px;width:100%;padding:20px;color:var(--text1,#e6eefc)">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+          '<h2 style="margin:0;font-size:18px">❄️ ' + esc(r.ativo_nome || r.ativo_id) + '</h2>' +
+          '<button id="ficha-x" style="background:none;border:none;color:var(--text3,#9fb3cc);font-size:22px;cursor:pointer">×</button></div>' +
+          '<div style="font-size:12px;color:var(--text3,#9fb3cc);margin-bottom:14px">' + esc(r.ativo_id) + ' · ' + esc(loc) + '</div>' +
+          derived +
+          '<div style="margin-bottom:14px"><button type="button" id="ficha-gerar-os" style="padding:8px 16px;border-radius:8px;border:1px solid var(--green,#22c55e);background:transparent;color:var(--green,#22c55e);font-weight:700;cursor:pointer">🧰 Gerar OS preventiva</button></div>' +
+          '<form id="ficha-form">' +
+          grp('Identificação', fld('Nome', 'nome', r.ativo_nome) + fld('Patrimônio', 'patrimonio', r.patrimonio) + fld('Fabricante', 'fabricante', r.fabricante) + fld('BTU', 'btu', r.btu, 'number')) +
+          grp('Estado', fld('Funciona', 'funciona', r.funciona) + fld('Conservação', 'estado_conservacao', r.estado_conservacao) + fld('Criticidade (manual)', 'criticidade', r.criticidade)) +
+          grp('Elétrico', fld('Tensão (V)', 'tensao_nominal', r.tensao_nominal, 'number') + fld('Corrente (A)', 'corrente_nominal', r.corrente_nominal, 'number') + fld('Quadro', 'quadro', r.quadro) + fld('Disjuntor', 'disjuntor', r.disjuntor) + fld('Cabo', 'cabo', r.cabo)) +
+          grp('Uso / PMOC', fld('h/dia', 'horas_dia', r.horas_dia, 'number') + fld('dias/semana', 'dias_semana', r.dias_semana, 'number') + fld('Permanente 24h', 'permanencia', r.permanencia, 'check') + fld('Instalação', 'data_instalacao', (r.data_instalacao || '').slice(0, 10), 'date') + fld('Última manutenção', 'ultima_manutencao', (r.ultima_manutencao || '').slice(0, 10), 'date')) +
+          // RES-03: campo local — editável e enviado via PUT /api/pmoc/refrigeracao/{id} (_ATIVO_EDIT whitelist)
+          grp('Localização', _localSelect(locais, r.local_id)) +
+          grp('Observações', '<label style="grid-column:1/-1;display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text3,#9fb3cc)">Obs<textarea name="obs" rows="2" style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:7px;border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text1,#e6eefc)">' + esc(r.obs || '') + '</textarea></label>') +
+          '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">' +
+          '<button type="button" id="ficha-cancel" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border,#1c3350);background:transparent;color:var(--text2,#9fb3cc);cursor:pointer">Cancelar</button>' +
+          '<button type="submit" style="padding:8px 16px;border-radius:8px;border:none;background:var(--acc,#00b4d8);color:#001018;font-weight:700;cursor:pointer">Salvar</button></div>' +
+          '</form></div>';
+        ov.querySelector('#ficha-x').onclick = closeFicha;
+        ov.querySelector('#ficha-cancel').onclick = closeFicha;
+        ov.onclick = function (ev) { if (ev.target === ov) closeFicha(); };
+        ov.querySelector('#ficha-form').onsubmit = function (ev) { ev.preventDefault(); saveFicha(ativoId, ev.target, container); };
+        ov.querySelector('#ficha-gerar-os').onclick = function () {
+          if (!confirm('Gerar OS preventiva para esta máquina?')) return;
+          fetch('/api/pmoc/refrigeracao/' + encodeURIComponent(ativoId) + '/os-preventiva', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(function (res) { if (!res.ok) return res.json().then(function (j) { throw new Error(j.detail || ('HTTP ' + res.status)); }); return res.json(); })
+            .then(function (os) {
+              closeFicha();
+              alert('OS ' + (os.codigo || '') + ' criada (' + ((os.etapas || []).length) + ' etapas). Veja na aba Controle.');
+              if (window.manutOpenTab) window.manutOpenTab('os');
+            })
+            .catch(function (err) { alert('Falha: ' + err.message); });
+        };
+      });
     document.body.appendChild(ov);
     _fichaOverlay = ov;
-    ov.querySelector('#ficha-x').onclick = closeFicha;
-    ov.querySelector('#ficha-cancel').onclick = closeFicha;
-    ov.onclick = function (ev) { if (ev.target === ov) closeFicha(); };
-    ov.querySelector('#ficha-form').onsubmit = function (ev) { ev.preventDefault(); saveFicha(ativoId, ev.target, container); };
-    ov.querySelector('#ficha-gerar-os').onclick = function () {
-      if (!confirm('Gerar OS preventiva para esta máquina?')) return;
-      fetch('/api/pmoc/refrigeracao/' + encodeURIComponent(ativoId) + '/os-preventiva', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-        .then(function (res) { if (!res.ok) return res.json().then(function (j) { throw new Error(j.detail || ('HTTP ' + res.status)); }); return res.json(); })
-        .then(function (os) {
-          closeFicha();
-          alert('OS ' + (os.codigo || '') + ' criada (' + ((os.etapas || []).length) + ' etapas). Veja na aba Controle.');
-          if (window.manutOpenTab) window.manutOpenTab('os');
-        })
-        .catch(function (err) { alert('Falha: ' + err.message); });
-    };
   }
 
-  var NUMS = { btu: 1, tensao_nominal: 1, corrente_nominal: 1, horas_dia: 1, dias_semana: 1 };
+  // RES-03: local_id incluído como campo numérico (null quando vazio = sem local)
+  var NUMS = { btu: 1, tensao_nominal: 1, corrente_nominal: 1, horas_dia: 1, dias_semana: 1, local_id: 1 };
   function saveFicha(ativoId, form, container) {
     var fd = new FormData(form);
     var body = {};
@@ -473,9 +507,7 @@
     });
   }
 
-  function render(container) {
-    if (!window.RefrigEngine) { container.innerHTML = '<div style="padding:24px;color:#ef4444">RefrigEngine não carregado.</div>'; return; }
-    container.innerHTML = '<div style="padding:24px;color:var(--text3,#9fb3cc)">Carregando refrigeração…</div>';
+  function load(container, cb) {
     Promise.all([
       fetch('/api/pmoc/refrigeracao').then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
       fetch('/api/equipe/refrigeracao').then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }),
@@ -485,10 +517,26 @@
       state.rows = res[0] || []; state.equipe = res[1] || [];
       state.servicos = (res[2] || []).filter(function (s) { return (_aplic(s).categorias || []).indexOf('climatizacao') >= 0; });
       state.estoque = (res[3] || []).filter(function (i) { return i.obs === 'refrigeracao'; });
-      state.loaded = true; paint(container);
+      state.loaded = true; cb();
     }).catch(function (e) {
       container.innerHTML = '<div style="padding:24px;color:#ef4444">Falha ao carregar /api/pmoc/refrigeracao: ' + esc(e.message) + '</div>';
     });
+  }
+
+  // standalone: barra própria + corpo
+  function render(container) {
+    if (!window.RefrigEngine) { container.innerHTML = '<div style="padding:24px;color:#ef4444">RefrigEngine não carregado.</div>'; return; }
+    container.innerHTML = '<div style="padding:24px;color:var(--text3,#9fb3cc)">Carregando refrigeração…</div>';
+    load(container, function () { paint(container); });
+  }
+
+  // embutido no shell de Manutenção: só corpo, barra externa controla state.sub
+  function showSub(container, subId) {
+    if (!window.RefrigEngine) { container.innerHTML = '<div style="padding:24px;color:#ef4444">RefrigEngine não carregado.</div>'; return; }
+    if (subId) state.sub = subId;
+    if (state.loaded) { paintBody(container); return; }
+    container.innerHTML = '<div style="padding:24px;color:var(--text3,#9fb3cc)">Carregando refrigeração…</div>';
+    load(container, function () { paintBody(container); });
   }
 
   // ── criar serviço padrão (catálogo compartilhado) ───────────────────────
@@ -596,5 +644,9 @@
     draw(svc.materiais || []);
   }
 
-  window.erpRefrig = { render: render };
+  window.erpRefrig = {
+    render: render,
+    showSub: showSub,
+    subs: SUBS.map(function (s) { return { id: s.id, label: s.label }; }),
+  };
 })();
