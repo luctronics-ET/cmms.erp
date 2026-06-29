@@ -571,3 +571,324 @@ async def registrar_manutencao(
         await conn.commit()
 
     return {"ok": True, "uso_no_momento": uso_no_momento, "itens_registrados": len(itens_validos)}
+
+
+# ── Fase 03: Estoque de Sobressalentes (IMP-03) ───────────────────────────────
+# Tabelas SEPARADAS de estoque/estoque_movimentos (SC: sem mistura).
+# Mitigações STRIDE: T-03-01 (params), T-03-02 (operador do token), T-03-03 (txn atômica),
+# T-03-04 (role check), T-03-05 (estoque isolado), T-03-06 (saida negativa → 422).
+
+TIPOS_MOVIMENTO = {"entrada", "saida", "ajuste"}
+
+
+class SobressalanteIn(BaseModel):
+    """Payload para POST /sobressalentes — criar nova peça."""
+
+    nome: str
+    codigo: Optional[str] = None
+    categoria: str = "sobressalente"   # consumivel | sobressalente | ferramenta
+    unidade: str = "un"
+    qtd_minima: float = 0.0
+    preco_unitario: float = 0.0
+    obs: Optional[str] = None
+
+    @field_validator("nome")
+    @classmethod
+    def nome_nao_vazio(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("nome é obrigatório")
+        return v.strip()
+
+
+class SobressalanteUpdate(BaseModel):
+    """Payload para PUT /sobressalentes/{id} — editar campos (exceto qtd_atual)."""
+
+    nome: Optional[str] = None
+    codigo: Optional[str] = None
+    categoria: Optional[str] = None
+    unidade: Optional[str] = None
+    qtd_minima: Optional[float] = None
+    preco_unitario: Optional[float] = None
+    obs: Optional[str] = None
+
+    @field_validator("nome")
+    @classmethod
+    def nome_nao_vazio(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not v.strip():
+            raise ValueError("nome não pode ser vazio")
+        return v.strip() if v else v
+
+
+class AjusteIn(BaseModel):
+    """Payload para POST /sobressalentes/{id}/ajuste.
+
+    Semântica dos tipos:
+      entrada — adiciona quantidade ao estoque atual (qtd_atual += quantidade)
+      saida   — subtrai quantidade do estoque atual (qtd_atual -= quantidade); 422 se ficaria negativo
+      ajuste  — define o delta: qtd_atual += quantidade (positivo = adiciona, negativo = subtrai);
+                422 se resultado ficaria negativo
+
+    operador NÃO vem do payload — é extraído do token (_require_auth) — T-03-02.
+    """
+
+    quantidade: float
+    tipo: str      # entrada | saida | ajuste
+    motivo: Optional[str] = None
+    obs: Optional[str] = None
+
+    @field_validator("tipo")
+    @classmethod
+    def tipo_valido(cls, v: str) -> str:
+        if v not in TIPOS_MOVIMENTO:
+            raise ValueError(f"tipo deve ser um de {sorted(TIPOS_MOVIMENTO)}")
+        return v
+
+
+def _badge(qtd_atual: float, qtd_minima: float) -> str:
+    """Calcula badge: ZERADO | BAIXO | OK.
+
+    ZERADO: qtd_atual <= 0
+    BAIXO:  0 < qtd_atual < qtd_minima
+    OK:     qtd_atual >= qtd_minima
+    """
+    if qtd_atual <= 0:
+        return "ZERADO"
+    if qtd_atual < qtd_minima:
+        return "BAIXO"
+    return "OK"
+
+
+@router.get("/sobressalentes")
+async def listar_sobressalentes(
+    categoria: Optional[str] = None,
+    authorization: str | None = Header(None),
+):
+    """Lista peças ativas com badge calculado (ZERADO|BAIXO|OK) e valor estimado total.
+
+    Parâmetros:
+      categoria — filtra por categoria (opcional)
+    Retorna:
+      { items: [..., badge, ...], valor_estimado_total: float }
+
+    Mitigações STRIDE: T-03-01 (params), _require_auth (T-03-04).
+    """
+    await _require_auth(authorization)
+    db = _db()
+    if categoria:
+        rows = await db.fetch_all(
+            "SELECT * FROM sobressalentes WHERE ativo = 1 AND categoria = ? ORDER BY nome",
+            (categoria,),  # parameterized — T-03-01
+        )
+    else:
+        rows = await db.fetch_all(
+            "SELECT * FROM sobressalentes WHERE ativo = 1 ORDER BY nome",
+        )
+
+    items = []
+    valor_estimado_total = 0.0
+    for row in rows:
+        row_dict = dict(row)
+        qtd = float(row_dict.get("qtd_atual") or 0.0)
+        preco = float(row_dict.get("preco_unitario") or 0.0)
+        minima = float(row_dict.get("qtd_minima") or 0.0)
+        row_dict["badge"] = _badge(qtd, minima)
+        valor_estimado_total += qtd * preco
+        items.append(row_dict)
+
+    return {
+        "items": items,
+        "valor_estimado_total": round(valor_estimado_total, 2),
+    }
+
+
+@router.post("/sobressalentes", status_code=201)
+async def criar_sobressalente(
+    body: SobressalanteIn,
+    authorization: str | None = Header(None),
+):
+    """Cria uma nova peça no estoque de sobressalentes.
+
+    Requer token não-visitante (role != 'visualizador' — T-03-04).
+    Mitigações STRIDE: T-03-01 (params), T-03-04 (role check).
+    """
+    user = await _require_auth(authorization)
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não podem criar peças")
+
+    db_path = _db().db_path
+    async with aiosqlite.connect(db_path) as conn:
+        conn.row_factory = aiosqlite.Row
+        cur = await conn.execute(
+            "INSERT INTO sobressalentes "
+            "(codigo, nome, categoria, unidade, qtd_minima, preco_unitario, obs) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                body.codigo,
+                body.nome,
+                body.categoria,
+                body.unidade,
+                body.qtd_minima,
+                body.preco_unitario,
+                body.obs,
+            ),
+        )
+        new_id = cur.lastrowid
+        await conn.commit()
+
+    return {"id": new_id}
+
+
+@router.put("/sobressalentes/{item_id}")
+async def editar_sobressalente(
+    item_id: int,
+    body: SobressalanteUpdate,
+    authorization: str | None = Header(None),
+):
+    """Edita campos editáveis de uma peça (nome, codigo, categoria, unidade, qtd_minima, preco_unitario, obs).
+
+    NÃO altera qtd_atual — use /ajuste para isso.
+    404 se não encontrado. 403 para visualizador. Mitigações T-03-01, T-03-04.
+    """
+    user = await _require_auth(authorization)
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não podem editar peças")
+
+    db = _db()
+    row = await db.fetch_one(
+        "SELECT id FROM sobressalentes WHERE id = ? AND ativo = 1",
+        (item_id,),
+    )
+    if not row:
+        raise HTTPException(404, "Peça não encontrada")
+
+    # Build SET clause from provided fields only (never qtd_atual)
+    updates = {}
+    if body.nome is not None:
+        updates["nome"] = body.nome
+    if body.codigo is not None:
+        updates["codigo"] = body.codigo
+    if body.categoria is not None:
+        updates["categoria"] = body.categoria
+    if body.unidade is not None:
+        updates["unidade"] = body.unidade
+    if body.qtd_minima is not None:
+        updates["qtd_minima"] = body.qtd_minima
+    if body.preco_unitario is not None:
+        updates["preco_unitario"] = body.preco_unitario
+    if body.obs is not None:
+        updates["obs"] = body.obs
+
+    if not updates:
+        return {"ok": True, "message": "Nenhum campo para atualizar"}
+
+    set_clause = ", ".join(f"{k} = ?" for k in updates)
+    values = list(updates.values()) + [item_id]
+
+    db_path = _db().db_path
+    async with aiosqlite.connect(db_path) as conn:
+        await conn.execute(
+            f"UPDATE sobressalentes SET {set_clause} WHERE id = ?",  # noqa: S608 — set_clause is from hardcoded keys
+            values,
+        )
+        await conn.commit()
+
+    return {"ok": True}
+
+
+@router.post("/sobressalentes/{item_id}/ajuste", status_code=201)
+async def ajustar_sobressalente(
+    item_id: int,
+    body: AjusteIn,
+    authorization: str | None = Header(None),
+):
+    """Ajusta a quantidade de uma peça em uma transação atômica.
+
+    Semântica:
+      entrada — qtd_atual += quantidade (entrada positiva)
+      saida   — qtd_atual -= quantidade (saida; 422 se ficaria negativo — T-03-06)
+      ajuste  — qtd_atual += quantidade (positivo = adiciona, negativo = subtrai;
+                422 se resultado ficaria negativo — T-03-06)
+
+    Atomicidade: único aiosqlite.connect block + único commit (T-03-03).
+    operador lido do token, nunca do payload (T-03-02).
+    Retorna o novo qtd_atual.
+    """
+    user = await _require_auth(authorization)
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não podem ajustar estoque")
+
+    operador = user.get("mat") or user.get("nome") or str(user.get("usuario_id", ""))
+    db_path = _db().db_path
+
+    async with aiosqlite.connect(db_path) as conn:
+        conn.row_factory = aiosqlite.Row
+
+        # 1. Ler a peça DENTRO da transação (snapshot consistente)
+        async with conn.execute(
+            "SELECT id, qtd_atual FROM sobressalentes WHERE id = ? AND ativo = 1",
+            (item_id,),
+        ) as cur:
+            row = await cur.fetchone()
+
+        if not row:
+            raise HTTPException(404, "Peça não encontrada")
+
+        qtd_anterior = float(row["qtd_atual"] or 0.0)
+
+        # 2. Calcular nova quantidade segundo semântica do tipo
+        if body.tipo == "entrada":
+            nova_qtd = qtd_anterior + body.quantidade
+        elif body.tipo == "saida":
+            nova_qtd = qtd_anterior - body.quantidade
+        else:  # ajuste
+            nova_qtd = qtd_anterior + body.quantidade
+
+        # Nunca deixar negativo (T-03-06)
+        if nova_qtd < 0:
+            raise HTTPException(
+                422,
+                f"Operação resultaria em estoque negativo "
+                f"(atual={qtd_anterior}, delta={body.quantidade} → {nova_qtd})",
+            )
+
+        nova_qtd = round(nova_qtd, 4)
+
+        # 3. UPDATE + INSERT em única transação atômica (T-03-03)
+        await conn.execute(
+            "UPDATE sobressalentes SET qtd_atual = ? WHERE id = ?",
+            (nova_qtd, item_id),
+        )
+        await conn.execute(
+            "INSERT INTO sobressalentes_movimentos "
+            "(item_id, tipo, quantidade, motivo, obs, operador) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (item_id, body.tipo, body.quantidade, body.motivo, body.obs, operador),
+        )
+
+        # 4. Commit único — garante atomicidade (T-03-03)
+        await conn.commit()
+
+    return {"qtd_atual": nova_qtd}
+
+
+@router.get("/sobressalentes/{item_id}/movimentos")
+async def listar_movimentos(
+    item_id: int,
+    limit: int = Query(default=50, ge=1, le=200),
+    authorization: str | None = Header(None),
+):
+    """Retorna o histórico de movimentos de uma peça, mais recentes primeiro.
+
+    Parâmetros:
+      limit — máx de linhas retornadas (padrão 50, min 1, max 200)
+    Mitigações STRIDE: T-03-01 (params), _require_auth (T-03-04).
+    """
+    await _require_auth(authorization)
+    db = _db()
+    rows = await db.fetch_all(
+        "SELECT * FROM sobressalentes_movimentos "
+        "WHERE item_id = ? "
+        "ORDER BY created_at DESC LIMIT ?",
+        (item_id, limit),
+    )
+    return rows
