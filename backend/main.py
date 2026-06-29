@@ -1076,7 +1076,8 @@ async def get_usuario(uid: int):
 
 @app.post("/api/usuarios", status_code=201)
 async def create_usuario(body: UsuarioIn):
-    pw = _djb2(body.senha) if body.senha else _djb2("1234")
+    # SEC-02: quando senha informada usa Argon2id; sem senha armazena "" (conta não autentica).
+    pw = _ph.hash(body.senha) if body.senha else ""
     uid = await db.execute(
         "INSERT INTO usuarios (nome, posto, mat, email, tel, tipo, role, pw_hash) VALUES (?,?,?,?,?,?,?,?)",
         (body.nome, body.posto, body.mat, body.email, body.tel, body.tipo, body.role, pw),
@@ -1086,8 +1087,15 @@ async def create_usuario(body: UsuarioIn):
 
 @app.put("/api/usuarios/{uid}")
 async def update_usuario(uid: int, body: UsuarioIn):
-    row = await get_usuario(uid)
-    pw = _djb2(body.senha) if body.senha else row.get("pw_hash", _djb2("1234"))
+    await get_usuario(uid)  # valida existência; 404 se não encontrado
+    # SEC-02: preservar o hash atual ao atualizar sem fornecer senha.
+    # get_usuario não retorna pw_hash (campo sensível), buscar direto do DB.
+    existing = await db.fetch_one(
+        "SELECT pw_hash FROM usuarios WHERE id = ?", (uid,)
+    )
+    existing_hash = (existing or {}).get("pw_hash") or ""
+    # Quando senha fornecida: Argon2id; quando ausente: preservar hash existente.
+    pw = _ph.hash(body.senha) if body.senha else existing_hash
     await db.execute(
         "UPDATE usuarios SET nome=?, posto=?, mat=?, email=?, tel=?, tipo=?, role=?, pw_hash=? WHERE id=?",
         (body.nome, body.posto, body.mat, body.email, body.tel, body.tipo, body.role, pw, uid),
