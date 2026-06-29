@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/pmoc-engine.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="assets/xmap.css">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>cmasm.erp</title>
 <style>
@@ -116,7 +117,7 @@ table{border-collapse:collapse;width:100%}
 [data-visitante] .sb-actions .btn-ghost[onclick*="perfil"]{display:none;}
 
 /* ═══ APP SHELL ══════════════════════════════════════════════ */
-#app{display:none;height:100vh;display:grid;grid-template-columns:220px 1fr;grid-template-rows:48px 1fr}
+#app{display:none;height:100vh;display:grid;grid-template-columns:220px 1fr;grid-template-rows:1fr}
 #app.visible{display:grid}
 .hidden{display:none!important}
 #app.sidebar-collapsed{grid-template-columns:68px 1fr}
@@ -132,53 +133,12 @@ table{border-collapse:collapse;width:100%}
 #app.sidebar-collapsed .sb-uname,
 #app.sidebar-collapsed .sb-urole,
 #app.sidebar-collapsed .sb-actions{display:none}
-#app.sidebar-collapsed .topbar-logo{width:auto;border-right:none;padding:0 14px}
-#app.sidebar-collapsed .topbar-module{padding-left:10px}
-
-/* ═══ TOPBAR ═════════════════════════════════════════════════ */
-.topbar{grid-column:1/-1;background:var(--topbar-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px 0 0;z-index:100}
+/* ═══ BRAND / LOGO (sidebar header) ══════════════════════════ */
 .topbar-logo{display:flex;align-items:center;gap:10px;padding:0 12px 0 20px;width:auto;flex:0 0 auto;cursor:pointer;border-radius:10px;transition:background .18s ease,box-shadow .18s ease}
 .topbar-logo:hover{background:var(--bg3)}
 .topbar-logo:focus-visible{outline:none;background:var(--bg3);box-shadow:0 0 0 2px rgba(59,130,246,.35)}
 .topbar-logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--blue-500),var(--cyan-500));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(59,130,246,.25)}
 .topbar-logo-text{font-size:22px;font-weight:700;letter-spacing:-.5px;color:var(--text1);line-height:1}
-.topbar-module{padding:0 20px;font-size:12px;color:var(--text3);font-family:'IBM Plex Mono',monospace;flex:1}
-.topbar-actions{display:flex;align-items:center;gap:8px}
-.topbar-user-wrap{position:relative}
-.topbar-user{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
-.topbar-user:hover{background:var(--bg3)}
-.topbar-user-wrap:hover .topbar-user{background:var(--bg3)}
-.topbar-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
-.topbar-uname{font-size:13px;font-weight:500;color:var(--text2)}
-.topbar-user-menu{
-  position:absolute;
-  top:calc(100% + 6px);
-  right:0;
-  min-width:160px;
-  display:none;
-  background:var(--bg2);
-  border:1px solid var(--border2);
-  border-radius:10px;
-  padding:6px;
-  box-shadow:0 12px 24px rgba(0,0,0,.18);
-  z-index:120;
-}
-.topbar-user-wrap:hover .topbar-user-menu,
-.topbar-user-wrap.open .topbar-user-menu{display:block}
-.topbar-user-menu-item{
-  width:100%;
-  text-align:left;
-  border:none;
-  background:transparent;
-  color:var(--text2);
-  font-size:13px;
-  font-weight:500;
-  padding:8px 10px;
-  border-radius:8px;
-  cursor:pointer;
-}
-.topbar-user-menu-item:hover{background:var(--bg3);color:var(--text1)}
-.topbar-user-menu-item.danger:hover{background:rgba(239,68,68,.12);color:var(--danger)}
 .btn-icon{background:none;border:1px solid var(--border);border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--text3);transition:all .2s}
 .btn-icon:hover{background:var(--bg3);color:var(--text1);border-color:var(--border2)}
 .sidebar-toggle-icon{transition:transform .2s ease}
@@ -222,6 +182,15 @@ table{border-collapse:collapse;width:100%}
 
 /* ═══ SIDEBAR ════════════════════════════════════════════════ */
 .sidebar{background:var(--sidebar-bg);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+.sb-head{display:flex;align-items:center;gap:6px;padding:29px 12px 12px;border-bottom:1px solid var(--border)}
+.sb-head .topbar-logo{flex:1;padding:4px 6px}
+.sb-tools{display:flex;gap:6px;margin-top:10px;padding:0 2px}
+.sb-tools .topbar-alert{flex:1}
+#app.sidebar-collapsed .sb-head{justify-content:center;padding:10px 6px}
+#app.sidebar-collapsed .sb-head .topbar-logo-text{display:none}
+#app.sidebar-collapsed .sb-head .topbar-logo{flex:0 0 auto;padding:4px}
+#app.sidebar-collapsed .sb-tools{flex-direction:column;align-items:center}
+#app.sidebar-collapsed .sb-tools .topbar-alert{flex:0 0 auto}
 .sb-nav{flex:1;padding:12px 8px}
 .sb-section{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;padding:16px 10px 6px;opacity:.7}
 .ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text3);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:1px}
@@ -281,7 +250,6 @@ table{border-collapse:collapse;width:100%}
   align-items:start;
 }
 #page-dashboard .portal-col3{display:grid;gap:12px}
-#page-dashboard .portal-main-grid .card{height:100%}
 
 #page-dashboard .qa-grid{display:grid;grid-template-columns:repeat(2,minmax(130px,1fr));gap:10px}
 #page-dashboard .qa-btn{
@@ -312,6 +280,14 @@ table{border-collapse:collapse;width:100%}
 
 #page-dashboard .status-grid.portal-mod-grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:11px}
 #page-dashboard .status-card.module-tile{min-height:145px}
+/* grid compacto de módulos (internos + externos unificados) */
+#page-dashboard .mod-grid-compact{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px}
+#page-dashboard .mod-mini{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .2s}
+#page-dashboard .mod-mini:hover{border-color:var(--acc)}
+#page-dashboard .mod-mini .mm-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+#page-dashboard .mod-mini .mm-name{font-size:13px;font-weight:600;color:var(--text1)}
+#page-dashboard .mod-mini .mm-val{font-size:11px;color:var(--text3);margin-top:4px}
+#page-dashboard .mod-mini .mm-dot{font-size:11px;flex-shrink:0}
 
 @media (max-width: 1280px){
   #page-dashboard .portal-main-grid{grid-template-columns:1fr 1fr}
@@ -572,6 +548,11 @@ table{border-collapse:collapse;width:100%}
 <script src="assets/erp-manutencao.js" defer></script>
 <script src="assets/tbl-enhance.js" defer></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+<!-- xMap: componente de mapa multi-camadas (grama backend + aguada/elétrica importados) -->
+<script src="assets/xmap.js" defer></script>
+<script src="assets/xmap-layers-grama.js" defer></script>
+<script src="assets/xmap-layers-aguada.js" defer></script>
+<script src="assets/xmap-layers-eletrica.js" defer></script>
 </head>
 <body>
 
@@ -619,44 +600,20 @@ table{border-collapse:collapse;width:100%}
 <div id="app">
 
 <!-- TOPBAR -->
-<header class="topbar">
-  <div class="topbar-logo" role="button" tabindex="0" title="Ir para o Portal" aria-label="Ir para o Portal" onclick="showPage('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showPage('dashboard')}">
-    <div class="topbar-logo-icon">⚓</div>
-    <span class="topbar-logo-text">cmasm.erp</span>
-  </div>
-  <button id="sidebar-toggle" class="btn-icon" title="Recolher menu lateral" aria-label="Recolher menu lateral" aria-pressed="false" onclick="toggleSidebar()">
-    <svg class="sidebar-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="8" y1="4" x2="8" y2="20"></line>
-      <polyline points="16 7 11 12 16 17"></polyline>
-    </svg>
-  </button>
-  <div class="topbar-module" id="topbar-module">Portal integrado</div>
-  <div class="topbar-actions">
-    <button id="topbar-badge" class="topbar-alert" title="Abrir serviços" onclick="showPage('servicos');showSvcTab('os')" aria-label="Sem alertas">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/>
-        <path d="M10 17a2 2 0 0 0 4 0"/>
-      </svg>
-      <span class="topbar-alert-count" aria-hidden="true">0</span>
-    </button>
-    <button class="btn-icon" title="Alternar tema" onclick="toggleTheme()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-    </button>
-    <div class="topbar-user-wrap" id="topbar-user-wrap">
-      <div class="topbar-user" id="topbar-user-trigger" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" title="Menu do usuário" onclick="toggleTopbarUserMenu(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleTopbarUserMenu(event)}">
-        <div class="topbar-avatar" id="topbar-avatar">?</div>
-        <span class="topbar-uname" id="topbar-uname">Usuário</span>
-      </div>
-      <div class="topbar-user-menu" id="topbar-user-menu" role="menu" aria-label="Menu do usuário">
-        <button class="topbar-user-menu-item" role="menuitem" onclick="closeTopbarUserMenu();showPage('perfil')">Perfil</button>
-        <button class="topbar-user-menu-item danger" role="menuitem" onclick="closeTopbarUserMenu();doLogout()">Sair</button>
-      </div>
-    </div>
-  </div>
-</header>
-
 <!-- SIDEBAR -->
 <nav class="sidebar">
+  <div class="sb-head">
+    <div class="topbar-logo" role="button" tabindex="0" title="Ir para o Portal" aria-label="Ir para o Portal" onclick="showPage('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showPage('dashboard')}">
+      <div class="topbar-logo-icon">⚓</div>
+      <span class="topbar-logo-text">cmasm.erp</span>
+    </div>
+    <button id="sidebar-toggle" class="btn-icon" title="Recolher menu lateral" aria-label="Recolher menu lateral" aria-pressed="false" onclick="toggleSidebar()">
+      <svg class="sidebar-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="8" y1="4" x2="8" y2="20"></line>
+        <polyline points="16 7 11 12 16 17"></polyline>
+      </svg>
+    </button>
+  </div>
   <div class="sb-nav" id="sb-nav">
     <div class="sb-section">Principal</div>
     <div class="ni active" data-page="dashboard" onclick="showPage('dashboard',this)">
@@ -684,6 +641,10 @@ table{border-collapse:collapse;width:100%}
     <div class="ni" data-page="predial" onclick="showPage('predial',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="1"/><path d="M9 3v18M15 9h4M15 12h4M15 15h4M5 9h2M5 12h2M5 15h2"/></svg>
       Predial
+    </div>
+    <div class="ni" data-page="mapa" onclick="showPage('mapa',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      Mapa
     </div>
     <div class="ni" data-page="ativos" onclick="showPage('ativos',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -810,6 +771,18 @@ table{border-collapse:collapse;width:100%}
         Sair
       </button>
     </div>
+    <div class="sb-tools">
+      <button id="topbar-badge" class="topbar-alert" title="Abrir serviços" onclick="showPage('servicos');showSvcTab('os')" aria-label="Sem alertas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"/>
+          <path d="M10 17a2 2 0 0 0 4 0"/>
+        </svg>
+        <span class="topbar-alert-count" aria-hidden="true">0</span>
+      </button>
+      <button class="topbar-alert" title="Alternar tema" aria-label="Alternar tema" onclick="toggleTheme()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+    </div>
   </div>
 </nav>
 
@@ -836,9 +809,31 @@ table{border-collapse:collapse;width:100%}
     <div class="kpi kpi-warn"><div class="kpi-label">Agendamentos</div><div class="kpi-value" id="kpi-agenda">0</div><div class="kpi-sub">pendentes</div></div>
     <div class="kpi kpi-danger"><div class="kpi-label">Manutenção</div><div class="kpi-value" id="kpi-manut">0</div><div class="kpi-sub">ativos c/ pendência</div></div>
     <div class="kpi kpi-accent"><div class="kpi-label">Frota Ativa</div><div class="kpi-value" id="kpi-frota">0</div><div class="kpi-sub">veículos/embarcações</div></div>
+    <div class="kpi"><div class="kpi-label">Minhas CPs</div><div class="kpi-value" id="kpi-cps">0</div><div class="kpi-sub">comunicações padrão</div></div>
+    <div class="kpi kpi-warn"><div class="kpi-label">Folgas Pendentes</div><div class="kpi-value" id="kpi-folgas">0</div><div class="kpi-sub">aguardando</div></div>
+  </div>
+
+  <!-- Módulos (internos + externos, grid compacto) -->
+  <div class="section-title" style="margin-top:20px">Módulos</div>
+  <div class="mod-grid-compact" id="dash-modulos">
+    <div class="mod-mini" onclick="showPage('servicos')"><div class="mm-top"><span class="mm-name">Serviços OS</span><span class="mm-dot" style="color:var(--green)">●</span></div><div class="mm-val">OS → Avaliação → Arquivo</div></div>
+    <div class="mod-mini" onclick="showPage('transportes')"><div class="mm-top"><span class="mm-name">Transportes</span><span class="mm-dot" style="color:var(--green)">●</span></div><div class="mm-val" id="mod-frota-count">0 ativos</div></div>
+    <div class="mod-mini" onclick="showPage('manutencao')"><div class="mm-top"><span class="mm-name">Manutenção PMOC</span><span class="mm-dot" style="color:var(--green)">●</span></div><div class="mm-val" id="mod-manut-count">0</div></div>
+    <div class="mod-mini" onclick="showPage('ativos')"><div class="mm-top"><span class="mm-name">Ativos</span><span class="mm-dot" style="color:var(--green)">●</span></div><div class="mm-val">Inventário operacional</div></div>
+    <div class="mod-mini" onclick="showPage('estoque')"><div class="mm-top"><span class="mm-name">Estoque MRP</span><span class="mm-dot" style="color:var(--green)">●</span></div><div class="mm-val" id="mod-estoque-count">0 itens</div></div>
+    <div class="mod-mini" onclick="showPage('vegetal')"><div class="mm-top"><span class="mm-name">Controle Vegetal</span><span class="mm-dot" style="color:var(--green)">●</span></div><div class="mm-val">Maquinário de corte</div></div>
+    <div class="mod-mini" onclick="showPage('predial')"><div class="mm-top"><span class="mm-name">Predial</span><span class="mm-dot" style="color:var(--green)">●</span></div><div class="mm-val">NBR 5674 · edificações</div></div>
+    <div class="mod-mini" onclick="showPage('paiois')"><div class="mm-top"><span class="mm-name">Paiois</span><span class="mm-dot" style="color:var(--green)">●</span></div><div class="mm-val">Material e munições</div></div>
+    <div class="mod-mini" onclick="openModulo('xaguada')" title="Externo :8001"><div class="mm-top"><span class="mm-name">Aguada ↗</span><span class="mm-dot" style="color:var(--acc2)" id="ext-badge-xaguada">○</span></div><div class="mm-val">:8001 · hídrico/SCADA</div></div>
+    <div class="mod-mini" onclick="openModulo('xseguranca')" title="Externo :8000"><div class="mm-top"><span class="mm-name">Segurança ↗</span><span class="mm-dot" style="color:var(--acc2)" id="ext-badge-xseguranca">○</span></div><div class="mm-val">:8000 · CCTV/câmeras</div></div>
+    <div class="mod-mini" onclick="openModulo('xpaiol')" title="Externo :8003"><div class="mm-top"><span class="mm-name">Paiois (monitor) ↗</span><span class="mm-dot" style="color:var(--acc2)" id="ext-badge-xpaiol">○</span></div><div class="mm-val">:8003 · monitoramento</div></div>
+    <div class="mod-mini" onclick="openModulo('xcalibracao')" title="Externo :8004"><div class="mm-top"><span class="mm-name">Calibração ↗</span><span class="mm-dot" style="color:var(--acc2)" id="ext-badge-xcalibracao">○</span></div><div class="mm-val">:8004 · metrologia</div></div>
+    <div class="mod-mini" onclick="toast('Módulo Elétrica em integração','warning')"><div class="mm-top"><span class="mm-name">Elétrica</span><span class="mm-dot" style="color:var(--amber)">◐</span></div><div class="mm-val">BMS · em integração</div></div>
+    <div class="mod-mini" onclick="toast('Módulo CFTV em integração','warning')"><div class="mm-top"><span class="mm-name">CFTV</span><span class="mm-dot" style="color:var(--amber)">◐</span></div><div class="mm-val">Vídeo · em integração</div></div>
   </div>
 
   <div class="portal-main-grid">
+    <div class="portal-col3">
     <div class="card">
       <div class="card-header"><span class="card-title">Ações Rápidas</span></div>
       <div class="card-body">
@@ -859,7 +854,28 @@ table{border-collapse:collapse;width:100%}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
             <div class="qa-btn-label">Novo Ativo</div>
           </div>
+          <div class="qa-btn" onclick="openModal('modal-quick-cp')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <div class="qa-btn-label">Abrir CP</div>
+          </div>
+          <div class="qa-btn" onclick="criarComunicadoColab()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+            <div class="qa-btn-label">Novo Comunicado</div>
+          </div>
+          <div class="qa-btn" onclick="criarEventoColab()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <div class="qa-btn-label">Novo Evento</div>
+          </div>
+          <div class="qa-btn" onclick="openModal('modal-quick-folga')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M9 16l2 2 4-4"/></svg>
+            <div class="qa-btn-label">Solicitar Folga</div>
+          </div>
         </div>
+      </div>
+    </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Calendário</span><button class="btn btn-ghost btn-sm" onclick="showPage('calendario')">Abrir</button></div>
+        <div class="card-body" id="dash-calendario-body"></div>
       </div>
     </div>
 
@@ -873,111 +889,12 @@ table{border-collapse:collapse;width:100%}
       </div>
     </div>
 
-    <div class="portal-col3">
-      <div class="card">
-        <div class="card-header"><span class="card-title">Comunicados</span><button class="btn btn-ghost btn-sm" onclick="showPage('colab-announcements')">Ver todos</button></div>
-        <div class="card-body" id="dash-comunicados-body"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Calendário</span><button class="btn btn-ghost btn-sm" onclick="showPage('colab-calendar')">Abrir</button></div>
-        <div class="card-body" id="dash-calendario-body"></div>
-      </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Comunicados</span><button class="btn btn-ghost btn-sm" onclick="showPage('colab-announcements')">Ver todos</button></div>
+      <div class="card-body" id="dash-comunicados-body"></div>
     </div>
   </div>
 
-  <!-- Módulos Status -->
-  <div class="section-title" style="margin-top:20px">Módulos Internos</div>
-  <div class="status-grid portal-mod-grid" id="dash-modulos">
-    <div class="status-card module-tile" onclick="showPage('servicos')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Serviços OS</div><div class="sc-code">CMASM-ERP/SVC</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Workflow</span><span class="sc-row-value">OS → Avaliação → Arquivo</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('transportes')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Transportes</div><div class="sc-code">CMASM-11.2/TRP</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Frota</span><span id="mod-frota-count">0 ativos</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('manutencao')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Manutenção (PMOC)</div><div class="sc-code">CMASM-ERP/MANUT</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Ativos gerenciados</span><span id="mod-manut-count">0</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('ativos')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Ativos</div><div class="sc-code">CMASM-ERP/ATV</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Cadastro central</span><span class="sc-row-value">Inventário operacional</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('estoque')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Estoque (MRP)</div><div class="sc-code">CMASM-ERP/STQ</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Almoxarifado</span><span id="mod-estoque-count">0 itens</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('vegetal')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Controle Vegetal</div><div class="sc-code">CMASM-ERP/VEG</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">xGrama</span><span class="sc-row-value">Maquinário de corte</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('predial')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Predial</div><div class="sc-code">CMASM-ERP/PRD</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">NBR 5674</span><span class="sc-row-value">Edificações</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('paiois')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Paiois</div><div class="sc-code">CMASM-ERP/PAI</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Controle</span><span class="sc-row-value">Material e munições</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="showPage('dashboard')" style="cursor:pointer">
-      <div class="sc-header"><div><div class="sc-name">Colaborador (integrado)</div><div class="sc-code">CMASM-ERP/COLAB</div></div><span class="badge badge-ok">● Ativo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">CPs abertas</span><span id="mod-colab-tickets">0</span></div></div>
-    </div>
-  </div>
-
-  <div class="section-title" style="margin-top:24px">Painel do Colaborador</div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-header">
-      <span class="card-title">Comunicação interna, agenda e solicitações</span>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary btn-sm" onclick="showPage('colab-announcements')">Comunicados</button>
-        <button class="btn btn-primary btn-sm" onclick="showPage('colab-tickets')">+ Abrir CP</button>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="ch-stats" id="colab-home-stats"></div>
-      <div class="grid-2" style="gap:16px;margin-top:14px">
-        <div class="card">
-          <div class="card-header"><span class="card-title">Próximos Eventos</span></div>
-          <div class="card-body" id="colab-home-events"></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">Comunicados Recentes</span></div>
-          <div class="card-body" id="colab-home-announcements"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Módulos Externos -->
-  <div class="section-title" style="margin-top:24px">Sistemas BMS e IoT</div>
-  <div class="status-grid portal-mod-grid" id="dash-modulos-ext">
-    <div class="status-card module-tile" onclick="openModulo('xaguada')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">Aguada</div><div class="sc-code">:8001 · FastAPI + MQTT</div></div><span class="badge badge-cyan" id="ext-badge-xaguada">○ Externo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Sistema hídrico · ETE · SCADA</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xaguada')">Abrir ↗</button></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="toast('Módulo Elétrica em integração','warning')" style="cursor:pointer;border-color:rgba(245,158,11,.25)">
-      <div class="sc-header"><div><div class="sc-name">Elétrica</div><div class="sc-code">Integração em progresso</div></div><span class="badge badge-warn">◐ Integração</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">BMS elétrico · subestações · painéis</span></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="openModulo('xseguranca')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">Segurança</div><div class="sc-code">:8000 · React + FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xseguranca">○ Externo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">CCTV · câmeras IP · detecção</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xseguranca')">Abrir ↗</button></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="openModulo('xpaiol')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">Paiois</div><div class="sc-code">:8003 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xpaiol">○ Externo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Monitoramento de paiois</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xpaiol')">Abrir ↗</button></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="openModulo('xcalibracao')" style="cursor:pointer;border-color:rgba(6,182,212,.2)">
-      <div class="sc-header"><div><div class="sc-name">Calibração</div><div class="sc-code">:8004 · FastAPI</div></div><span class="badge badge-cyan" id="ext-badge-xcalibracao">○ Externo</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Gestão metrológica externa</span></div><div class="sc-actions"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModulo('xcalibracao')">Abrir ↗</button></div></div>
-    </div>
-    <div class="status-card module-tile" onclick="toast('Módulo CFTV em integração','warning')" style="cursor:pointer;border-color:rgba(245,158,11,.25)">
-      <div class="sc-header"><div><div class="sc-name">CFTV</div><div class="sc-code">Integração em progresso</div></div><span class="badge badge-warn">◐ Integração</span></div>
-      <div class="sc-meta"><div class="sc-row"><span class="sc-row-label">Videomonitoramento corporativo</span></div></div>
-    </div>
-  </div>
 </div>
 
 <!-- ════ PORTAL COLABORADOR · CALENDÁRIO ═════════════════════ -->
@@ -1218,80 +1135,45 @@ table{border-collapse:collapse;width:100%}
 <div id="page-servicos" class="page">
   <div class="svc-display-topbar">
     <div class="svc-display-title" id="svc-display-title">Serviços · cmasm.erp</div>
-  </div>
-
-  <div class="card" style="margin-bottom:12px">
-    <div class="card-body" style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:var(--text1)">Fluxo Integrado OS → SR → Estoque → Execução</div>
-        <div class="text-xs text-muted">Use o catálogo central para puxar serviço padronizado, requisitos, equipe, materiais e custo estimado na criação da OS.</div>
-      </div>
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--text2)">Kanban Operacional</div>
-        <div class="text-xs text-muted">Acompanhe bloqueios por requisito e gargalos por coluna para agir antes do atraso.</div>
-      </div>
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--text2)">Calendário e Planejamento</div>
-        <div class="text-xs text-muted">Planeje janela de execução e recursos juntos para reduzir retrabalho e faltas de material.</div>
-      </div>
-    </div>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="openModal('modal-nova-ps')">+ Nova OS</button>
   </div>
 
   <!-- KPI bar -->
-  <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px" id="svc-kpi-bar">
+  <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-bottom:16px" id="svc-kpi-bar">
+    <div class="kpi kpi-accent"><div class="kpi-label">Minhas OS</div><div class="kpi-value" id="svc-kpi-minhas">0</div></div>
     <div class="kpi"><div class="kpi-label">OS Abertas</div><div class="kpi-value" id="svc-kpi-abertas">0</div></div>
-    <div class="kpi kpi-accent"><div class="kpi-label">Em Andamento</div><div class="kpi-value" id="svc-kpi-andamento">0</div></div>
+    <div class="kpi"><div class="kpi-label">Em Andamento</div><div class="kpi-value" id="svc-kpi-andamento">0</div></div>
     <div class="kpi kpi-danger"><div class="kpi-label">Bloqueadas</div><div class="kpi-value" id="svc-kpi-bloqueadas">0</div></div>
+    <div class="kpi"><div class="kpi-label">Concluídas</div><div class="kpi-value" id="svc-kpi-concluidas">0</div></div>
     <div class="kpi"><div class="kpi-label">Custo Planejado</div><div class="kpi-value text-sm" id="svc-kpi-planejado">R$ 0</div></div>
-    <div class="kpi"><div class="kpi-label">Desvio Custo</div><div class="kpi-value text-sm" id="svc-kpi-desvio">—</div></div>
   </div>
 
   <div class="tabs">
-    <div class="tab" onclick="showSvcTab('ps',this)" style="display:none">Pedidos de Serviço (PS)</div>
     <div class="tab active" onclick="showSvcTab('os',this)">Ordens de Serviço (OS)</div>
-    <div class="tab" onclick="showSvcTab('nova-os',this)">Nova OS</div>
-    <div class="tab" onclick="showSvcTab('kanban',this)">Kanban</div>
     <div class="tab" onclick="showSvcTab('sr',this)">SR</div>
     <div class="tab" onclick="showSvcTab('arquivo',this)">Arquivo</div>
   </div>
 
-  <div class="tab-panel" id="svc-tab-nova-os">
-    <div class="card">
-      <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div>
-          <div style="font-size:15px;font-weight:700;color:var(--text1)">Nova Ordem de Serviço</div>
-          <div class="text-xs text-muted">Abra o formulário para cadastrar uma nova OS.</div>
-        </div>
-        <button class="btn btn-primary" onclick="openModal('modal-nova-ps')">+ Nova OS</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PS Tab -->
-  <div class="tab-panel" id="svc-tab-ps" style="display:none">
-    <div class="table-wrap">
-      <div class="table-toolbar">
-        <div class="search-box">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="ps-search" placeholder="Buscar PS..." oninput="renderPS()">
-        </div>
-        <select id="ps-filter-status" onchange="renderPS()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
-          <option value="">Todos os status</option>
-          <option value="pendente">Pendente</option>
-          <option value="autorizada">Autorizada</option>
-          <option value="rejeitada">Rejeitada</option>
-          <option value="concluida">Concluída</option>
-        </select>
-      </div>
-      <table class="tbl">
-        <thead><tr><th>Nº PS</th><th>Solicitante</th><th>Destino</th><th>Assunto</th><th>Data</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="ps-body"><tr><td colspan="7" class="tbl-empty">Nenhuma PS registrada</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- OS Tab -->
+  <!-- OS Tab: Kanban + tabela -->
   <div class="tab-panel active" id="svc-tab-os">
+    <div class="kboard" id="svc-kanban" style="margin-bottom:16px">
+      <div class="kboard-col">
+        <div class="kboard-header" style="color:var(--warn)">⏳ Autorização <span id="kb-count-pendente_autorizacao" class="badge badge-warn">0</span></div>
+        <div class="kboard-body" id="kb-pendente_autorizacao"></div>
+      </div>
+      <div class="kboard-col">
+        <div class="kboard-header" style="color:var(--acc)">✓ Autorizada <span id="kb-count-autorizada" class="badge badge-info">0</span></div>
+        <div class="kboard-body" id="kb-autorizada"></div>
+      </div>
+      <div class="kboard-col">
+        <div class="kboard-header" style="color:var(--acc2)">→ Em Andamento <span id="kb-count-em_andamento" class="badge badge-cyan">0</span></div>
+        <div class="kboard-body" id="kb-em_andamento"></div>
+      </div>
+      <div class="kboard-col">
+        <div class="kboard-header" style="color:var(--ok)">✓ Concluída <span id="kb-count-concluida" class="badge badge-ok">0</span></div>
+        <div class="kboard-body" id="kb-concluida"></div>
+      </div>
+    </div>
     <div class="table-wrap">
       <div class="table-toolbar">
         <div class="search-box">
@@ -1312,28 +1194,6 @@ table{border-collapse:collapse;width:100%}
         <thead><tr><th>Nº OS</th><th>Serviço</th><th>Prazo</th><th>Status</th><th>Custo</th><th>Solicitante</th><th>Executor</th><th>Ações</th></tr></thead>
         <tbody id="os-body"><tr><td colspan="8" class="tbl-empty">Nenhuma OS registrada</td></tr></tbody>
       </table>
-    </div>
-  </div>
-
-  <!-- Kanban Tab -->
-  <div class="tab-panel" id="svc-tab-kanban">
-    <div class="kboard" id="svc-kanban">
-      <div class="kboard-col">
-        <div class="kboard-header" style="color:var(--warn)">⏳ Autorização <span id="kb-count-pendente_autorizacao" class="badge badge-warn">0</span></div>
-        <div class="kboard-body" id="kb-pendente_autorizacao"></div>
-      </div>
-      <div class="kboard-col">
-        <div class="kboard-header" style="color:var(--acc)">✓ Autorizada <span id="kb-count-autorizada" class="badge badge-info">0</span></div>
-        <div class="kboard-body" id="kb-autorizada"></div>
-      </div>
-      <div class="kboard-col">
-        <div class="kboard-header" style="color:var(--acc2)">→ Em Andamento <span id="kb-count-em_andamento" class="badge badge-cyan">0</span></div>
-        <div class="kboard-body" id="kb-em_andamento"></div>
-      </div>
-      <div class="kboard-col">
-        <div class="kboard-header" style="color:var(--ok)">✓ Concluída <span id="kb-count-concluida" class="badge badge-ok">0</span></div>
-        <div class="kboard-body" id="kb-concluida"></div>
-      </div>
     </div>
   </div>
 
@@ -1395,50 +1255,33 @@ table{border-collapse:collapse;width:100%}
   </div>
 
   <div class="tabs">
-    <div class="tab active" onclick="showTrpTab('hoje',this)">Hoje</div>
-    <div class="tab" onclick="showTrpTab('semana',this)">Semana</div>
+    <div class="tab active" onclick="showTrpTab('semana',this)">Semana</div>
     <div class="tab" onclick="showTrpTab('frota',this)">Frota</div>
     <div class="tab" onclick="showTrpTab('condicao',this)">Condição</div>
     <div class="tab" onclick="showTrpTab('servico',this)">Serviço do Dia</div>
     <div class="tab" onclick="showTrpTab('gps',this)">GPS / Rastreio</div>
   </div>
 
-  <!-- ── Hoje ────────────────────────────────────────── -->
-  <div class="tab-panel active" id="trp-tab-hoje">
-    <div class="table-wrap">
-      <div class="table-toolbar">
-        <span id="hoje-label" style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Agendamentos de hoje</span>
-        <div class="flex-1"></div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-agendar')">+ Agendar</button>
-      </div>
-      <table class="tbl">
-        <thead><tr><th>Nº</th><th>Tipo</th><th>Solicitante</th><th>Destino</th><th>Saída</th><th>Ativo</th><th>Motorista</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="agenda-hoje-body"></tbody>
-      </table>
+  <!-- ── Semana (Kanban seg-sex) ─────────────────────── -->
+  <div class="tab-panel active" id="trp-tab-semana">
+    <div class="table-toolbar" style="margin-bottom:12px">
+      <button class="btn btn-secondary btn-sm" onclick="trpWeekNav(-1)">‹ Anterior</button>
+      <button class="btn btn-secondary btn-sm" onclick="trpWeekNav(0)">Hoje</button>
+      <button class="btn btn-secondary btn-sm" onclick="trpWeekNav(1)">Próxima ›</button>
+      <span id="trp-week-label" style="font-size:13px;font-weight:600;color:var(--text2);margin-left:8px"></span>
+      <div class="flex-1"></div>
+      <select id="semana-filter" onchange="renderAgendaKanban()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
+        <option value="">Todos os status</option>
+        <option value="agendada">Agendada</option>
+        <option value="em_andamento">Em andamento</option>
+        <option value="concluida">Concluída</option>
+        <option value="cancelada">Cancelada</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" onclick="showPage('calendario')">📅 Calendário</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportarEscalaCSV()">↓ CSV</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-agendar')">+ Agendar</button>
     </div>
-  </div>
-
-  <!-- ── Semana ──────────────────────────────────────── -->
-  <div class="tab-panel" id="trp-tab-semana">
-    <div class="table-wrap">
-      <div class="table-toolbar">
-        <span id="semana-label" style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Agendamentos da semana</span>
-        <div class="flex-1"></div>
-        <select id="semana-filter" onchange="renderAgendaSemana()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
-          <option value="">Todos os status</option>
-          <option value="agendada">Agendada</option>
-          <option value="em_andamento">Em andamento</option>
-          <option value="concluida">Concluída</option>
-          <option value="cancelada">Cancelada</option>
-        </select>
-        <button class="btn btn-secondary btn-sm" onclick="exportarEscalaCSV()">↓ CSV</button>
-      </div>
-      <table class="tbl">
-        <thead><tr><th>Data</th><th>Nº</th><th>Tipo</th><th>Solicitante</th><th>Destino</th><th>Janela</th><th>Ativo</th><th>Motorista</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody id="agenda-semana-body"></tbody>
-      </table>
-      <div id="transport-report-summary" style="margin-top:14px"></div>
-    </div>
+    <div class="kboard" id="trp-kanban" style="grid-template-columns:repeat(5,1fr)"></div>
   </div>
 
   <!-- ── Frota (Tabela) ─────────────────────────────── -->
@@ -1532,6 +1375,39 @@ table{border-collapse:collapse;width:100%}
           </table>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ COMPONENTE CALENDÁRIO ════════════════════════════════ -->
+<div id="page-calendario" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Calendário</h1><p>Agenda integrada — transportes e eventos</p></div>
+    <div class="page-hdr-right" style="display:flex;align-items:center;gap:6px">
+      <button class="btn btn-secondary btn-sm" onclick="calNav(-1)">‹</button>
+      <button class="btn btn-secondary btn-sm" onclick="calNav(0)">Hoje</button>
+      <button class="btn btn-secondary btn-sm" onclick="calNav(1)">›</button>
+      <span id="cal-month-label" style="font-weight:700;margin-left:8px;text-transform:capitalize"></span>
+    </div>
+  </div>
+  <div class="table-toolbar" style="margin-bottom:12px">
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="cal-search" placeholder="Buscar evento..." oninput="renderCalendario()">
+    </div>
+    <select id="cal-source" onchange="renderCalendario()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;color:var(--text1);font-size:13px">
+      <option value="">Todas as fontes</option>
+      <option value="transporte">Transportes</option>
+      <option value="evento">Eventos</option>
+    </select>
+    <div class="flex-1"></div>
+    <button class="btn btn-ghost btn-sm" onclick="_calSelDay='';renderCalendario()">Limpar dia</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1.7fr 1fr;gap:16px;align-items:start" id="cal-layout">
+    <div class="card"><div class="card-body" id="cal-grid"></div></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Eventos</span><span id="cal-list-count" class="text-xs text-muted"></span></div>
+      <div class="card-body" id="cal-list"></div>
     </div>
   </div>
 </div>
@@ -1804,17 +1680,33 @@ table{border-collapse:collapse;width:100%}
   </div>
 </div>
 
+<!-- ════ MAPA GERAL (xMap multi-camadas) ═══════════════════════ -->
+<div id="page-mapa" class="page">
+  <div class="page-hdr">
+    <div class="page-hdr-left"><h1>Mapa</h1><p>Visão geográfica do CMASM · camadas: Controle Vegetal · Águada · Elétrica</p></div>
+    <div class="page-hdr-right">
+      <button class="btn btn-secondary btn-sm" onclick="setMapaModulos(['grama','aguada','eletrica'])">Todas</button>
+      <button class="btn btn-ghost btn-sm" onclick="setMapaModulos(['grama'])">Vegetal</button>
+      <button class="btn btn-ghost btn-sm" onclick="setMapaModulos(['aguada'])">Águada</button>
+      <button class="btn btn-ghost btn-sm" onclick="setMapaModulos(['eletrica'])">Elétrica</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div id="xmap-host" style="width:100%;height:calc(100vh - 180px);min-height:480px"></div>
+  </div>
+</div>
+
 <!-- ════ CONTROLE VEGETAL ══════════════════════════════════════ -->
 <div id="page-vegetal" class="page">
   <div class="page-hdr">
     <div class="page-hdr-left"><h1>Controle Vegetal</h1><p>Maquinário de corte · Roçadeiras · Serviços de grama</p></div>
     <div class="page-hdr-right">
-      <button class="btn btn-secondary" onclick="openVegetalAreaPlanner()">+ Criar área</button>
+      <button class="btn btn-secondary" onclick="openVegetalAreaPlanner()">+ Criar zona</button>
       <button class="btn btn-primary" onclick="syncVegetalData(true)">Sincronizar dados</button>
     </div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-vegtab="areas" onclick="showVegetalTab('areas',this)">Áreas &amp; Mapa</div>
+    <div class="tab active" data-vegtab="areas" onclick="showVegetalTab('areas',this)">Zonas &amp; Mapa</div>
     <div class="tab" data-vegtab="maquinario" onclick="showVegetalTab('maquinario',this)">Maquinário</div>
     <div class="tab" data-vegtab="atividades" onclick="showVegetalTab('atividades',this)">Atividades de Corte</div>
     <div class="tab" data-vegtab="os-vegetal" onclick="showVegetalTab('os-vegetal',this)">OS Manutenção</div>
@@ -1823,8 +1715,8 @@ table{border-collapse:collapse;width:100%}
     <div class="card veg-map-card">
       <div class="card-header" style="display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap">
         <div>
-          <span class="card-title">Mapa Multiuso de Áreas</span>
-          <div class="text-xs text-muted" id="veg-map-status">Carregando áreas...</div>
+          <span class="card-title">Mapa Multiuso de Zonas</span>
+          <div class="text-xs text-muted" id="veg-map-status">Carregando zonas...</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <div class="form-group" style="min-width:220px;margin:0">
@@ -1833,11 +1725,12 @@ table{border-collapse:collapse;width:100%}
             </select>
           </div>
           <span class="badge badge-info" id="veg-source-badge">local</span>
-          <button class="btn btn-secondary btn-sm" onclick="startVegetalAreaDraft()">Criar área</button>
-          <button class="btn btn-secondary btn-sm" onclick="editSelectedVegetalArea()">Editar área</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteSelectedVegetalArea()">Deletar área</button>
+          <button class="btn btn-ghost btn-sm" id="veg-basemap-btn" onclick="vegToggleBasemap()">🛰 Satélite</button>
+          <button class="btn btn-secondary btn-sm" onclick="startVegetalAreaDraft()">Criar zona</button>
+          <button class="btn btn-secondary btn-sm" onclick="editSelectedVegetalArea()">Editar zona</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSelectedVegetalArea()">Deletar zona</button>
           <button class="btn btn-secondary btn-sm" onclick="undoVegetalDraftPoint()">Desfazer</button>
-          <button class="btn btn-primary btn-sm" onclick="finalizeVegetalDraft()">Fechar área</button>
+          <button class="btn btn-primary btn-sm" onclick="finalizeVegetalDraft()">Fechar zona</button>
           <button class="btn btn-ghost btn-sm" onclick="clearVegetalDraft()">Limpar</button>
         </div>
       </div>
@@ -1847,8 +1740,8 @@ table{border-collapse:collapse;width:100%}
           <div class="veg-map-tools">
             <div class="veg-map-tools-card">
               <div class="veg-map-tools-title">Croqui rápido</div>
-              <div class="veg-map-tools-text">Clique para marcar vértices. Use “Fechar área” para abrir o modal dos dados.</div>
-              <div class="veg-map-tools-text" id="veg-map-selection" style="margin-top:8px">Área selecionada: nenhuma</div>
+              <div class="veg-map-tools-text">Clique para marcar vértices. Use “Fechar zona” para abrir o modal dos dados.</div>
+              <div class="veg-map-tools-text" id="veg-map-selection" style="margin-top:8px">Zona selecionada: nenhuma</div>
             </div>
           </div>
         </div>
@@ -1862,18 +1755,18 @@ table{border-collapse:collapse;width:100%}
     </div>
     <div class="table-wrap" style="margin-top:14px">
       <div class="table-toolbar">
-        <span style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Áreas cadastradas</span>
+        <span style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Zonas cadastradas</span>
       </div>
       <table class="tbl">
-        <thead><tr><th>Área</th><th>Grupo</th><th>Vegetação</th><th>Compatibilidade</th><th>m²</th><th>Ações</th></tr></thead>
+        <thead><tr><th>Zona</th><th>Grupo</th><th>Vegetação</th><th>Compatibilidade</th><th>m²</th><th>Ações</th></tr></thead>
         <tbody id="veg-area-body"><tr><td colspan="6" class="tbl-empty">Carregando...</td></tr></tbody>
       </table>
     </div>
     <div class="card veg-group-card mt-16">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div>
-          <span class="card-title">Grupos de áreas</span>
-          <div class="text-xs text-muted">Agrupe áreas para somar custo, horas e ciclos em uma única leitura.</div>
+          <span class="card-title">Grupos de zonas</span>
+          <div class="text-xs text-muted">Agrupe zonas para somar custo, horas e ciclos em uma única leitura.</div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="clearVegetalGroupFocus()">Limpar filtro</button>
       </div>
@@ -1888,7 +1781,7 @@ table{border-collapse:collapse;width:100%}
   <div class="tab-panel" id="veg-tab-atividades">
     <div class="table-wrap">
       <table class="tbl">
-        <thead><tr><th>Data</th><th>Área</th><th>Maquinário</th><th>Pacote de Serviços</th><th>Operador</th><th>Horas</th><th>Custo Est.</th><th>Obs.</th><th>Ações</th></tr></thead>
+        <thead><tr><th>Data</th><th>Zona</th><th>Maquinário</th><th>Pacote de Serviços</th><th>Operador</th><th>Horas</th><th>Custo Est.</th><th>Obs.</th><th>Ações</th></tr></thead>
         <tbody id="veg-ativ-body"><tr><td colspan="9" class="tbl-empty">Nenhuma atividade</td></tr></tbody>
       </table>
     </div>
@@ -1907,20 +1800,21 @@ table{border-collapse:collapse;width:100%}
 <div id="modal-veg-area" class="modal-backdrop" onclick="if(event.target===this)cancelVegetalAreaDraft()">
   <div class="modal modal-lg modal-veg-area">
     <div class="modal-header">
-      <h2>Dados da Área</h2>
+      <h2>Dados da Zona</h2>
       <button class="modal-close" onclick="cancelVegetalAreaDraft()">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="veg-area-edit-id">
       <div class="form-grid">
-        <div class="form-group form-full"><label>Nome da área</label><input type="text" id="veg-area-nome" placeholder="Ex: Entorno dos Paióis"></div>
-        <div class="form-group form-full"><label>Grupo de áreas</label><input type="text" id="veg-area-grupo" list="veg-grupos-list" placeholder="Ex: Base operacional"></div>
+        <div class="form-group form-full"><label>Nome da zona</label><input type="text" id="veg-area-nome" placeholder="Ex: Entorno dos Paióis"></div>
+        <div class="form-group form-full"><label>Grupo de zonas</label><input type="text" id="veg-area-grupo" list="veg-grupos-list" placeholder="Ex: Base operacional"></div>
         <div class="form-group"><label>Tipo</label>
           <select id="veg-area-tipo">
-            <option value="corte_grama">Corte de grama</option>
-            <option value="poda_arvore">Poda</option>
-            <option value="corte_localizado">Corte localizado</option>
-            <option value="limpeza">Limpeza</option>
+            <option value="jardim">Jardim / Gramado</option>
+            <option value="bosque">Bosque / Mata</option>
+            <option value="canteiro">Canteiro</option>
+            <option value="area_recreativa">Área recreativa</option>
+            <option value="horta">Horta</option>
           </select>
         </div>
         <div class="form-group"><label>Área (m²)</label><input type="number" id="veg-area-m2" min="0" step="0.01" value="0"></div>
@@ -1969,11 +1863,11 @@ table{border-collapse:collapse;width:100%}
         <div class="form-group"><label>Localização / referência</label><input type="text" id="veg-area-gps" placeholder="Ex: Setor norte / cais oeste"></div>
         <div class="form-group form-full"><label>Descrição</label><textarea id="veg-area-desc" rows="3" placeholder="Observações, restrições, acesso"></textarea></div>
       </div>
-      <div class="text-xs text-muted" style="margin-top:10px">Feche a área para abrir este modal. O backend recebe `coords_json` e recalcula a compatibilidade de máquinas.</div>
+      <div class="text-xs text-muted" style="margin-top:10px">Feche a zona para abrir este modal. O backend recebe `coords_json` e recalcula a compatibilidade de máquinas.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="cancelVegetalAreaDraft()">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveVegetalArea()">Salvar área</button>
+      <button class="btn btn-primary" onclick="saveVegetalArea()">Salvar zona</button>
     </div>
   </div>
 </div>
@@ -2077,13 +1971,18 @@ table{border-collapse:collapse;width:100%}
 <!-- Toast Area -->
 <div id="toast-area"></div>
 
-<!-- ── Nova PS ─────────────────────────────────────────── -->
+<!-- ── Nova OS ─────────────────────────────────────────── -->
 <div id="modal-nova-ps" class="modal-backdrop" onclick="if(event.target===this)closeModal(this)">
   <div class="modal modal-lg">
     <div class="modal-header"><h2>Nova Ordem de Serviço (OS)</h2><button class="modal-close" onclick="closeModal(document.getElementById('modal-nova-ps'))">✕</button></div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group"><label>Solicitante</label><input type="text" id="ps-solicitante" readonly></div>
+        <div class="form-group"><label>Departamento (lotação)</label><input type="text" id="ps-departamento" readonly></div>
+        <div class="form-group form-full"><label>Ativo vinculado <span class="text-muted" style="font-weight:400">opcional</span></label>
+          <select id="ps-ativo"><option value="">— Nenhum (OS sem ativo) —</option></select>
+          <div class="text-xs text-muted">Vincule quando a OS for sobre um equipamento; deixe vazio para serviços sem ativo (ex.: movimentar material).</div>
+        </div>
         <div class="form-group"><label>Executor (Organograma)</label>
           <select id="ps-executor-org"></select>
           <div class="text-xs text-muted">Padrão: Dpto. de Infraestrutura (CMASM-10)</div>
@@ -2093,13 +1992,24 @@ table{border-collapse:collapse;width:100%}
             <option value="">Todas</option>
           </select>
         </div>
-        <div class="form-group form-full"><label>Serviço Padronizado (Catálogo Central)</label>
-          <select id="ps-servico-id" onchange="onPSServicoChange()">
-            <option value="">— Selecionar serviço —</option>
+        <div class="form-group"><label>Subcategoria</label>
+          <select id="ps-servico-subcategoria" onchange="onPSServicoSubcategoriaChange()">
+            <option value="">Todas</option>
           </select>
-          <div class="text-xs text-muted">Selecionar um serviço aplica requisitos, materiais, equipe mínima e custo estimado.</div>
         </div>
-        <div class="form-group form-full"><label>Serviço</label><input type="text" id="ps-assunto" placeholder="Descreva brevemente o serviço solicitado"></div>
+        <div class="form-group form-full"><label>Serviços da OS <span class="text-muted" style="font-weight:400">um ou vários — catálogo ou texto livre</span></label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="ps-servico-id" style="flex:1;min-width:200px"><option value="">— Serviço do catálogo —</option></select>
+            <button class="btn btn-secondary btn-sm" type="button" onclick="addServicoCatalogoNaOS()">+ Adicionar</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
+            <input type="text" id="ps-servico-livre" placeholder="Serviço novo (ex.: lixar parede)..." onkeydown="if(event.key==='Enter'){event.preventDefault();addServicoLivreNaOS();}" style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text1);font-size:13px">
+            <button class="btn btn-ghost btn-sm" type="button" onclick="addServicoLivreNaOS()">+ Texto livre</button>
+          </div>
+          <div id="ps-servicos-list" style="margin-top:8px"></div>
+          <div class="text-xs text-muted">Passos do serviço em sequência. Materiais do serviço do catálogo entram automaticamente.</div>
+        </div>
+        <div class="form-group form-full"><label>Assunto / Título da OS</label><input type="text" id="ps-assunto" placeholder="Ex.: Reforma das paredes da sala 12"></div>
         <div class="form-group form-full"><label>Descrição Detalhada</label><textarea id="ps-descricao" rows="3" placeholder="Detalhes, observações..."></textarea></div>
         <div class="form-group"><label>Prioridade</label>
           <select id="ps-prioridade">
@@ -2115,10 +2025,22 @@ table{border-collapse:collapse;width:100%}
       <div class="card" style="margin-top:12px">
         <div class="card-body" style="padding:10px 12px">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-            <div style="font-size:13px;font-weight:700;color:var(--text2)">Materiais previstos e verificação de estoque</div>
-            <span id="ps-materiais-resumo" class="text-xs text-muted">Nenhum serviço selecionado</span>
+            <div style="font-size:13px;font-weight:700;color:var(--text2)">Materiais da OS</div>
+            <span id="ps-materiais-resumo" class="text-xs text-muted">Nenhum material</span>
           </div>
-          <div id="ps-materiais-check" style="margin-top:8px"></div>
+          <div id="ps-materiais-list" style="margin-top:8px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+            <select id="ps-mat-item" style="flex:2;min-width:180px"><option value="">— Item do estoque —</option></select>
+            <input type="text" id="ps-mat-nome" placeholder="ou material livre..." style="flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text1);font-size:13px">
+            <input type="number" id="ps-mat-qtd" min="0" step="0.01" placeholder="qtd" value="1" style="width:80px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text1);font-size:13px">
+            <button class="btn btn-secondary btn-sm" type="button" onclick="addMaterialNaOS()">+ Material</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-body" style="padding:10px 12px">
+          <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px">Recursos · Viaturas / Embarcações <span class="text-muted text-xs" style="font-weight:400">selecione um ou vários</span></div>
+          <div id="ps-veiculos-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px"></div>
         </div>
       </div>
       <div style="margin-top:14px">
@@ -2143,6 +2065,69 @@ table{border-collapse:collapse;width:100%}
     <div class="modal-header"><h2>Detalhes da PS</h2><button class="modal-close" onclick="closeModal(document.getElementById('modal-ver-ps'))">✕</button></div>
     <div class="modal-body" id="ver-ps-body"></div>
     <div class="modal-footer" id="ver-ps-footer"></div>
+  </div>
+</div>
+
+<!-- ── CP rápida (Comunicação Padronizada) ───────────── -->
+<div id="modal-quick-cp" class="modal-backdrop" onclick="if(event.target===this)closeModal(this)">
+  <div class="modal">
+    <div class="modal-header"><h2>Abrir CP</h2><button class="modal-close" onclick="closeModal(document.getElementById('modal-quick-cp'))">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Assunto</label><input type="text" id="qcp-subject" placeholder="Assunto da comunicação"></div>
+        <div class="form-group"><label>Categoria</label>
+          <select id="qcp-category">
+            <option value="technical">Técnico</option>
+            <option value="hr">RH</option>
+            <option value="facilities">Instalações</option>
+            <option value="policy">Política</option>
+            <option value="training">Treinamento</option>
+            <option value="other">Outro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Prioridade</label>
+          <select id="qcp-priority">
+            <option value="low">Baixa</option>
+            <option value="medium" selected>Média</option>
+            <option value="high">Alta</option>
+          </select>
+        </div>
+        <div class="form-group form-full"><label>Descrição</label><textarea id="qcp-description" rows="3" placeholder="Descreva a comunicação"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal(document.getElementById('modal-quick-cp'))">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCPRapida()">Abrir CP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Folga rápida ───────────────────────────────────── -->
+<div id="modal-quick-folga" class="modal-backdrop" onclick="if(event.target===this)closeModal(this)">
+  <div class="modal">
+    <div class="modal-header"><h2>Solicitar Folga</h2><button class="modal-close" onclick="closeModal(document.getElementById('modal-quick-folga'))">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full"><label>Tipo</label>
+          <select id="qfolga-type">
+            <option value="vacation">Férias</option>
+            <option value="sick">Licença médica</option>
+            <option value="personal">Dia pessoal</option>
+            <option value="bereavement">Luto</option>
+            <option value="maternity">Licença maternidade</option>
+            <option value="paternity">Licença paternidade</option>
+            <option value="other">Outro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Data início</label><input type="date" id="qfolga-start"></div>
+        <div class="form-group"><label>Data fim</label><input type="date" id="qfolga-end"></div>
+        <div class="form-group form-full"><label>Motivo</label><textarea id="qfolga-reason" rows="3" placeholder="Informe o motivo da solicitação"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal(document.getElementById('modal-quick-folga'))">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarFolgaRapida()">Enviar Solicitação</button>
+    </div>
   </div>
 </div>
 
@@ -2303,6 +2288,7 @@ table{border-collapse:collapse;width:100%}
         <div class="form-group form-full"><label>Destino</label><input type="text" id="ag-destino" list="transport-destinos" placeholder="Ex: Ilha das Flores, DCAM, BFNIF..."></div>
         <div class="form-group form-full"><label>Missão</label><textarea id="ag-finalidade" rows="2" placeholder="Descreva o propósito da viagem"></textarea></div>
         <div class="form-group"><label>Data Desejada</label><input type="date" id="ag-data"></div>
+        <div class="form-group"><label>Data Fim <span class="text-xs text-muted">(opcional · período)</span></label><input type="date" id="ag-data-fim"></div>
         <div class="form-group"><label>Hora Saída (prevista)</label><input type="time" id="ag-hora" value="08:00"></div>
         <div class="form-group"><label>Hora Retorno (prevista)</label><input type="time" id="ag-hora-retorno"></div>
         <div class="form-group"><label>Nº de Passageiros</label><input type="number" id="ag-passageiros" value="1" min="1" max="30"></div>
@@ -2883,6 +2869,21 @@ function soLeitura(msg=''){
 }
 let SESSION = null;
 
+// Contexto de pré-preenchimento para criação de OS/SR a partir de um item
+// (equipamento clicado, serviço do catálogo, etc). Lido pelo openModal e limpo após uso.
+let _osPrefill = null;
+function setOsPrefill(ctx){ _osPrefill = ctx || null; }
+// Abre "Nova OS" já com contexto (chamável de qualquer módulo, ex.: erp-manutencao.js).
+// ctx: { ativoId, servicoId, assunto, descricao }
+function novaOSComContexto(ctx){
+  setOsPrefill(ctx);
+  showPage('servicos');
+  if(typeof showSvcTab==='function') showSvcTab('os');
+  openModal('modal-nova-ps');
+}
+window.novaOSComContexto = novaOSComContexto;
+window.setOsPrefill = setOsPrefill;
+
 function doLogin(){
   const id = document.getElementById('lg-id').value.trim().toLowerCase();
   const pw = document.getElementById('lg-pw').value;
@@ -2920,37 +2921,12 @@ function loginVisitante(){
 function togglePw(id,btn){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';btn.textContent=el.type==='password'?'👁':'🙈';}
 
 function doLogout(){
-  closeTopbarUserMenu();
   SESSION=null;DB.del('session');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('lg-id').value='';
   document.getElementById('lg-pw').value='';
   document.getElementById('lg-err').textContent='';
-}
-
-function openTopbarUserMenu(){
-  const wrap = document.getElementById('topbar-user-wrap');
-  const trigger = document.getElementById('topbar-user-trigger');
-  if(!wrap || !trigger) return;
-  wrap.classList.add('open');
-  trigger.setAttribute('aria-expanded','true');
-}
-
-function closeTopbarUserMenu(){
-  const wrap = document.getElementById('topbar-user-wrap');
-  const trigger = document.getElementById('topbar-user-trigger');
-  if(!wrap || !trigger) return;
-  wrap.classList.remove('open');
-  trigger.setAttribute('aria-expanded','false');
-}
-
-function toggleTopbarUserMenu(ev){
-  if(ev) ev.stopPropagation();
-  const wrap = document.getElementById('topbar-user-wrap');
-  if(!wrap) return;
-  if(wrap.classList.contains('open')) closeTopbarUserMenu();
-  else openTopbarUserMenu();
 }
 
 /* ════ APP INIT ═══════════════════════════════════════════ */
@@ -2963,6 +2939,7 @@ function initApp(){
   updateUserUI();
   initAdminVisibility();
   colabHydrateFromBackend();
+  pullBackendCatalogo();   // ponte: catálogo de serviços com taxonomia do backend
   hydrateAtivosFromBackend().then(()=>{
     initDashboard();
     const active = document.querySelector('.page.active');
@@ -2983,16 +2960,12 @@ function updateUserUI(){
   const isVisitante = SESSION._visitante;
   const initials = isVisitante ? '👁' : SESSION.nome.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
   const color = isVisitante ? '#475569' : avatarColor(SESSION.nome);
-  ['sb-avatar','topbar-avatar'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){el.textContent=initials;el.style.background=color;}
-  });
+  const av=document.getElementById('sb-avatar');
+  if(av){av.textContent=initials;av.style.background=color;}
   const sn=document.getElementById('sb-uname');
   const sr=document.getElementById('sb-urole');
-  const tu=document.getElementById('topbar-uname');
   if(sn)sn.textContent=SESSION.nome;
   if(sr)sr.textContent=isVisitante ? 'Somente leitura' : `${SESSION.posto||''} · ${SESSION.role}`;
-  if(tu)tu.textContent=isVisitante ? 'Visitante' : SESSION.nome.split(' ')[0];
 }
 
 function avatarColor(name){
@@ -3037,15 +3010,12 @@ async function checkModulosExternos(){
     try{
       const r = await fetch(m.url+'/health', {signal: AbortSignal.timeout(2000)});
       if(r.ok){
-        badge.className='badge badge-ok';
-        badge.textContent='● Online';
+        badge.textContent='●'; badge.style.color='var(--green)'; badge.title='Online';
       } else {
-        badge.className='badge badge-warn';
-        badge.textContent='◐ Erro';
+        badge.textContent='◐'; badge.style.color='var(--amber)'; badge.title='Erro';
       }
     } catch {
-      badge.className='badge badge-neutral';
-      badge.textContent='○ Offline';
+      badge.textContent='○'; badge.style.color='var(--acc2)'; badge.title='Offline';
     }
   }
 }
@@ -3064,10 +3034,12 @@ const PAGE_TITLES = {
   organograma:'Organograma · Regimento Interno',
   servicos:'Serviços · cmasm.erp',
   transportes:'Transportes · cmasm.erp',
+  calendario:'Calendário · cmasm.erp',
   manutencao:'Manutenção · cmasm.erp',
   ativos:'Ativos · cmasm.erp',
   estoque:'Estoque · cmasm.erp',
   vegetal:'Controle Vegetal · cmasm.erp',
+  mapa:'Mapa · cmasm.erp',
   predial:'Predial · cmasm.erp',
   paiois:'Paiois · cmasm.erp',
   usuarios:'Usuários · cmasm.erp',
@@ -3085,13 +3057,12 @@ function showPage(page, el){
     const ni = document.querySelector(`.ni[data-page="${page}"]`);
     if(ni)ni.classList.add('active');
   }
-  const mod = document.getElementById('topbar-module');
-  if(mod)mod.textContent=PAGE_TITLES[page]||page;
+  const _ptitle = PAGE_TITLES[page]||page;
   const svcTitle=document.getElementById('svc-display-title');
-  if(svcTitle && mod)svcTitle.textContent=mod.textContent;
+  if(svcTitle)svcTitle.textContent=_ptitle;
   // Re-render page content on navigation to keep data fresh
   const renders = {
-    dashboard: ()=>initDashboard(),
+    dashboard: ()=>{initDashboard();pullBackendOSIntoServicos();},
     'colab-calendar': ()=>renderColaboradorCalendario(),
     'colab-policies': ()=>renderColaboradorPoliticas(),
     'colab-executives': ()=>renderColaboradorExecutivos(),
@@ -3102,11 +3073,13 @@ function showPage(page, el){
     organizacao: ()=>renderTMFT(),
     cargos: ()=>renderCargos(),
     organograma: ()=>renderOrgTree(),
-    servicos: ()=>{renderKpiServicos();renderPS();renderOS();renderKanban();renderSR();},
+    servicos: ()=>{renderKpiServicos();renderOS();renderKanban();renderSR();pullBackendOSIntoServicos();},
     transportes: ()=>{renderFrotaKPIs();renderAgenda();renderFrota(_frotaFilter);},
+    calendario: ()=>renderCalendario(),
     ativos: ()=>renderAtivos(),
     estoque: ()=>{renderEstoque();renderEstoqueKPIs();renderMovimentacoes();renderEstoqueAlertas();renderEstoqueValidades();},
     vegetal: ()=>{renderVegetalAreas();renderVegetalMaq();renderVegetalAtiv();renderVegetalOS();loadVegetalData();},
+    mapa: ()=>initMapaGeral(),
     predial: ()=>{renderEdificacoes();renderReservas();renderOcorrencias();},
     paiois: ()=>{renderPaiois();renderInventarioPaiois();renderMovPaiois();renderPaiolKPIs();},
     usuarios: ()=>renderUsuarios(),
@@ -3202,26 +3175,48 @@ function openModal(id){
   requestAnimationFrame(()=>m.classList.add('open'));
   // pre-populate common fields
   if(id==='modal-nova-ps'){
+    const pf=_osPrefill||{};
     document.getElementById('ps-solicitante').value=SESSION?SESSION.nome:'';
+    const depEl=document.getElementById('ps-departamento'); if(depEl) depEl.value=(SESSION&&(SESSION.lotacao||SESSION.setor||SESSION.departamento))||'';
     const today=new Date();today.setDate(today.getDate()+3);
     document.getElementById('ps-data-necessaria').value=today.toISOString().split('T')[0];
+    // Ativo (opcional) — pré-preenchido pelo contexto do item, editável
+    const ativoSel=document.getElementById('ps-ativo');
+    if(ativoSel){
+      const ativos=getAtivos();
+      ativoSel.innerHTML='<option value="">— Nenhum (OS sem ativo) —</option>'+
+        ativos.map(a=>`<option value="${a.id}"${a.id===pf.ativoId?' selected':''}>${a.cod?a.cod+' — ':''}${a.nome}</option>`).join('');
+    }
     const catSel=document.getElementById('ps-servico-categoria');if(catSel)catSel.value='';
-    const svcSel=document.getElementById('ps-servico-id');if(svcSel)svcSel.value='';
-    const assuntoEl=document.getElementById('ps-assunto');if(assuntoEl)assuntoEl.value='';
-    const descEl=document.getElementById('ps-descricao');if(descEl)descEl.value='';
     populateExecutorOrgSelect('ps-executor-org','CMASM-10');
     initNovaOSServicoCatalogo();
+    pullBackendCatalogo();   // refresca catálogo do backend; re-inicializa selects ao resolver
+    const svcSel=document.getElementById('ps-servico-id');
+    const assuntoEl=document.getElementById('ps-assunto');
+    const descEl=document.getElementById('ps-descricao');
+    const listEl=document.getElementById('ps-requisitos-list');if(listEl)listEl.innerHTML='';
+    (document.getElementById('ps-custo-planejado')||{value:''}).value='';
+    const svcLivre=document.getElementById('ps-servico-livre');if(svcLivre)svcLivre.value='';
+    _resetNovaOSRecursos();   // zera serviços/materiais/veículos + repopula selects
+    // assunto/descrição do contexto (texto direto — serviços do backend não estão no catálogo local)
+    if(assuntoEl)assuntoEl.value=pf.assunto||'';
+    if(descEl)descEl.value=pf.descricao||'';
+    if(pf.servicoId && svcSel && getCatalogoServicosCentral().some(s=>s.id===pf.servicoId)){
+      svcSel.value=pf.servicoId; addServicoCatalogoNaOS();   // pré-adiciona serviço do contexto
+    } else if(svcSel){
+      svcSel.value='';
+    }
     const selPai=document.getElementById('ps-os-pai');
     if(selPai){
       const osAbertas=getOS().filter(o=>!['concluida','cancelada','reprovada','arquivada'].includes(o.status));
       selPai.innerHTML='<option value="">— Nenhuma (OS independente) —</option>'+osAbertas.map(o=>`<option value="${o.id}">${o.id} — ${(o.assunto||'').substring(0,50)}</option>`).join('');
     }
-    const listEl=document.getElementById('ps-requisitos-list');if(listEl)listEl.innerHTML='';
-    (document.getElementById('ps-custo-planejado')||{value:''}).value='';
+    setOsPrefill(null);   // consome o contexto
   }
   if(id==='modal-agendar'){
     document.getElementById('ag-solicitante').value=SESSION?SESSION.nome:'';
     document.getElementById('ag-data').value=new Date().toISOString().split('T')[0];
+    const _agf=document.getElementById('ag-data-fim'); if(_agf)_agf.value='';
     document.getElementById('ag-tipo-uso').value='rotina';
     document.getElementById('ag-tipo-transporte').value='';
     document.getElementById('ag-escopo').value='externo';
@@ -3284,6 +3279,24 @@ function openModal(id){
       getEstoque().map(e=>`<option value="${e.id}" data-unidade="${e.unidade}">${e.codigo||e.id} — ${e.descricao} (saldo: ${e.saldo} ${e.unidade})</option>`).join('');
     document.getElementById('sr-unidade').value='';
     document.getElementById('sr-qtd').value=1;
+    // RES-02: aplicar pré-preenchimento de contexto (se disponível)
+    if(_srPrefill){
+      const ctx=_srPrefill; _srPrefill=null;
+      if(ctx.itemId){
+        sel.value=String(ctx.itemId);
+        onSRItemChange(); // atualiza sr-unidade
+      }
+      if(ctx.qtd && Number(ctx.qtd)>0){
+        document.getElementById('sr-qtd').value=Number(ctx.qtd);
+      }
+      // ativoId: armazenado em campo oculto reutilizando sr-obs area via data-attr é desnecessário;
+      // o ativo_id da SR é derivado da OS pelo backend. Apenas logar para rastreabilidade.
+      if(ctx.ativoId){
+        const obsEl=document.getElementById('sr-obs');
+        // só acrescenta referência se obs ainda vazia para não sobrescrever entrada manual
+        if(!obsEl.value) obsEl.value='Ref. ativo: '+ctx.ativoId;
+      }
+    } else { _srPrefill=null; }
     const selEd=document.getElementById('sr-edificacao');
     selEd.innerHTML=`<option value="">— Selecionar —</option>`+
       getEdificacoes().map(ed=>`<option value="${ed.id}">${ed.nome}</option>`).join('');
@@ -3327,6 +3340,10 @@ function initDashboard(){
   setText('kpi-agenda',agPendentes);
   setText('kpi-manut',ativosProblema);
   setText('kpi-frota',`${frotaPronta}/${frota.length}`);
+  // KPIs do colaborador (fundidos no painel)
+  const _email=getColabUserEmail();
+  setText('kpi-cps',colabTickets.filter(t=>t.requester_email===_email).length);
+  setText('kpi-folgas',getColabTimeOff().filter(r=>r.employee_email===_email && r.status==='pending').length);
   setText('mod-frota-count',`${frotaPronta} prontos / ${frota.length} total`);
   setText('mod-manut-count',`${ativos.length} ativos · ${osManut.filter(o=>o.status!=='concluida').length} OS ativas`);
   setText('mod-colab-tickets',colabTickets.filter(t=>!['resolved','closed'].includes(t.status)).length);
@@ -3882,6 +3899,63 @@ async function criarFolgaColaborador(){
   toast('Solicitação de folga enviada');
 }
 
+// ── modais rápidos do Painel (CP + Folga) ─────────────────
+async function salvarCPRapida(){
+  if(soLeitura()) return;
+  const subject=document.getElementById('qcp-subject').value.trim();
+  const description=document.getElementById('qcp-description').value.trim();
+  if(!subject || !description){ toast('Informe assunto e descrição','warning'); return; }
+  const data=getColabTickets();
+  const item={
+    id:'TCK-'+padZero(data.length+1,4),
+    subject,description,
+    category:document.getElementById('qcp-category').value,
+    priority:document.getElementById('qcp-priority').value,
+    requester_name:SESSION?.nome||'Colaborador',
+    requester_email:getColabUserEmail(),
+    department:SESSION?.lotacao||'',
+    status:'open',created_date:new Date().toISOString(),assigned_to:''
+  };
+  data.push(item); saveColabTickets(data, false);
+  const saved=await colabCreateItem('tickets', item);
+  if(saved){ const s=getColabTickets(); const i=s.findIndex(t=>t.id===item.id); if(i>=0){ s[i]=saved; saveColabTickets(s, false); } }
+  else colabBulkFallback('tickets', getColabTickets());
+  closeModal(document.getElementById('modal-quick-cp'));
+  ['qcp-subject','qcp-description'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  if(document.getElementById('page-colab-tickets')?.classList.contains('active')) renderColaboradorChamados();
+  initDashboard();
+  toast('CP aberta com sucesso');
+}
+
+async function salvarFolgaRapida(){
+  if(soLeitura()) return;
+  const start_date=document.getElementById('qfolga-start').value;
+  const end_date=document.getElementById('qfolga-end').value;
+  const reason=document.getElementById('qfolga-reason').value.trim();
+  if(!start_date || !end_date || !reason){ toast('Preencha os campos obrigatórios','warning'); return; }
+  const total_days=diffDaysInclusive(start_date,end_date);
+  if(total_days<=0){ toast('Período inválido','warning'); return; }
+  const data=getColabTimeOff();
+  const item={
+    id:'OFF-'+padZero(data.length+1,4),
+    type:document.getElementById('qfolga-type').value,
+    start_date,end_date,reason,total_days,
+    employee_name:SESSION?.nome||'Colaborador',
+    employee_email:getColabUserEmail(),
+    department:SESSION?.lotacao||'',
+    status:'pending',created_date:new Date().toISOString(),approval_date:null,manager_notes:''
+  };
+  data.push(item); saveColabTimeOff(data, false);
+  const saved=await colabCreateItem('timeoff', item);
+  if(saved){ const s=getColabTimeOff(); const i=s.findIndex(r=>r.id===item.id); if(i>=0){ s[i]=saved; saveColabTimeOff(s, false); } }
+  else colabBulkFallback('timeoff', getColabTimeOff());
+  closeModal(document.getElementById('modal-quick-folga'));
+  ['qfolga-start','qfolga-end','qfolga-reason'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  if(document.getElementById('page-colab-timeoff')?.classList.contains('active')) renderColaboradorFolgas();
+  initDashboard();
+  toast('Solicitação de folga enviada');
+}
+
 async function atualizarFolgaColab(id,status){
   if(soLeitura()) return;
   const data=getColabTimeOff(); const idx=data.findIndex(r=>r.id===id); if(idx<0) return;
@@ -3927,7 +4001,7 @@ function updateDashClock(){
   const el=document.getElementById('dash-datetime');
   if(el){
     const now=new Date();
-    el.textContent=now.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    el.textContent=now.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'2-digit'})+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   }
 }
 
@@ -4139,6 +4213,8 @@ function refreshSidebarTooltips(){
 
 /* ════ SERVIÇOS / PS ══════════════════════════════════════ */
 let _currentOSId=null;
+// Contexto de pré-preenchimento para modal-nova-sr (limpo após uso pelo openModal)
+let _srPrefill=null;
 
 function getPS(){ return DB.get('ps',[]); }
 function savePS(d){ DB.set('ps',d); }
@@ -4266,6 +4342,80 @@ function syncManutOSIntoServicos(payload={}){
   _persistManutOSInBackend(next.id);
   return next;
 }
+function _mapBackendStatusToServico(s=''){
+  s=String(s).toLowerCase();
+  return ({aberta:'autorizada', em_andamento:'em_andamento', em_execucao:'em_andamento',
+           aguardando:'em_andamento', concluida:'concluida', cancelada:'cancelada'})[s] || 'autorizada';
+}
+
+// Puxa OS do backend (/api/os) e mescla no store local 'os' (upsert por backend_os_id).
+// Faz as OS criadas na Manutenção (vencimentos, refrig os-preventiva, etc.) aparecerem
+// na página Serviços (OS), no Kanban e no Dashboard. Offline: ignora silenciosamente.
+let _pullOSInFlight=false;
+async function pullBackendOSIntoServicos(){
+  if(_pullOSInFlight) return; _pullOSInFlight=true;
+  try{
+    const backend=await colabFetchJSON('/api/os');
+    if(!Array.isArray(backend)) return;
+    const data=getOS();
+    const idxByBackend=new Map();
+    data.forEach((o,i)=>{ if(o.backend_os_id) idxByBackend.set(o.backend_os_id,i); });
+    let changed=false;
+    for(const b of backend){
+      const mapped={
+        assunto: b.titulo||b.codigo||('OS '+b.id), descricao: b.descricao||'',
+        status: _mapBackendStatusToServico(b.status),
+        prioridade: b.prioridade||'normal',
+        dataAbertura: b.data_abertura||b.criado_em||new Date().toISOString(),
+        prazo: b.data_prevista||'', dataConclusao: b.data_conclusao||'',
+        ativo_id: b.ativo_id||'', servico_id: b.servico_id||'',
+        categoria: b.categoria||'', subcategoria: b.subcategoria||'',
+        origem:'manutencao', modulo_origem: b.modulo_origem||'manutencao',
+        backend_os_id: b.id, backend_os_codigo: b.codigo||'', backend_os_last_status: b.status,
+      };
+      if(idxByBackend.has(b.id)){
+        const i=idxByBackend.get(b.id); data[i]={...data[i], ...mapped};
+      } else {
+        data.push({ id: b.codigo||('OS-BK-'+String(b.id).slice(0,6)), solicitante:'Manutenção', executor:'', ...mapped });
+      }
+      changed=true;
+    }
+    if(changed){
+      saveOS(data);
+      if(document.getElementById('page-servicos')?.classList.contains('active')){ try{renderKpiServicos();renderOS();renderKanban();}catch(_){} }
+      if(document.getElementById('page-dashboard')?.classList.contains('active')){ try{initDashboard();}catch(_){} }
+    }
+  }catch(_){/* backend off — usa só localStorage */}
+  finally{ _pullOSInFlight=false; }
+}
+
+// Ponte catálogo: puxa serviços do backend (com taxonomia categoria/subcategoria)
+// e cacheia em localStorage. getCatalogoServicosCentral lê esse cache (backend vence).
+let _pullCatalogoInFlight=false;
+async function pullBackendCatalogo(){
+  if(_pullCatalogoInFlight) return; _pullCatalogoInFlight=true;
+  try{
+    const rows=await colabFetchJSON('/api/catalogo/servicos?materiais=1');
+    if(!Array.isArray(rows)||!rows.length) return;
+    const mapped=rows.map(s=>({
+      id:s.id, codigo:s.codigo, nome:s.nome, descricao:s.descricao||'',
+      aplicavel_a: s.aplicavel_a||{},
+      categoria: s.categoria||'', subcategoria: s.subcategoria||'',
+      materiais: (Array.isArray(s.materiais)?s.materiais:[]).map(m=>({
+        codigo: m.estoque_codigo||m.codigo||'',
+        nome_livre: m.estoque_nome||m.nome_livre||'Material',
+        qtd: Number(m.qtd||1)||1, unidade: m.unidade||'un', obrigatorio: m.obrigatorio!==0,
+      })),
+      _backend:true,
+    }));
+    DB.set('catalogo_servicos', mapped);
+    // se o modal Nova OS está aberto, recarrega selects com o catálogo fresco
+    const m=document.getElementById('modal-nova-ps');
+    if(m&&m.classList.contains('open')&&typeof initNovaOSServicoCatalogo==='function') initNovaOSServicoCatalogo();
+  }catch(_){/* backend off — usa MOCKS */}
+  finally{ _pullCatalogoInFlight=false; }
+}
+
 function getOSArquivo(){ return DB.get('os_arquivo',[]); }
 function saveOSArquivo(d){ DB.set('os_arquivo',d); }
 function getSR(){ return DB.get('sr',[]); }
@@ -4277,12 +4427,39 @@ function _textKey(v=''){
   return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 }
 
+// ── Taxonomia canônica de serviços (categoria → subcategorias) ────────────
+// Fonte única usada pelo form Nova OS e pelo agrupamento do catálogo.
+const SERVICO_TAXONOMIA = {
+  'TRANSPORTE':        ['FAINA ARMAMENTO TERRESTRE','FAINA ARMAMENTO MARITIMA','TRANSPORTE MATERIAL','TRANSPORTE PESSOAL','MANOBRA DE PESO','RECEBIMENTO MATERIAL','LIXO'],
+  'MANUTENCAO':        ['EDIFICACAO','HIDRAULICA','ELETRICA','ELETRONICA','INFORMATICA','REFRIGERACAO','CARPINTARIA','PINTURA INDUSTRIAL'],
+  'CONTROLE VEGETAL':  [],
+  'CONTROLE BIOLOGICO':[],
+};
+// mapeia categoria-de-ativo legada (aplicavel_a.categorias) → taxonomia de serviço
+const _ATIVO_CAT_TO_TAXON = {
+  climatizacao:['MANUTENCAO','REFRIGERACAO'], eletrica:['MANUTENCAO','ELETRICA'],
+  predial:['MANUTENCAO','EDIFICACAO'], instrumentos:['MANUTENCAO','ELETRONICA'],
+  frota_terrestre:['TRANSPORTE',''], frota_naval:['TRANSPORTE',''],
+  viaturas:['TRANSPORTE',''], embarcacoes:['TRANSPORTE',''],
+  maquinas_corte:['CONTROLE VEGETAL',''],
+};
+// taxonomia de um serviço do catálogo: explícita (s.categoria/subcategoria) ou derivada da categoria de ativo
+function _servicoTaxon(s={}){
+  if(s.categoria && SERVICO_TAXONOMIA[s.categoria]!==undefined) return {cat:s.categoria, sub:s.subcategoria||''};
+  const m=_ATIVO_CAT_TO_TAXON[_servicoCategoriaKey(s)];
+  return m?{cat:m[0],sub:m[1]||''}:{cat:'',sub:''};
+}
+
 function getCatalogoServicosCentral(){
   const base=Array.isArray(window.ERP_MANUT_MOCKS?.catalogo_servicos)?window.ERP_MANUT_MOCKS.catalogo_servicos:[];
-  const local=DB.get('catalogo_servicos',[]);
-  const byId=new Map();
-  [...base,...local].forEach(s=>{ if(s?.id&&!byId.has(s.id)) byId.set(s.id,s); });
-  return [...byId.values()].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||'')));
+  const local=DB.get('catalogo_servicos',[]);   // cache do backend (taxonomia real)
+  const byCodigo=new Map();
+  // backend primeiro → vence por código (traz categoria/subcategoria persistidas)
+  [...local,...base].forEach(s=>{
+    const key=String(s?.codigo||s?.id||'');
+    if(key&&!byCodigo.has(key)) byCodigo.set(key,s);
+  });
+  return [...byCodigo.values()].sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||'')));
 }
 
 function _servicoCategoriaKey(servico={}){
@@ -4365,69 +4542,170 @@ function _mergeRequisitos(base=[],extra=[]){
   });
 }
 
-function _renderPSMateriaisPreview(servico=null){
-  const body=document.getElementById('ps-materiais-check');
+// ── Nova OS: serviços, materiais e recursos (multi) ──────────
+let _novaOSServicos=[];   // [{nome, catalogo_id, origem:'catalogo'|'livre'}]
+let _novaOSMateriais=[];  // [{nome_livre, codigo, qtd, unidade, itemEstoqueId, obrigatorio}]
+
+function _resetNovaOSRecursos(){
+  _novaOSServicos=[]; _novaOSMateriais=[];
+  _populateNovaOSEstoqueSelect(); _populateNovaOSVeiculos();
+  _renderNovaOSServicos(); _renderNovaOSMateriais();
+}
+
+function _populateNovaOSEstoqueSelect(){
+  const sel=document.getElementById('ps-mat-item'); if(!sel) return;
+  sel.innerHTML='<option value="">— Item do estoque —</option>'+
+    getEstoque().map(e=>`<option value="${e.id}">${e.codigo?e.codigo+' — ':''}${e.descricao||e.nome||e.id} (saldo ${Number(e.saldo||0)} ${e.unidade||'un'})</option>`).join('');
+}
+
+function _populateNovaOSVeiculos(){
+  const box=document.getElementById('ps-veiculos-list'); if(!box) return;
+  const veics=getAtivos().filter(a=>normalizeAtivoCategoria(a.categoria)==='transporte' && a.ativo!==0);
+  box.innerHTML=veics.length?veics.map(a=>`<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text1);padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);cursor:pointer"><input type="checkbox" class="ps-veic-ck" value="${a.id}" data-nome="${String(a.nome||'').replace(/"/g,'&quot;')}" style="accent-color:var(--acc)"> ${a.cod?a.cod+' — ':''}${a.nome||a.id}</label>`).join('')
+    :'<div class="text-xs text-muted">Nenhuma viatura/embarcação cadastrada.</div>';
+}
+
+function _renderNovaOSServicos(){
+  const box=document.getElementById('ps-servicos-list'); if(!box) return;
+  if(!_novaOSServicos.length){ box.innerHTML='<div class="text-xs text-muted" style="padding:4px 0">Nenhum serviço adicionado.</div>'; return; }
+  box.innerHTML='<div style="display:grid;gap:6px">'+_novaOSServicos.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)"><span style="flex:1;font-size:12px;color:var(--text1)">${i+1}. ${String(s.nome||'').replace(/</g,'&lt;')}</span><span class="badge ${s.origem==='catalogo'?'badge-ok':''}" style="font-size:10px">${s.origem==='catalogo'?'catálogo':'livre'}</span><button class="btn-act" title="Remover" onclick="removeServicoNaOS(${i})">✕</button></div>`).join('')+'</div>';
+}
+
+function addServicoCatalogoNaOS(){
+  const sel=document.getElementById('ps-servico-id'); const sid=(sel||{}).value||'';
+  if(!sid){ toast('Selecione um serviço do catálogo','warning'); return; }
+  const svc=getCatalogoServicosCentral().find(s=>s.id===sid); if(!svc) return;
+  if(_novaOSServicos.some(s=>s.catalogo_id===sid)){ toast('Serviço já adicionado','warning'); return; }
+  _novaOSServicos.push({nome:svc.nome||sid, catalogo_id:sid, origem:'catalogo'});
+  // classifica a OS pela taxonomia do 1º serviço de catálogo
+  const t=_servicoTaxon(svc);
+  const catSel=document.getElementById('ps-servico-categoria');
+  const subSel=document.getElementById('ps-servico-subcategoria');
+  if(catSel && t.cat && _novaOSServicos.filter(s=>s.origem==='catalogo').length===1){
+    catSel.value=t.cat;
+    if(subSel){ const subs=SERVICO_TAXONOMIA[t.cat]||[]; subSel.innerHTML='<option value="">Todas</option>'+subs.map(s=>`<option value="${s}">${s}</option>`).join(''); subSel.disabled=!subs.length; if(t.sub)subSel.value=t.sub; }
+  }
+  // título padrão = nome do 1º serviço se vazio
+  const assunto=document.getElementById('ps-assunto');
+  if(assunto && !String(assunto.value||'').trim()) assunto.value=svc.nome||'';
+  // materiais do serviço → lista (dedupe por nome)
+  _mapServicoMateriaisParaOS(svc).forEach(m=>{
+    if(_novaOSMateriais.some(x=>_textKey(x.nome_livre)===_textKey(m.nome_livre))) return;
+    _novaOSMateriais.push({nome_livre:m.nome_livre, codigo:m.codigo, qtd:m.qtd, unidade:m.unidade, itemEstoqueId:m.itemEstoqueId, obrigatorio:m.obrigatorio});
+  });
+  // requisitos do serviço → form
+  const listEl=document.getElementById('ps-requisitos-list');
+  if(listEl){
+    _gerarRequisitosServico(svc).forEach(req=>{
+      const row=document.createElement('div'); row.className='req-row';
+      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px';
+      row.innerHTML=`<input type="text" class="req-desc" value="${String(req.descricao||'').replace(/"/g,'&quot;')}" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text1);font-size:13px"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);white-space:nowrap"><input type="checkbox" class="req-obrig" ${req.obrigatorio?'checked':''} style="accent-color:var(--acc)"> Obrigatório</label><button class="btn-act" title="Remover" onclick="this.closest('.req-row').remove()">✕</button>`;
+      listEl.appendChild(row);
+    });
+  }
+  if(sel)sel.value='';
+  _renderNovaOSServicos(); _renderNovaOSMateriais();
+}
+
+function addServicoLivreNaOS(){
+  const inp=document.getElementById('ps-servico-livre'); const nome=(inp&&inp.value||'').trim();
+  if(!nome){ toast('Digite o serviço','warning'); return; }
+  _novaOSServicos.push({nome, catalogo_id:'', origem:'livre'});
+  const assunto=document.getElementById('ps-assunto');
+  if(assunto && !String(assunto.value||'').trim()) assunto.value=nome;
+  if(inp)inp.value='';
+  _renderNovaOSServicos();
+}
+
+function removeServicoNaOS(i){ _novaOSServicos.splice(i,1); _renderNovaOSServicos(); }
+
+function _renderNovaOSMateriais(){
+  const box=document.getElementById('ps-materiais-list');
   const resumo=document.getElementById('ps-materiais-resumo');
-  if(!body||!resumo){ return []; }
-  if(!servico){
-    resumo.textContent='Nenhum serviço selecionado';
-    body.innerHTML='<div class="text-xs text-muted" style="padding:6px 0">Selecione um serviço do catálogo para visualizar materiais e saldo em estoque.</div>';
-    return [];
+  if(!box) return;
+  if(!_novaOSMateriais.length){
+    box.innerHTML='<div class="text-xs text-muted" style="padding:4px 0">Nenhum material. Adicione abaixo ou via serviço do catálogo.</div>';
+    if(resumo)resumo.textContent='Nenhum material';
+    return;
   }
-  const mats=_mapServicoMateriaisParaOS(servico);
-  if(!mats.length){
-    resumo.textContent='Sem materiais previstos';
-    body.innerHTML='<div class="text-xs text-muted" style="padding:6px 0">Este serviço não exige materiais cadastrados.</div>';
-    return mats;
+  // recalcula saldo/disponível no momento da exibição
+  const ok=_novaOSMateriais.filter(m=>_matDisponivel(m)).length;
+  if(resumo)resumo.textContent=`${_novaOSMateriais.length} item(ns) · ${ok} com saldo`;
+  box.innerHTML='<div style="display:grid;gap:6px">'+_novaOSMateriais.map((m,i)=>{
+    const est=m.itemEstoqueId?getEstoque().find(e=>e.id===m.itemEstoqueId):_findEstoqueForMaterial(m);
+    const saldo=Number(est?.saldo||0); const disp=est?saldo>=Number(m.qtd||0):false;
+    return `<div style="display:grid;grid-template-columns:1.4fr auto auto auto auto;gap:8px;align-items:center;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)"><span style="font-size:12px;color:var(--text1)">${String(m.nome_livre||'-').replace(/</g,'&lt;')}</span><span class="text-xs text-muted">${m.qtd} ${m.unidade||'un'}</span><span class="text-xs text-muted">saldo: ${saldo} ${m.unidade||'un'}</span><span class="badge ${disp?'badge-ok':'badge-warn'}">${disp?'OK':'Sem saldo'}</span><button class="btn-act" title="Remover" onclick="removeMaterialNaOS(${i})">✕</button></div>`;
+  }).join('')+'</div>';
+}
+
+function _matDisponivel(m){
+  const est=m.itemEstoqueId?getEstoque().find(e=>e.id===m.itemEstoqueId):_findEstoqueForMaterial(m);
+  return est?Number(est.saldo||0)>=Number(m.qtd||0):false;
+}
+
+function addMaterialNaOS(){
+  const itemId=(document.getElementById('ps-mat-item')||{}).value||'';
+  const nomeLivre=((document.getElementById('ps-mat-nome')||{}).value||'').trim();
+  const qtd=Number((document.getElementById('ps-mat-qtd')||{}).value||0)||0;
+  if(!itemId && !nomeLivre){ toast('Selecione item do estoque ou digite material','warning'); return; }
+  if(!(qtd>0)){ toast('Informe a quantidade','warning'); return; }
+  if(itemId){
+    const est=getEstoque().find(e=>e.id===itemId); if(!est) return;
+    _novaOSMateriais.push({nome_livre:est.descricao||est.nome||est.id, codigo:est.codigo||'', qtd, unidade:est.unidade||'un', itemEstoqueId:est.id, obrigatorio:true});
+  } else {
+    _novaOSMateriais.push({nome_livre:nomeLivre, codigo:'', qtd, unidade:'un', itemEstoqueId:'', obrigatorio:true});
   }
-  const ok=mats.filter(m=>m.disponivel).length;
-  resumo.textContent=`${mats.length} item(ns) previsto(s) · ${ok} com saldo suficiente`;
-  body.innerHTML=`<div style="display:grid;gap:6px">${mats.map(m=>`<div style="display:grid;grid-template-columns:1.4fr auto auto auto;gap:8px;align-items:center;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)"><span style="font-size:12px;color:var(--text1)">${m.nome_livre}</span><span class="text-xs text-muted">${m.qtd} ${m.unidade}</span><span class="text-xs text-muted">saldo: ${m.saldoDisponivel} ${m.unidade}</span><span class="badge ${m.disponivel?'badge-ok':'badge-warn'}">${m.disponivel?'OK':'Sem saldo'}</span></div>`).join('')}</div>`;
-  return mats;
+  const a=document.getElementById('ps-mat-item');if(a)a.value='';
+  const b=document.getElementById('ps-mat-nome');if(b)b.value='';
+  const c=document.getElementById('ps-mat-qtd');if(c)c.value='1';
+  _renderNovaOSMateriais();
+}
+
+function removeMaterialNaOS(i){ _novaOSMateriais.splice(i,1); _renderNovaOSMateriais(); }
+
+function _coletarVeiculosForm(){
+  return Array.from(document.querySelectorAll('#ps-veiculos-list .ps-veic-ck:checked'))
+    .map(ck=>({ativo_id:ck.value, nome:ck.dataset.nome||ck.value}));
 }
 
 function onPSServicoCategoriaChange(){
   const cat=(document.getElementById('ps-servico-categoria')||{}).value||'';
-  const sel=document.getElementById('ps-servico-id');
-  if(!sel) return;
-  const rows=getCatalogoServicosCentral().filter(s=>!cat||_servicoCategoriaKey(s)===cat);
-  sel.innerHTML='<option value="">— Selecionar serviço —</option>'+rows.map(s=>`<option value="${s.id}">${_servicoCategoriaLabel(_servicoCategoriaKey(s))} · ${s.nome}</option>`).join('');
-  _renderPSMateriaisPreview(null);
+  const subSel=document.getElementById('ps-servico-subcategoria');
+  if(subSel){
+    const subs=SERVICO_TAXONOMIA[cat]||[];
+    subSel.innerHTML='<option value="">Todas</option>'+subs.map(s=>`<option value="${s}">${s}</option>`).join('');
+    subSel.disabled=!subs.length;
+    subSel.value='';
+  }
+  _refreshCatalogoServicoOptions();
 }
+function onPSServicoSubcategoriaChange(){ _refreshCatalogoServicoOptions(); }
 
-function onPSServicoChange(){
-  const sid=(document.getElementById('ps-servico-id')||{}).value||'';
-  const svc=getCatalogoServicosCentral().find(s=>s.id===sid);
-  if(!svc){ _renderPSMateriaisPreview(null); return; }
-  const assunto=document.getElementById('ps-assunto');
-  const descricao=document.getElementById('ps-descricao');
-  if(assunto) assunto.value=svc.nome||assunto.value||'';
-  if(descricao && !String(descricao.value||'').trim()) descricao.value=svc.descricao||'';
-  const mats=_renderPSMateriaisPreview(svc);
-  const custoInput=document.getElementById('ps-custo-planejado');
-  if(custoInput){
-    const custo=_calcServicoCustoPlanejado(mats);
-    if(custo>0) custoInput.value=String(Number(custo.toFixed(2)));
-  }
-  const listEl=document.getElementById('ps-requisitos-list');
-  if(listEl){
-    listEl.innerHTML='';
-    _gerarRequisitosServico(svc).forEach(req=>{
-      const row=document.createElement('div');
-      row.className='req-row';
-      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:6px';
-      row.innerHTML=`<input type="text" class="req-desc" value="${String(req.descricao||'').replace(/\"/g,'&quot;')}" style="flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;color:var(--text1);font-size:13px"><label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2);white-space:nowrap"><input type="checkbox" class="req-obrig" ${req.obrigatorio?'checked':''} style="accent-color:var(--acc)"> Obrigatório</label><button class="btn-act" title="Remover" onclick="this.closest('.req-row').remove()">✕</button>`;
-      listEl.appendChild(row);
-    });
-  }
+// popula o select do catálogo filtrando pela taxonomia escolhida, agrupado por subcategoria
+function _refreshCatalogoServicoOptions(){
+  const sel=document.getElementById('ps-servico-id'); if(!sel) return;
+  const cat=(document.getElementById('ps-servico-categoria')||{}).value||'';
+  const sub=(document.getElementById('ps-servico-subcategoria')||{}).value||'';
+  const rows=getCatalogoServicosCentral().filter(s=>{
+    if(!cat) return true;
+    const t=_servicoTaxon(s);
+    if(t.cat!==cat) return false;
+    if(sub && t.sub!==sub) return false;
+    return true;
+  });
+  const groups={};
+  rows.forEach(s=>{ const g=_servicoTaxon(s).sub||'(sem subcategoria)'; (groups[g]=groups[g]||[]).push(s); });
+  let html='<option value="">— Selecionar serviço —</option>';
+  Object.keys(groups).sort().forEach(g=>{
+    html+=`<optgroup label="${g}">`+groups[g].map(s=>`<option value="${s.id}">${s.nome}</option>`).join('')+'</optgroup>';
+  });
+  sel.innerHTML=html;
 }
 
 function initNovaOSServicoCatalogo(){
   const catSel=document.getElementById('ps-servico-categoria');
   if(!catSel) return;
-  const rows=getCatalogoServicosCentral();
-  const cats=[...new Set(rows.map(_servicoCategoriaKey))];
-  catSel.innerHTML='<option value="">Todas</option>'+cats.map(c=>`<option value="${c}">${_servicoCategoriaLabel(c)}</option>`).join('');
+  catSel.innerHTML='<option value="">Todas</option>'+Object.keys(SERVICO_TAXONOMIA).map(c=>`<option value="${c}">${c}</option>`).join('');
   catSel.value='';
   onPSServicoCategoriaChange();
 }
@@ -4483,12 +4761,19 @@ function canExecutarOS(o){
 
 function criarPS(){
   if(soLeitura())return;
-  const assunto=document.getElementById('ps-assunto').value.trim();
-  if(!assunto){toast('Informe o serviço','warning');return;}
-  const servicoCatalogoId=(document.getElementById('ps-servico-id')||{}).value||'';
-  const servicoCatalogo=getCatalogoServicosCentral().find(s=>s.id===servicoCatalogoId) || null;
-  const materiaisPrevistos=servicoCatalogo?_mapServicoMateriaisParaOS(servicoCatalogo):[];
-  const requisitosCatalogo=servicoCatalogo?_gerarRequisitosServico(servicoCatalogo):[];
+  const servicos=_novaOSServicos.slice();
+  let assunto=document.getElementById('ps-assunto').value.trim();
+  if(!assunto && servicos.length) assunto=servicos[0].nome;
+  if(!assunto){toast('Informe o assunto ou adicione um serviço','warning');return;}
+  // 1º serviço de catálogo guia compat servico_catalogo_id
+  const servicoCatalogoId=(servicos.find(s=>s.origem==='catalogo')||{}).catalogo_id||'';
+  // materiais: lista editável, recalcula saldo/disponível
+  const materiaisPrevistos=_novaOSMateriais.map((m,idx)=>{
+    const est=m.itemEstoqueId?getEstoque().find(e=>e.id===m.itemEstoqueId):_findEstoqueForMaterial(m);
+    const saldo=Number(est?.saldo||0); const qtd=Number(m.qtd||0)||0;
+    return {id:`mat-${idx}-${Date.now()}`, codigo:m.codigo||est?.codigo||'', nome_livre:m.nome_livre, qtd, unidade:m.unidade||est?.unidade||'un', obrigatorio:m.obrigatorio!==false, itemEstoqueId:est?.id||'', saldoDisponivel:saldo, disponivel:est?saldo>=qtd:false};
+  });
+  const veiculos=_coletarVeiculosForm();
   const requisitosForm=_coletarRequisitosForm();
   const executorOrg=(document.getElementById('ps-executor-org')||{}).value || 'CMASM-10';
   const osPaiId=(document.getElementById('ps-os-pai')||{}).value||null;
@@ -4496,10 +4781,19 @@ function criarPS(){
   const custoPlanejado=custoDigitado>0?custoDigitado:_calcServicoCustoPlanejado(materiaisPrevistos);
   const solicitanteNome=SESSION?.nome||'Sistema';
   const solicitanteId=SESSION?.id||'';
+  const departamento=(SESSION&&(SESSION.lotacao||SESSION.setor||SESSION.departamento))||'';
+  const ativoId=(document.getElementById('ps-ativo')||{}).value||'';
+  const ativoObj=ativoId?getAtivos().find(a=>a.id===ativoId):null;
+  const categoria=(document.getElementById('ps-servico-categoria')||{}).value||'';
+  const subcategoria=(document.getElementById('ps-servico-subcategoria')||{}).value||'';
   const data=getOS();
   const novaOS={
     id:_nextId('OS',data,getOSArquivo()),
     solicitante:solicitanteNome,solicitanteId,
+    departamento,
+    categoria,subcategoria,
+    ativo_id:ativoId,
+    ativoNome:ativoObj?ativoObj.nome:'',
     executorOrg,
     destino:executorOrg,
     assunto,descricao:document.getElementById('ps-descricao').value.trim(),
@@ -4510,8 +4804,10 @@ function criarPS(){
     executor:'',
     osPai:osPaiId,
     osFilhos:[],
-    requisitos:_mergeRequisitos(requisitosCatalogo,requisitosForm),
+    requisitos:_mergeRequisitos(requisitosForm,[]),
+    servicos,
     materiaisPrevistos,
+    veiculos,
     servico_catalogo_id: servicoCatalogoId || '',
     custoPlanejado,
     custoReal:0,
@@ -4530,10 +4826,12 @@ function criarPS(){
   closeModal(document.getElementById('modal-nova-ps'));
   renderKpiServicos();renderOS();renderKanban();initDashboard();
   toast('OS criada e aguardando autorização');
-  ['ps-assunto','ps-descricao'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ps-assunto','ps-descricao','ps-servico-livre'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  (document.getElementById('ps-ativo')||{value:''}).value='';
   (document.getElementById('ps-servico-id')||{value:''}).value='';
   (document.getElementById('ps-servico-categoria')||{value:''}).value='';
-  _renderPSMateriaisPreview(null);
+  (document.getElementById('ps-servico-subcategoria')||{value:''}).value='';
+  _resetNovaOSRecursos();
   const listEl=document.getElementById('ps-requisitos-list');if(listEl)listEl.innerHTML='';
   (document.getElementById('ps-custo-planejado')||{value:''}).value='';
   (document.getElementById('ps-os-pai')||{value:''}).value='';
@@ -4679,6 +4977,11 @@ function _osCustoBadge(o){
   </div>`;
 }
 
+function _osCategoriaBadge(o){
+  if(!o||!o.categoria) return '';
+  const sub=o.subcategoria?` · ${o.subcategoria}`:'';
+  return `<div class="text-xs" style="color:var(--acc);margin-top:2px">${o.categoria}${sub}</div>`;
+}
 function renderOS(){
   const data=getOS();
   const q=(document.getElementById('os-search')||{}).value?.toLowerCase()||'';
@@ -4694,7 +4997,7 @@ function renderOS(){
       const bloqueada=_osBloqueada(o);
       return `<tr${bloqueada?' style="opacity:.85"':''}>
         <td class="text-mono text-xs font-bold">${bloqueada?'🔴 ':''} ${_osHierarquiaBadge(o)}${o.id}</td>
-        <td>${o.assunto||o.descricao||'-'}</td>
+        <td>${o.assunto||o.descricao||'-'}${_osCategoriaBadge(o)}</td>
         <td class="text-xs text-muted">${fmtDateSimple(o.prazo)||'-'}</td>
         <td>${statusBadge(o.status)}${bloqueada?` <span class="text-xs" style="color:var(--red-400)">Bloqueada</span>`:''}
           ${_osMaterialPendenciaBadge(o.id)}
@@ -4725,6 +5028,8 @@ function verOS(id){
   const filhos=allOS.filter(x=>(o.osFilhos||[]).includes(x.id));
   const reqs=o.requisitos||[];
   const materiais=Array.isArray(o.materiaisPrevistos)?o.materiaisPrevistos:[];
+  const osServicos=Array.isArray(o.servicos)?o.servicos:[];
+  const osVeiculos=Array.isArray(o.veiculos)?o.veiculos:[];
   const srsMateriaisPendentes=_osMaterialSRPendentes(o.id);
   const plan=Number(o.custoPlanejado||0);
   const real=Number(o.custoReal||0);
@@ -4736,7 +5041,14 @@ function verOS(id){
     <div class="form-group"><label>Executor</label>
       <select id="ver-os-executor"><option value="">— Selecionar —</option>${users.map(u=>`<option value="${u.nome}" ${u.nome===o.executor?'selected':''}>${u.nome}</option>`).join('')}</select>
     </div>
-    <div class="form-group form-full"><label>Serviço</label><input type="text" id="ver-os-servico" value="${(o.assunto||'').replace(/"/g,'&quot;')}" placeholder="Serviço"></div>
+    <div class="form-group form-full"><label>Assunto / Título</label><input type="text" id="ver-os-servico" value="${(o.assunto||'').replace(/"/g,'&quot;')}" placeholder="Assunto"></div>
+    ${osServicos.length?`<div class="form-group form-full"><label>Serviços (${osServicos.length})</label>
+      <div style="display:grid;gap:4px">${osServicos.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;background:var(--bg2)"><span style="flex:1;font-size:12px">${i+1}. ${String(s.nome||'-').replace(/</g,'&lt;')}</span><span class="badge ${s.origem==='catalogo'?'badge-ok':''}" style="font-size:10px">${s.origem==='catalogo'?'catálogo':'livre'}</span></div>`).join('')}</div>
+    </div>`:''}
+    ${o.categoria?`<div class="form-group form-full"><label>Classificação</label><input type="text" value="${o.categoria}${o.subcategoria?' · '+o.subcategoria:''}" readonly></div>`:''}
+    ${osVeiculos.length?`<div class="form-group form-full"><label>Viaturas / Embarcações (${osVeiculos.length})</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${osVeiculos.map(v=>`<span class="badge" style="font-size:11px">${String(v.nome||v.ativo_id||'-').replace(/</g,'&lt;')}</span>`).join('')}</div>
+    </div>`:''}
     <div class="form-group form-full"><label>Descrição</label><textarea id="ver-os-descricao" rows="3">${o.descricao||''}</textarea></div>
     <div class="form-group"><label>Executor (Organograma)</label><select id="ver-os-executor-org">${orgExecutorOptions(o.executorOrg||o.destino||'CMASM-10')}</select></div>
     <div class="form-group"><label>Prazo</label><input type="date" id="ver-os-prazo" value="${o.prazo||''}"></div>
@@ -4883,23 +5195,22 @@ function lancarCustoReal(osId){
 
 function renderKpiServicos(){
   const os=getOS();
-  const abertas=os.filter(o=>!['concluida','cancelada','reprovada','arquivada'].includes(o.status));
+  const eu=SESSION&&SESSION.nome;
+  const abertos=['concluida','cancelada','reprovada','arquivada'];
+  const minhas=os.filter(o=>eu&&!abertos.includes(o.status)&&(o.executor===eu||o.solicitante===eu));
+  const abertas=os.filter(o=>!abertos.includes(o.status));
   const andamento=os.filter(o=>o.status==='em_andamento');
   const bloqueadas=os.filter(o=>_osBloqueada(o));
+  const concluidas=os.filter(o=>o.status==='concluida');
   const totalPlan=os.reduce((s,o)=>s+Number(o.custoPlanejado||0),0);
-  const totalReal=os.reduce((s,o)=>s+Number(o.custoReal||0),0);
-  const desvio=totalReal-totalPlan;
 
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  set('svc-kpi-minhas',minhas.length);
   set('svc-kpi-abertas',abertas.length);
   set('svc-kpi-andamento',andamento.length);
   set('svc-kpi-bloqueadas',bloqueadas.length);
+  set('svc-kpi-concluidas',concluidas.length);
   set('svc-kpi-planejado',totalPlan>0?brl(totalPlan):'R$ 0');
-  const devEl=document.getElementById('svc-kpi-desvio');
-  if(devEl){
-    if(!totalPlan||!totalReal){devEl.textContent='—';devEl.style.color='';}
-    else{devEl.textContent=(desvio>=0?'+':'')+brl(desvio);devEl.style.color=desvio>0?'var(--red-400)':'var(--green-400)';}
-  }
   const bloqEl=document.getElementById('svc-kpi-bloqueadas');
   if(bloqEl)bloqEl.style.color=bloqueadas.length>0?'var(--red-400)':'';
 }
@@ -4955,6 +5266,7 @@ function renderKanban(){
         return `<div class="kcard${bloqueada?' kcard-blocked':''}" onclick="verOS('${item.id}')">
           <div class="kcard-id">${bloqueada?'🔴 ':''}${hierBadge}${item.id} · OS</div>
           <div class="kcard-title">${item.assunto||item.descricao||'-'}</div>
+          ${item.categoria?`<div style="font-size:10px;color:var(--acc);margin-top:2px">${item.categoria}${item.subcategoria?' · '+item.subcategoria:''}</div>`:''}
           <div class="kcard-meta">${item.solicitante||item.criadoPor||'-'} · ${prioBadge(item.prioridade)}</div>
           ${custoInfo}
           ${bloqueada?`<div style="font-size:10px;color:var(--red-400);margin-top:3px">⚠ Req. não atendido(s)</div>`:''}
@@ -5002,12 +5314,15 @@ function onSRItemChange(){
   if(un)un.value=opt?opt.dataset.unidade||'':'';
 }
 
-function abrirNovaSR(osId){
+// RES-02: ctx opcional { itemId, ativoId, qtd } — pré-preenche sr-item-id / sr-qtd.
+// Callers antigos que passam só osId continuam funcionando sem alteração.
+function abrirNovaSR(osId, ctx){
   if(soLeitura())return;
   const os=getOS().find(o=>o.id===osId);
   if(!os){toast('OS não encontrada','warning');return;}
   if(os.status==='cancelada'){toast('Não é possível criar SR para OS cancelada','warning');return;}
   _currentOSId=osId;
+  _srPrefill=(ctx && typeof ctx==='object') ? ctx : null;
   openModal('modal-nova-sr');
 }
 
@@ -5343,6 +5658,7 @@ function normalizeAgenda(row = {}){
     destino: destinoModo === 'interno' && tipoTransporte === 'viatura' ? 'CMASM interno' : (row.destino || ''),
     missao: row.missao || row.finalidade || '',
     dataSaida: row.dataSaida || row.data_saida || row.data || '',
+    dataFim: row.dataFim || row.data_fim || '',
     horaSaidaPrev: row.horaSaidaPrev || row.hora_saida_prev || row.hora || '',
     horaChegadaPrev: row.horaChegadaPrev || row.hora_chegada_prev || row.horaRetornoPrev || '',
     horaSaidaReal: row.horaSaidaReal || row.hora_saida_real || '',
@@ -5526,60 +5842,60 @@ function renderFrotaKPIs(){
   for(const[s,id]of Object.entries(ids)){const el=document.getElementById(id);if(el)el.textContent=c[s]||0;}
 }
 
-function renderAgendaHoje(){
-  const today=new Date().toISOString().split('T')[0];
-  const lbl=document.getElementById('hoje-label');
-  if(lbl)lbl.textContent=`Agendamentos de ${fmtDateSimple(today)}`;
-  const data=getAgenda().filter(a=>a.dataSaida===today).sort((a,b)=>(a.horaSaidaPrev||'').localeCompare(b.horaSaidaPrev||''));
-  const tbody=document.getElementById('agenda-hoje-body');if(!tbody)return;
-  if(data.length===0){tbody.innerHTML='<tr><td colspan="9" class="tbl-empty">Nenhuma viagem para hoje</td></tr>';return;}
-  tbody.innerHTML=data.map(a=>{
-    return `<tr>
-      <td class="text-mono text-xs">${a.id}</td>
-      <td>${transportBadge(a.tipoUso)}</td>
-      <td>${a.solicitante}</td>
-      <td>${a.destino}</td>
-      <td class="text-mono text-xs">${transportWindow(a)}</td>
-      <td class="text-xs">${getTransportAtivoById(a.ativoId)?.nome||'A definir'}</td>
-      <td class="text-xs">${a.motoristaNome||'A definir'}</td>
-      <td>${statusBadge(a.status)}</td>
-      <td>${renderViagemActions(a)}</td>
-    </tr>`;
-  }).join('');
+// ── Componente Calendário (transportes + eventos) ────────────
+let _calMonth=null, _calSelDay='';
+function getCalendarEvents(){
+  const out=[];
+  getAgenda().forEach(a=>{ if(!a.dataSaida)return;
+    out.push({id:a.id,start:a.dataSaida,end:a.dataFim||a.dataSaida,type:'transporte',
+      title:(a.destino||a.missao||'Viagem'),
+      sub:`${a.id} · ${a.horaSaidaPrev||'--'} · ${getTransportAtivoById(a.ativoId)?.nome||'A definir'}`}); });
+  (typeof getColabEvents==='function'?getColabEvents():[]).forEach(e=>{ if(!e.event_date)return;
+    out.push({id:e.id,start:e.event_date,end:e.event_date,type:'evento',
+      title:e.title||'Evento',
+      sub:`${typeof colabTypeLabel==='function'?colabTypeLabel(e.type):(e.type||'')} · ${e.location||''}`}); });
+  return out;
 }
-
-function renderAgendaSemana(){
-  const now=new Date();
-  const dow=now.getDay();
-  const mon=new Date(now);mon.setDate(now.getDate()-(dow===0?6:dow-1));
-  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
-  const startStr=mon.toISOString().split('T')[0];
-  const endStr=sun.toISOString().split('T')[0];
-  const lbl=document.getElementById('semana-label');
-  if(lbl)lbl.textContent=`Semana: ${fmtDateSimple(startStr)} → ${fmtDateSimple(endStr)}`;
-  const st=(document.getElementById('semana-filter')||{}).value||'';
-  const data=getAgenda().filter(a=>{
-    if(!a.dataSaida||a.dataSaida<startStr||a.dataSaida>endStr)return false;
-    if(st&&a.status!==st)return false;
-    return true;
-  }).sort((a,b)=>(a.dataSaida+(a.horaSaidaPrev||'')).localeCompare(b.dataSaida+(b.horaSaidaPrev||'')));
-  const tbody=document.getElementById('agenda-semana-body');if(!tbody)return;
-  if(data.length===0){tbody.innerHTML='<tr><td colspan="10" class="tbl-empty">Nenhuma viagem esta semana</td></tr>';renderTransportReportSummary();return;}
-  tbody.innerHTML=data.map(a=>{
-    return `<tr>
-      <td class="text-mono text-xs">${fmtDateSimple(a.dataSaida)}</td>
-      <td class="text-mono text-xs">${a.id}</td>
-      <td>${transportBadge(a.tipoUso)}</td>
-      <td>${a.solicitante}</td>
-      <td>${a.destino}</td>
-      <td class="text-mono text-xs">${transportWindow(a)}</td>
-      <td class="text-xs">${getTransportAtivoById(a.ativoId)?.nome||'A definir'}</td>
-      <td class="text-xs">${a.motoristaNome||'A definir'}</td>
-      <td>${statusBadge(a.status)}</td>
-      <td>${renderViagemActions(a)}</td>
-    </tr>`;
-  }).join('');
-  renderTransportReportSummary();
+function calNav(dir){ const b=_calMonth||new Date(); _calMonth = dir===0?new Date():new Date(b.getFullYear(),b.getMonth()+dir,1); _calSelDay=''; renderCalendario(); }
+function calSelectDay(ds){ _calSelDay = (_calSelDay===ds)?'':ds; renderCalendario(); }
+function renderCalendario(){
+  const grid=document.getElementById('cal-grid'); if(!grid) return;
+  const base=_calMonth||new Date(); const y=base.getFullYear(), m=base.getMonth();
+  const lbl=document.getElementById('cal-month-label');
+  if(lbl)lbl.textContent=base.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const src=(document.getElementById('cal-source')||{}).value||'';
+  const q=((document.getElementById('cal-search')||{}).value||'').toLowerCase();
+  const evs=getCalendarEvents().filter(e=>(!src||e.type===src)&&(!q||(e.title+' '+e.sub).toLowerCase().includes(q)));
+  const inDay=(e,ds)=>ds>=e.start&&ds<=e.end;
+  const first=new Date(y,m,1), startDow=first.getDay(), dim=new Date(y,m+1,0).getDate();
+  const cells=[]; for(let i=0;i<startDow;i++)cells.push(null);
+  for(let d=1;d<=dim;d++)cells.push(new Date(y,m,d));
+  while(cells.length%7!==0)cells.push(null);
+  const today=_ymd(new Date()); const WD=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let html='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">';
+  html+=WD.map(w=>`<div style="font-size:10px;font-weight:700;color:var(--text3);text-align:center;padding:4px">${w}</div>`).join('');
+  cells.forEach(c=>{
+    if(!c){html+='<div></div>';return;}
+    const ds=_ymd(c); const dayEvs=evs.filter(e=>inDay(e,ds));
+    const sel=ds===_calSelDay, isToday=ds===today;
+    html+=`<div onclick="calSelectDay('${ds}')" style="cursor:pointer;min-height:56px;border:1px solid ${sel?'var(--acc)':'var(--border)'};border-radius:8px;padding:4px;background:${isToday?'var(--bg3)':'var(--bg2)'}">
+      <div style="font-size:11px;font-weight:600;color:${isToday?'var(--acc)':'var(--text2)'}">${c.getDate()}</div>
+      ${dayEvs.slice(0,3).map(e=>`<div title="${e.title}" style="font-size:9px;margin-top:2px;padding:1px 3px;border-radius:3px;background:${e.type==='transporte'?'rgba(0,180,216,.18)':'rgba(34,197,94,.18)'};color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.title}</div>`).join('')}
+      ${dayEvs.length>3?`<div style="font-size:9px;color:var(--text3)">+${dayEvs.length-3}</div>`:''}
+    </div>`;
+  });
+  html+='</div>'; grid.innerHTML=html;
+  const mStart=_ymd(new Date(y,m,1)), mEnd=_ymd(new Date(y,m,dim));
+  let listEvs=evs.filter(e=>e.end>=mStart&&e.start<=mEnd);
+  if(_calSelDay)listEvs=listEvs.filter(e=>inDay(e,_calSelDay));
+  listEvs.sort((a,b)=>a.start.localeCompare(b.start));
+  const cnt=document.getElementById('cal-list-count');
+  if(cnt)cnt.textContent=`${listEvs.length}${_calSelDay?' · '+fmtDateSimple(_calSelDay):''}`;
+  const list=document.getElementById('cal-list');
+  if(list)list.innerHTML=listEvs.length?listEvs.map(e=>`<div class="ch-item" style="margin-bottom:8px">
+    <div class="ch-title">${e.title} <span class="badge ${e.type==='transporte'?'badge-cyan':'badge-ok'}">${e.type}</span></div>
+    <div class="ch-meta">${fmtDateSimple(e.start)}${e.end!==e.start?' → '+fmtDateSimple(e.end):''} · ${e.sub}</div>
+  </div>`).join(''):'<div class="tbl-empty" style="padding:16px">Nenhum evento</div>';
 }
 
 function renderCondFrota(){
@@ -5666,6 +5982,8 @@ function criarAgendamento(){
   if(!missao){toast('Informe a missão da viagem','warning');return;}
   if(tipoTransporte==='viatura' && escopo==='externo' && (!dest||!responsavel.id||!horaRetorno)){toast('VTR externa exige destino, responsável e retorno previsto','warning');return;}
   if((tipoUso==='sobreaviso' || tipoTransporte==='embarcacao') && !horaRetorno){toast('Informe a janela de retorno / término previsto','warning');return;}
+  const _dFim=(document.getElementById('ag-data-fim')||{}).value||'';
+  if(_dFim && _dFim<document.getElementById('ag-data').value){toast('Data fim não pode ser antes da data início','warning');return;}
   const agOutro=document.getElementById('ag-outro-cb').checked;
   const sol=agOutro?document.getElementById('ag-outro-nome').value.trim():SESSION.nome;
   const ag={
@@ -5677,6 +5995,7 @@ function criarAgendamento(){
     tipoUso,
     tipoTransporte,
     dataSaida:document.getElementById('ag-data').value,
+    dataFim:(document.getElementById('ag-data-fim')||{}).value||'',
     horaSaidaPrev:document.getElementById('ag-hora').value,
     horaChegadaPrev:horaRetorno,
     passageiros:document.getElementById('ag-passageiros').value,
@@ -5693,8 +6012,51 @@ function criarAgendamento(){
 }
 
 function renderAgenda(){
-  renderAgendaHoje();
-  renderAgendaSemana();
+  renderAgendaKanban();
+}
+
+let _trpWeekOffset=0;
+function trpWeekNav(dir){ _trpWeekOffset = (dir===0)?0:_trpWeekOffset+dir; renderAgendaKanban(); }
+function _trpWeekDays(offset){
+  const now=new Date(); const dow=now.getDay();
+  const mon=new Date(now); mon.setHours(0,0,0,0);
+  mon.setDate(now.getDate()-(dow===0?6:dow-1)+offset*7);
+  const days=[]; for(let i=0;i<5;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); days.push(d); }
+  return days;
+}
+function _ymd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function renderAgendaKanban(){
+  const board=document.getElementById('trp-kanban'); if(!board) return;
+  const days=_trpWeekDays(_trpWeekOffset);
+  const startStr=_ymd(days[0]), endStr=_ymd(days[4]);
+  const lbl=document.getElementById('trp-week-label');
+  if(lbl)lbl.textContent=`${fmtDateSimple(startStr)} → ${fmtDateSimple(endStr)}`;
+  const st=(document.getElementById('semana-filter')||{}).value||'';
+  const all=getAgenda().filter(a=>!st||a.status===st);
+  const today=_ymd(new Date());
+  const DOW=['Seg','Ter','Qua','Qui','Sex'];
+  board.innerHTML=days.map((d,i)=>{
+    const ds=_ymd(d);
+    const items=all.filter(a=>{ const ini=a.dataSaida||''; if(!ini)return false; const fim=a.dataFim||ini; return ds>=ini && ds<=fim; })
+      .sort((a,b)=>(a.horaSaidaPrev||'').localeCompare(b.horaSaidaPrev||''));
+    const isToday=ds===today;
+    const cards=items.length ? items.map(a=>{
+      const periodo=a.dataFim && a.dataFim!==a.dataSaida;
+      const ativo=getTransportAtivoById(a.ativoId)?.nome||'A definir';
+      return `<div class="kcard">
+        <div class="kcard-id">${a.id}${periodo?' <span style="color:var(--acc2);font-size:9px">⇄ período</span>':''}</div>
+        <div class="kcard-title">${a.destino||a.missao||'—'}</div>
+        <div class="kcard-meta">${a.horaSaidaPrev||'--'} · ${ativo}</div>
+        <div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${transportBadge(a.tipoUso)} ${statusBadge(a.status)}</div>
+        <div style="margin-top:6px">${renderViagemActions(a)}</div>
+      </div>`;
+    }).join('') : '<div style="padding:10px;text-align:center;font-size:11px;color:var(--text3)">—</div>';
+    return `<div class="kboard-col">
+      <div class="kboard-header" style="${isToday?'color:var(--acc)':''}">${DOW[i]} ${d.getDate()}/${d.getMonth()+1} <span class="badge ${isToday?'badge-cyan':'badge-info'}">${items.length}</span></div>
+      <div class="kboard-body">${cards}</div>
+    </div>`;
+  }).join('');
+  renderTransportReportSummary();
 }
 
 function abrirAtribuir(id){
@@ -5876,8 +6238,7 @@ function showTrpTab(name,el){
   const panel=document.getElementById('trp-tab-'+name);if(panel)panel.classList.add('active');
   document.querySelectorAll('#page-transportes .tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
-  if(name==='hoje')renderAgendaHoje();
-  else if(name==='semana')renderAgendaSemana();
+  if(name==='semana')renderAgendaKanban();
   else if(name==='frota')renderFrota(_frotaFilter);
   else if(name==='condicao')renderCondFrota();
   else if(name==='servico'){populateMotoristaSelect('ms-diretor');populateMotoristaSelect('ms-servico');renderMSHistorico();}
@@ -6013,6 +6374,12 @@ function novaOSManut(ativoId){
   document.getElementById('os-manut-edit-id').value='';
   document.getElementById('os-manut-abertura').value=new Date().toISOString().split('T')[0];
   populateAtivoSelect(ativoId);populateUserSelect('os-manut-resp');
+  // default responsável = usuário logado (se constar na lista de usuários)
+  const respSel=document.getElementById('os-manut-resp');
+  if(respSel && SESSION && !SESSION._visitante){
+    const opt=[...respSel.options].find(o=>o.value===String(SESSION.id)||o.textContent.includes(SESSION.nome));
+    if(opt) respSel.value=opt.value;
+  }
   openModal('modal-nova-os-manut');
 }
 
@@ -6613,8 +6980,8 @@ function populateAtivoTipoSelect(categoria='outro', selectedValue=''){
   sel.innerHTML=options.map(opt=>`<option value="${opt.value}"${opt.value===current?' selected':''}>${opt.label}</option>`).join('');
 }
 
-function fmtDate(iso){if(!iso)return'-';try{return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});}catch{return iso;}}
-function fmtDateSimple(d){if(!d)return null;try{const [y,m,day]=d.split('-');if(!y)return d;return`${day||'??'}/${m||'??'}/${y||'??'}`;}catch{return d;}}
+function fmtDate(iso){if(!iso)return'-';try{return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'});}catch{return iso;}}
+function fmtDateSimple(d){if(!d)return null;try{const [y,m,day]=d.split('-');if(!y)return d;return`${day||'??'}/${m||'??'}/${(y||'').slice(-2)||'??'}`;}catch{return d;}}
 
 function padZero(n,len){return String(n).padStart(len,'0');}
 function download(filename,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=filename;a.click();}
@@ -6866,10 +7233,10 @@ const SEED_ATIV_VEGETAL = [
   {id:'av2',data:'2025-04-22',area:'Entorno dos Paiois',areaId:'area2',maqId:'mv2',operador:'João Silva Santos',horas:6,obs:'Corte mensal'},
 ];
 const SEED_AREAS_VEGETAL = [
-  {id:'area1',nome:'Área Verde Principal',descricao:'Gramado central com acesso livre ao trator de corte.',tipo:'corte_grama',area_m2:4500,localizacao_gps:'Setor central',coords_json:'{"points":[{"x":12,"y":18},{"x":48,"y":20},{"x":44,"y":42},{"x":16,"y":40}]}',flora:'gramado',inclinacao:'plano',limpeza:'limpa',maquinas_compativeis:'["cortador_grama","rocadeira"]',ativa:1,grupo_nome:'Base operacional',visivel:1,cor_hex:'#22c55e',opacidade:0.26},
-  {id:'area2',nome:'Entorno dos Paióis',descricao:'Faixa lateral com vegetação média e circulação restrita.',tipo:'limpeza',area_m2:1800,localizacao_gps:'Faixa leste',coords_json:'{"points":[{"x":58,"y":12},{"x":84,"y":16},{"x":80,"y":34},{"x":55,"y":30}]}',flora:'capim_colonial',inclinacao:'moderado',limpeza:'media',maquinas_compativeis:'["rocadeira"]',ativa:1,grupo_nome:'Base operacional',visivel:1,cor_hex:'#f59e0b',opacidade:0.24},
-  {id:'area3',nome:'Acesso Principal',descricao:'Talude frontal sujeito a crescimento rápido.',tipo:'corte_localizado',area_m2:920,localizacao_gps:'Portaria',coords_json:'{"points":[{"x":8,"y":58},{"x":36,"y":56},{"x":32,"y":76},{"x":7,"y":78}]}',flora:'capim_colonial',inclinacao:'acentuado',limpeza:'densa',maquinas_compativeis:'["rocadeira"]',ativa:1,grupo_nome:'Perímetro crítico',visivel:1,cor_hex:'#ef4444',opacidade:0.22},
-  {id:'area4',nome:'Bosque Técnico',descricao:'Trecho com mata fechada e intervenção especializada.',tipo:'poda_arvore',area_m2:1240,localizacao_gps:'Setor oeste',coords_json:'{"points":[{"x":62,"y":48},{"x":90,"y":47},{"x":88,"y":74},{"x":60,"y":72}]}',flora:'mata_fechada',inclinacao:'moderado',limpeza:'densa',maquinas_compativeis:'["motosserra","rocadeira"]',ativa:1,grupo_nome:'Perímetro crítico',visivel:1,cor_hex:'#b91c1c',opacidade:0.3},
+  {id:'area1',nome:'Área Verde Principal',descricao:'Gramado central com acesso livre ao trator de corte.',tipo:'jardim',area_m2:4500,localizacao_gps:'Setor central',coords_json:'[[-22.8372,-43.1092],[-22.8369,-43.1082],[-22.8375,-43.1080],[-22.8378,-43.1090]]',flora:'gramado',inclinacao:'plano',limpeza:'limpa',maquinas_compativeis:'["cortador_grama","rocadeira"]',ativa:1,grupo_nome:'Base operacional',visivel:1,cor_hex:'#22c55e',opacidade:0.26},
+  {id:'area2',nome:'Entorno dos Paióis',descricao:'Faixa lateral com vegetação média e circulação restrita.',tipo:'canteiro',area_m2:1800,localizacao_gps:'Faixa leste',coords_json:'[[-22.8366,-43.1074],[-22.8363,-43.1066],[-22.8369,-43.1064],[-22.8371,-43.1072]]',flora:'capim_colonial',inclinacao:'moderado',limpeza:'media',maquinas_compativeis:'["rocadeira"]',ativa:1,grupo_nome:'Base operacional',visivel:1,cor_hex:'#f59e0b',opacidade:0.24},
+  {id:'area3',nome:'Acesso Principal',descricao:'Talude frontal sujeito a crescimento rápido.',tipo:'area_recreativa',area_m2:920,localizacao_gps:'Portaria',coords_json:'[[-22.8388,-43.1100],[-22.8385,-43.1092],[-22.8391,-43.1090],[-22.8393,-43.1098]]',flora:'capim_colonial',inclinacao:'acentuado',limpeza:'densa',maquinas_compativeis:'["rocadeira"]',ativa:1,grupo_nome:'Perímetro crítico',visivel:1,cor_hex:'#ef4444',opacidade:0.22},
+  {id:'area4',nome:'Bosque Técnico',descricao:'Trecho com mata fechada e intervenção especializada.',tipo:'bosque',area_m2:1240,localizacao_gps:'Setor oeste',coords_json:'[[-22.8358,-43.1058],[-22.8355,-43.1048],[-22.8362,-43.1046],[-22.8365,-43.1056]]',flora:'mata_fechada',inclinacao:'moderado',limpeza:'densa',maquinas_compativeis:'["motosserra","rocadeira"]',ativa:1,grupo_nome:'Perímetro crítico',visivel:1,cor_hex:'#b91c1c',opacidade:0.3},
 ];
 
 let VEG_DRAW_MODE = false;
@@ -6885,11 +7252,18 @@ let VEG_AREA_MODAL_CONTEXT = '';
 let VEG_FOCUS_GROUP = '';
 let VEG_GROUP_FILTER = '';
 let VEG_SELECTED_AREA_ID = '';
+let VEG_BASE_LAYER = null;
+let VEG_BASEMAP_MODE = 'map';   // 'map' (OSM) | 'satellite' (Esri)
+// Limites reais do CMASM (Ilha de Mocanguê / São Gonçalo-RJ) — extraídos de .docs_cmasm/referencias/map_cmasm_2026abr.osm
 const VEG_DEFAULT_BOUNDS = {
-  north: -22.8294,
-  south: -22.8392,
-  west: -43.1142,
-  east: -43.1037,
+  north: -22.82761,
+  south: -22.84731,
+  west: -43.11868,
+  east: -43.09739,
+};
+const VEG_TILES = {
+  map: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap', maxZoom: 20 },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '&copy; Esri World Imagery', maxZoom: 19 },
 };
 const VEG_SERVICE_CATALOG = {
   limpeza_pre: { nome: 'Limpeza preliminar', tipo: 'manual', fator_h_m2: 0.00016, custo_fixo: 25 },
@@ -7393,7 +7767,7 @@ function prepareVegetalAreaModal(mode='new', area=null){
     document.getElementById('veg-area-edit-id').value = area.id;
     document.getElementById('veg-area-nome').value = area.nome || '';
     document.getElementById('veg-area-grupo').value = vegAreaGroupName(area) === 'Sem grupo' ? '' : vegAreaGroupName(area);
-    document.getElementById('veg-area-tipo').value = area.tipo || 'corte_grama';
+    document.getElementById('veg-area-tipo').value = area.tipo || 'jardim';
     document.getElementById('veg-area-m2').value = Number(area.area_m2 || vegEstimateAreaM2() || 0);
     document.getElementById('veg-area-flora').value = area.flora || 'gramado';
     document.getElementById('veg-area-inclinacao').value = area.inclinacao || 'plano';
@@ -7407,7 +7781,7 @@ function prepareVegetalAreaModal(mode='new', area=null){
     document.getElementById('veg-area-edit-id').value = '';
     document.getElementById('veg-area-nome').value = '';
     document.getElementById('veg-area-grupo').value = '';
-    document.getElementById('veg-area-tipo').value = 'corte_grama';
+    document.getElementById('veg-area-tipo').value = 'jardim';
     document.getElementById('veg-area-m2').value = vegEstimateAreaM2() || 0;
     document.getElementById('veg-area-flora').value = 'gramado';
     document.getElementById('veg-area-inclinacao').value = 'plano';
@@ -7423,17 +7797,18 @@ function prepareVegetalAreaModal(mode='new', area=null){
   openVegetalAreaModal();
 }
 
+let VEG_XMAP = null;
 function initVegetalMap(){
   const host = document.getElementById('veg-map-canvas');
-  if(!host || VEG_MAP || !window.L) return;
-  VEG_MAP = L.map(host, { zoomControl: true, attributionControl: true }).setView([
-    (VEG_DEFAULT_BOUNDS.north + VEG_DEFAULT_BOUNDS.south) / 2,
-    (VEG_DEFAULT_BOUNDS.west + VEG_DEFAULT_BOUNDS.east) / 2,
-  ], 16);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 20,
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(VEG_MAP);
+  if(!host || VEG_MAP) return;
+  if(typeof xMap === 'undefined' || !window.L){ setTimeout(()=>{ initVegetalMap(); if(VEG_MAP) renderVegetalMap(); }, 120); return; }
+  // mesmo engine da página Mapa; camada 'areas' oculta (zonas desenhadas/editadas pelo editor abaixo); mostra 'maquinas'
+  VEG_XMAP = xMap.create('veg-map-canvas', {
+    center: [(VEG_DEFAULT_BOUNDS.north + VEG_DEFAULT_BOUNDS.south) / 2, (VEG_DEFAULT_BOUNDS.west + VEG_DEFAULT_BOUNDS.east) / 2],
+    zoom: 16, minZoom: 13, maxZoom: 19,
+    modules: ['grama'], hidden: ['grama:areas'],
+  });
+  VEG_MAP = VEG_XMAP.getLeafletMap();
   VEG_AREA_LAYER = L.layerGroup().addTo(VEG_MAP);
   VEG_DRAFT_LAYER = L.layerGroup().addTo(VEG_MAP);
   VEG_DRAFT_POINT_LAYER = L.layerGroup().addTo(VEG_MAP);
@@ -7444,6 +7819,35 @@ function initVegetalMap(){
     if(estimate > 0) syncVegetalStatus(`Croqui em edição: ${VEG_DRAFT_POINTS.length} ponto(s) · ~${estimate.toLocaleString('pt-BR')} m²`);
     renderVegetalMap();
   });
+}
+
+function vegToggleBasemap(){
+  if(!VEG_XMAP) return;
+  VEG_BASEMAP_MODE = VEG_BASEMAP_MODE === 'map' ? 'satellite' : 'map';
+  VEG_XMAP.toggleBasemap(VEG_BASEMAP_MODE);
+  const btn = document.getElementById('veg-basemap-btn');
+  if(btn) btn.textContent = VEG_BASEMAP_MODE === 'map' ? '🛰 Satélite' : '🗺 Mapa';
+}
+
+let MAPA_XMAP = null;
+function initMapaGeral(){
+  if(typeof xMap === 'undefined' || !window.L){
+    setTimeout(initMapaGeral, 120);   // scripts xMap/layers ainda carregando
+    return;
+  }
+  if(!MAPA_XMAP){
+    MAPA_XMAP = xMap.create('xmap-host', {
+      center: [(VEG_DEFAULT_BOUNDS.north+VEG_DEFAULT_BOUNDS.south)/2, (VEG_DEFAULT_BOUNDS.west+VEG_DEFAULT_BOUNDS.east)/2],
+      zoom: 15, minZoom: 13, maxZoom: 19,
+      modules: ['grama','aguada','eletrica'],
+    });
+  }
+  if(MAPA_XMAP) MAPA_XMAP.invalidateSize();   // container estava oculto
+}
+function setMapaModulos(mods){
+  if(!MAPA_XMAP){ initMapaGeral(); setTimeout(()=>setMapaModulos(mods),200); return; }
+  MAPA_XMAP.setModules(mods);
+  MAPA_XMAP.invalidateSize();
 }
 
 function waitForVegetalLeaflet(){
@@ -7469,7 +7873,7 @@ function syncVegetalSelectionLabel(){
   const el = document.getElementById('veg-map-selection');
   if(!el) return;
   const area = getAreasVegetal().find(item => item.id === VEG_SELECTED_AREA_ID && item.ativa !== 0);
-  el.textContent = area ? `Área selecionada: ${area.nome}` : 'Área selecionada: nenhuma';
+  el.textContent = area ? `Zona selecionada: ${area.nome}` : 'Zona selecionada: nenhuma';
 }
 
 function selectVegetalArea(areaId, focus=false){
@@ -7477,7 +7881,7 @@ function selectVegetalArea(areaId, focus=false){
   syncVegetalSelectionLabel();
   if(areaId){
     const area = getAreasVegetal().find(item => item.id === areaId);
-    if(area) syncVegetalStatus(`Área: ${area.nome}`);
+    if(area) syncVegetalStatus(`Zona: ${area.nome}`);
   }
   renderVegetalMap(focus ? VEG_SELECTED_AREA_ID : '');
 }
@@ -7487,7 +7891,7 @@ function normalizeVegArea(row){
     id: row.id,
     nome: row.nome,
     descricao: row.descricao || '',
-    tipo: row.tipo || 'corte_grama',
+    tipo: row.tipo || 'jardim',
     area_m2: row.area_m2 || 0,
     localizacao_gps: row.localizacao_gps || '',
     coords_json: row.coords_json || '',
@@ -7618,7 +8022,7 @@ function renderVegetalMap(focusId=''){
     polygon.on('click', () => {
       VEG_SELECTED_AREA_ID = area.id;
       syncVegetalSelectionLabel();
-      syncVegetalStatus(`Área: ${area.nome}`);
+      syncVegetalStatus(`Zona: ${area.nome}`);
       renderVegetalMap(area.id);
     });
     polygon.addTo(VEG_AREA_LAYER);
@@ -7686,7 +8090,7 @@ function renderVegetalAreas(){
     .filter(area => !VEG_GROUP_FILTER || vegAreaGroupName(area) === VEG_GROUP_FILTER)
     .sort((a, b) => vegAreaGroupName(a).localeCompare(vegAreaGroupName(b), 'pt-BR') || String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
   renderVegetalGroupOptions();
-  tbody.innerHTML = areas.length === 0 ? '<tr><td colspan="6" class="tbl-empty">Nenhuma área cadastrada</td></tr>' : areas.map(area => {
+  tbody.innerHTML = areas.length === 0 ? '<tr><td colspan="6" class="tbl-empty">Nenhuma zona cadastrada</td></tr>' : areas.map(area => {
     const compat = parseVegCompat(area.maquinas_compativeis || JSON.stringify(calcVegCompat(area.flora, area.inclinacao, area.limpeza)));
     const plano = vegPlanoArea(area);
     const visivel = Number(area.visivel ?? 1) !== 0;
@@ -7745,7 +8149,7 @@ function renderVegetalGroupSummary(){
     return `<button type="button" class="veg-group-item" onclick="setVegetalGroupFilter(${JSON.stringify(groupName)})">
       <div class="veg-group-compact">
         <div class="veg-group-name">${escapeHtml(groupName)}</div>
-        <span class="badge badge-info">${items.length} área(s)</span>
+        <span class="badge badge-info">${items.length} zona(s)</span>
       </div>
       <div class="veg-group-meta">${summary.visiveis}/${items.length} visíveis · ${summary.area.toLocaleString('pt-BR')} m²</div>
       <div class="veg-group-meta">Horas/ciclo: ${summary.horas.toFixed(1)} · ${brl(summary.custoCiclo)}/ciclo · ${brl(summary.custoMensal)}/mês</div>
@@ -7778,7 +8182,7 @@ function setVegetalGroupFilter(groupName){
 
 function editSelectedVegetalArea(){
   if(!VEG_SELECTED_AREA_ID){
-    toast('Selecione uma área no mapa para editar', 'warning');
+    toast('Selecione uma zona no mapa para editar', 'warning');
     return;
   }
   editVegetalArea(VEG_SELECTED_AREA_ID);
@@ -7788,9 +8192,9 @@ async function deleteVegetalArea(id){
   if(soLeitura()) return;
   const data = getAreasVegetal();
   const idx = data.findIndex(item => item.id === id && item.ativa !== 0);
-  if(idx < 0){ toast('Área não encontrada', 'warning'); return; }
+  if(idx < 0){ toast('Zona não encontrada', 'warning'); return; }
   const nome = data[idx].nome || id;
-  if(!confirm(`Deseja deletar a área "${nome}"?`)) return;
+  if(!confirm(`Deseja deletar a zona "${nome}"?`)) return;
 
   let ok = false;
   try{
@@ -7808,13 +8212,13 @@ async function deleteVegetalArea(id){
   saveAreasVegetal(data);
   if(VEG_SELECTED_AREA_ID === id) VEG_SELECTED_AREA_ID = '';
   syncVegetalSelectionLabel();
-  toast(ok ? 'Área deletada no núcleo' : 'Área deletada localmente', 'success');
+  toast(ok ? 'Zona deletada no núcleo' : 'Zona deletada localmente', 'success');
   renderVegetalAreas();
 }
 
 function deleteSelectedVegetalArea(){
   if(!VEG_SELECTED_AREA_ID){
-    toast('Selecione uma área no mapa para deletar', 'warning');
+    toast('Selecione uma zona no mapa para deletar', 'warning');
     return;
   }
   deleteVegetalArea(VEG_SELECTED_AREA_ID);
@@ -7823,7 +8227,7 @@ function deleteSelectedVegetalArea(){
 async function gerarPlanoVegetalServicos(areaId){
   if(soLeitura()) return;
   const area = getAreasVegetal().find(item => item.id === areaId);
-  if(!area){ toast('Área não encontrada', 'warning'); return; }
+  if(!area){ toast('Zona não encontrada', 'warning'); return; }
   if(typeof getPS !== 'function' || typeof savePS !== 'function' || typeof getOS !== 'function' || typeof saveOS !== 'function'){
     toast('Módulo de Serviços indisponível para integração', 'warning');
     return;
@@ -7834,7 +8238,7 @@ async function gerarPlanoVegetalServicos(areaId){
   const linhas = plano.servicos.map((s, idx) => `${idx + 1}. ${s.nome} — ${s.horas.toFixed(1)}h — ${brl(s.custo)}`);
   const materiais = plano.materiais.map((m, idx) => `${idx + 1}. ${m.nome} (${m.codigo}) — ${m.quantidade} ${m.unidade}`);
   const descricao = [
-    `Área: ${area.nome}`,
+    `Zona: ${area.nome}`,
     `Prioridade: ${plano.prioridade}`,
     `Periodicidade: ${plano.periodicidadeDias} dias`,
     planoId ? `Plano backend: ${planoId}` : 'Plano backend: pendente (offline/local)',
@@ -7898,7 +8302,7 @@ async function gerarPlanoVegetalServicos(areaId){
     maqId: maq?.id || '',
     maqNome: maq?.nome || 'Equipe Vegetal',
     tipo:'preventiva',
-    descricao:`Ciclo de rotina da área ${area.nome}`,
+    descricao:`Ciclo de rotina da zona ${area.nome}`,
     abertura:new Date().toISOString().split('T')[0],
     status:'aberta',
     criadoPor:SESSION.nome,
@@ -7942,7 +8346,7 @@ function resetVegetalAreaForm(){
   document.getElementById('veg-area-edit-id').value = '';
   document.getElementById('veg-area-nome').value = '';
   document.getElementById('veg-area-grupo').value = '';
-  document.getElementById('veg-area-tipo').value = 'corte_grama';
+  document.getElementById('veg-area-tipo').value = 'jardim';
   document.getElementById('veg-area-m2').value = '0';
   document.getElementById('veg-area-flora').value = 'gramado';
   document.getElementById('veg-area-inclinacao').value = 'plano';
@@ -7970,12 +8374,12 @@ function startVegetalAreaDraft(){
 
 function finalizeVegetalDraft(){
   if(VEG_DRAFT_POINTS.length < 3){
-    toast('Desenhe ao menos 3 pontos antes de fechar a área', 'warning');
+    toast('Desenhe ao menos 3 pontos antes de fechar a zona', 'warning');
     return;
   }
   VEG_DRAW_MODE = false;
   prepareVegetalAreaModal('new');
-  syncVegetalStatus(`Área fechada: ~${vegEstimateAreaM2().toLocaleString('pt-BR')} m²`);
+  syncVegetalStatus(`Zona fechada: ~${vegEstimateAreaM2().toLocaleString('pt-BR')} m²`);
   renderVegetalMap();
 }
 
@@ -8031,7 +8435,7 @@ function editVegetalArea(id){
   VEG_FOCUS_GROUP = vegAreaGroupName(area);
   previewVegetalCompat();
   previewVegetalStyle();
-  syncVegetalStatus(`Editando área: ${area.nome}`);
+  syncVegetalStatus(`Editando zona: ${area.nome}`);
   renderVegetalMap(area.id);
 }
 
@@ -8039,9 +8443,9 @@ async function saveVegetalArea(){
   if(soLeitura()) return;
   const nome = document.getElementById('veg-area-nome').value.trim();
   const area_m2 = parseFloat(document.getElementById('veg-area-m2').value || '0');
-  if(!nome){ toast('Informe o nome da área','warning'); return; }
+  if(!nome){ toast('Informe o nome da zona','warning'); return; }
   if(VEG_DRAFT_POINTS.length < 3){ toast('Desenhe ao menos 3 pontos no mapa','warning'); return; }
-  if(!(area_m2 > 0)){ toast('Informe a metragem da área','warning'); return; }
+  if(!(area_m2 > 0)){ toast('Informe a metragem da zona','warning'); return; }
 
   const payload = {
     nome,
@@ -8088,7 +8492,7 @@ async function saveVegetalArea(){
     data.push(row);
   }
   saveAreasVegetal(data);
-  toast(saved ? 'Área salva no núcleo' : 'Área salva localmente','success');
+  toast(saved ? 'Zona salva no núcleo' : 'Zona salva localmente','success');
   closeModal(document.getElementById('modal-veg-area'));
   VEG_AREA_MODAL_CONTEXT = '';
   resetVegetalAreaForm();
@@ -8110,7 +8514,7 @@ async function toggleVegetalAreaVisibility(id){
       body: JSON.stringify({ visivel: next }),
     });
   }catch(_err){}
-  toast(next ? 'Área exibida no mapa' : 'Área ocultada do mapa', 'success');
+  toast(next ? 'Zona exibida no mapa' : 'Zona ocultada do mapa', 'success');
   renderVegetalAreas();
 }
 
@@ -8664,13 +9068,6 @@ function showPaiolTab(name,el){
 
 /* ════ BOOT ═══════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded',()=>{
-  document.addEventListener('click',(ev)=>{
-    const wrap = document.getElementById('topbar-user-wrap');
-    if(wrap && !wrap.contains(ev.target)) closeTopbarUserMenu();
-  });
-  document.addEventListener('keydown',(ev)=>{
-    if(ev.key==='Escape') closeTopbarUserMenu();
-  });
   // restore theme
   const theme=DB.get('theme','light');
   document.documentElement.setAttribute('data-theme',theme);
