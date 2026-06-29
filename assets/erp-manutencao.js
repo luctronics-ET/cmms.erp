@@ -1752,45 +1752,31 @@
         window._manutD.refresh();
         toast(`Uso registrado: +${h_in}h | Horímetro: ${fH(hist.hor)}`, 'green');
       },
-      regManut: () => {
-        const resp = document.getElementById('_md-resp')?.value;
-        const data = document.getElementById('_md-mdata')?.value || todayISO();
-        const obs = document.getElementById('_md-mobs')?.value || '';
-        const sels = [...document.querySelectorAll('._md-mc:checked')].map(c => c.value);
+      regManut: async () => {
+        // Reads resp from closure-scoped _mnRespEl set by renderSubManutAPI
+        const resp = (window._manutD._mnRespEl?.value || '').trim();
+        const sels = [...subBody.querySelectorAll('._mn-cb:checked')].map(cb => parseInt(cb.value, 10));
         if (!sels.length) { toast('Selecione ao menos um serviço', 'amber'); return; }
         if (!resp) { toast('Informe o responsável', 'amber'); return; }
-        const hist = window._manutD.getHist();
-        const ulm = { ...hist.ulm };
-        sels.forEach(pid => { ulm[pid] = hist.hor; });
-        hist.ulm = ulm;
-        const servicos = sels
-          .map(pid => tipo?.plano?.find(p => p.id === pid))
-          .filter(Boolean)
-          .map(planoItem => {
-            const svc = derivePlanoServico(ativo.tipo, planoItem) || { nome: planoItem.n, materiais: [] };
-            return {
-              id: svc.id,
-              plano_id: planoItem.id,
-              nome: svc.nome,
-              intervalo_h: planoItem.iv,
-              materiais: (svc.materiais || []).map(material => ({ ...material })),
-            };
+        const token = localStorage.getItem('xcmasm_token') || '';
+        try {
+          const r = await fetch(apiUrl('/api/manutencao/registro'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ ativo_id: ativo.id, responsavel: resp, itens: sels }),
           });
-        const materiais = servicos.flatMap(servico => servico.materiais || []);
-        const nomes = servicos.map(servico => servico.nome).filter(Boolean);
-        hist.manut.push({
-          id: 'm' + Date.now(),
-          data,
-          h: hist.hor,
-          resp,
-          itens: nomes,
-          servicos,
-          materiais,
-          obs,
-        });
-        window._manutD.saveHist(hist);
-        window._manutD.refresh();
-        toast(`Manutenção registrada: ${nomes.slice(0, 2).join(', ')}${nomes.length > 2 ? '…' : ''}`, 'green');
+          if (!r.ok) {
+            const e = await r.json().catch(() => ({}));
+            toast('Erro: ' + (e.detail || ('HTTP ' + r.status)), 'red');
+            return;
+          }
+          toast('Manutenção registrada', 'green');
+          // Reload the manut sub-tab so statuses refresh (VENCIDA disappears for executed items)
+          activeSub = 'manut';
+          renderSubManutAPI(subBody, ativo);
+        } catch (e) {
+          toast('Falha de rede: ' + e.message, 'red');
+        }
       },
       delReg: (rid) => {
         if (!confirm('Remover este registro de uso?')) return;
@@ -1888,38 +1874,150 @@
         </div>`).join('')}` : ''}`;
     }
 
+    // Legacy subManut() kept for reference but no longer drives the manut tab.
+    // The SUBS map no longer has a 'manut' key; renderSubManutAPI() is the sole renderer.
     function subManut() {
-      const hist = getHistUnit(ativo.id);
-      if (!tipo) return `<div style="color:var(--ink-3);font-size:13px;padding:12px">Tipo "${ativo.tipo || '—'}" não tem plano cadastrado.<br>Edite o ativo e defina o tipo correto para ativar o plano preventivo.</div>`;
-      const urgentes = [...new Set(pr.filter(p => p.st === 'danger' || p.st === 'warn').flatMap(p => p.its))];
-      return `
-        <div style="padding:8px 12px;border-radius:6px;background:rgba(0,180,216,.12);border:1px solid var(--acc);font-size:12px;margin-bottom:11px">
-          Horímetro atual: <strong style="color:var(--acc);font-family:var(--font-mono)">${fH(hist.hor)}</strong> — Marque os serviços executados
-        </div>
-        ${pr.map(p => `<label id="_ml-${p.id}" style="display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:7px;cursor:pointer;border:2px solid var(--line);background:var(--panel);margin-bottom:6px;transition:all .1s" onclick="const cb=document.getElementById('_mc-${p.id}');const lb=document.getElementById('_ml-${p.id}');lb.style.borderColor=cb.checked?'var(--acc)':'var(--line)';lb.style.background=cb.checked?'rgba(0,180,216,.08)':'var(--panel)'">
-          <input type="checkbox" id="_mc-${p.id}" class="_md-mc" value="${p.id}" style="width:14px;height:14px;accent-color:var(--acc);pointer-events:none">
-          <div style="flex:1">
-            <div style="font-size:12px;font-weight:600">${p.n}</div>
-            <div style="font-size:10px;color:var(--ink-3)">A cada ${p.iv} h · ${p.its.length > 0 ? p.its.slice(0, 2).join(', ') : 'sem materiais'}</div>
-          </div>
-          ${badgeHtml(p.st)}
-        </label>`).join('')}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px;margin-bottom:9px">
-          <div><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Responsável *</label>
-            <select id="_md-resp" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink)">
-              <option value="">Selecionar…</option>
-              <option>Luciano Ferreira</option><option>Carlos Silva</option>
-              <option>João Mendes</option><option>Pedro Santos</option><option>Maria Oliveira</option>
-            </select></div>
-          <div><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Data</label>
-            <input id="_md-mdata" type="date" value="${todayISO()}" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink)"></div>
-        </div>
-        <div style="margin-bottom:9px"><label style="display:block;font-size:10px;font-weight:600;color:var(--ink-3);margin-bottom:3px;text-transform:uppercase">Observações / Materiais utilizados</label>
-          <textarea id="_md-mobs" rows="2" style="width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--ink);resize:vertical"></textarea></div>
-        ${urgentes.length > 0 ? `<div style="padding:8px 12px;border-radius:6px;background:rgba(239,68,68,.1);border:1px solid var(--red);font-size:11px;margin-bottom:9px;color:var(--red)">
-          <strong>Materiais urgentes:</strong> ${urgentes.join(', ')}
-        </div>` : ''}
-        <button class="btn btn-primary" onclick="_manutD.regManut()" style="background:var(--green);padding:7px 16px;font-size:12px">✓ Registrar Manutenção</button>`;
+      // Intentionally unused — renderSubManutAPI() replaced this path.
+      return '';
+    }
+
+    // ── API-backed Manutenção sub-tab renderer (Phase 02-02) ─────────────────
+    // Safe DOM only: all server-supplied text via el()/textContent, never innerHTML.
+    // Status color map: VENCIDA→red, URGENTE→amber, PROXIMA→blue(acc), EM_DIA→green, other→neutral
+    async function renderSubManutAPI(body, a) {
+      // Step 1: loading state
+      body.replaceChildren(
+        el('div', { style: { padding: '16px', color: 'var(--ink-3)', fontSize: '13px' } },
+          'Carregando plano...')
+      );
+
+      const token = localStorage.getItem('xcmasm_token') || '';
+      let data;
+      try {
+        const res = await fetch(
+          apiUrl('/api/manutencao/plano-ativo?ativo_id=' + encodeURIComponent(a.id)),
+          { headers: { 'Authorization': 'Bearer ' + token } }
+        );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg = err.detail || ('HTTP ' + res.status);
+          const errNode = el('div', { style: { padding: '14px', color: 'var(--red)', fontSize: '13px' } });
+          errNode.textContent = 'Erro ao carregar plano: ' + msg;
+          body.replaceChildren(errNode);
+          return;
+        }
+        data = await res.json();
+      } catch (e) {
+        const errNode = el('div', { style: { padding: '14px', color: 'var(--red)', fontSize: '13px' } });
+        errNode.textContent = 'Falha de rede: ' + e.message;
+        body.replaceChildren(errNode);
+        return;
+      }
+
+      const { itens = [], uso_atual = 0, unidade_uso = 'h' } = data;
+
+      // Step 3: empty state
+      if (!itens.length) {
+        const empty = el('div', { style: { padding: '14px', color: 'var(--ink-3)', fontSize: '13px' } });
+        empty.textContent = 'Sem plano de manutenção para o tipo deste ativo.';
+        body.replaceChildren(empty);
+        return;
+      }
+
+      // Status → badge kind + bar color
+      const STATUS_KIND = { VENCIDA: 'danger', URGENTE: 'warn', PROXIMA: 'proximo', EM_DIA: 'ok' };
+      const STATUS_LABEL = { VENCIDA: 'VENCIDA', URGENTE: 'URGENTE', PROXIMA: 'PRÓXIMA', EM_DIA: 'EM DIA', POR_TEMPO: 'POR TEMPO', SEM_FREQ: 'SEM FREQ' };
+      const BAR_COLOR = {
+        VENCIDA: 'var(--red)', URGENTE: 'var(--amber)', PROXIMA: 'var(--acc)', EM_DIA: 'var(--green)',
+      };
+
+      // Step 4: build checklist with el() + textContent only
+      const list = el('div', {});
+      itens.forEach(item => {
+        const kind = STATUS_KIND[item.status] || '';
+        const statusLabel = STATUS_LABEL[item.status] || item.status;
+        const barColor = BAR_COLOR[item.status] || 'var(--acc)';
+        const unidade = item.unidade || unidade_uso || 'h';
+        const falta = typeof item.falta === 'number' ? item.falta : 0;
+        const pct = typeof item.pct === 'number' ? Math.min(100, Math.max(0, item.pct)) : 0;
+
+        const cb = el('input', {
+          type: 'checkbox',
+          id: '_mn-' + item.item_id,
+          class: '_mn-cb',
+          value: String(item.item_id),
+          style: { width: '14px', height: '14px', accentColor: 'var(--acc)', flexShrink: '0', marginTop: '2px' },
+        });
+
+        // servico_nome via textContent — never innerHTML (T-02-07)
+        const nomeEl = el('div', { style: { fontSize: '12px', fontWeight: '600', marginBottom: '2px' } });
+        nomeEl.textContent = item.servico_nome;
+
+        // progress bar
+        const bar = el('div',
+          { style: { height: '4px', background: 'var(--bg3)', borderRadius: '3px', overflow: 'hidden', margin: '4px 0' } },
+          el('div', { style: { width: pct + '%', height: '100%', background: barColor, borderRadius: '3px' } })
+        );
+
+        // detail line via textContent
+        const detalheEl = el('div', { style: { fontSize: '10px', color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' } });
+        detalheEl.textContent = 'A cada ' + item.intervalo + ' ' + unidade + ' · faltam ' + Math.max(0, falta).toFixed(0) + ' ' + unidade;
+
+        const badgeEl = window.engine.badge(statusLabel, kind);
+
+        const lbl = el('label', {
+          id: '_mnl-' + item.item_id,
+          style: {
+            display: 'flex', gap: '9px', alignItems: 'flex-start', padding: '8px 11px',
+            borderRadius: '7px', cursor: 'pointer', border: '2px solid var(--line)',
+            background: 'var(--panel)', marginBottom: '6px', transition: 'all .1s',
+          },
+          onclick: () => {
+            lbl.style.borderColor = cb.checked ? 'var(--acc)' : 'var(--line)';
+            lbl.style.background = cb.checked ? 'rgba(0,180,216,.08)' : 'var(--panel)';
+          },
+        }, cb, el('div', { style: { flex: '1', minWidth: '0' } }, nomeEl, bar, detalheEl), badgeEl);
+
+        list.appendChild(lbl);
+      });
+
+      // Step 5: responsável select + Registrar button
+      const respLabel = el('label', { style: { display: 'block', fontSize: '10px', fontWeight: '600', color: 'var(--ink-3)', marginBottom: '3px', textTransform: 'uppercase' } });
+      respLabel.textContent = 'Responsável *';
+
+      const respSel = el('select', {
+        id: '_mn-resp',
+        style: { width: '100%', padding: '7px 9px', border: '1px solid var(--line)', borderRadius: '6px', fontSize: '12px', background: 'var(--bg2)', color: 'var(--ink)' },
+      });
+      ['', 'Luciano Ferreira', 'Carlos Silva', 'João Mendes', 'Pedro Santos', 'Maria Oliveira'].forEach((name, i) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = i === 0 ? 'Selecionar…' : name;
+        respSel.appendChild(opt);
+      });
+
+      // Store resp select in closure for regManut to read without global getElementById
+      window._manutD._mnRespEl = respSel;
+
+      const infoBar = el('div', {
+        style: { padding: '8px 12px', borderRadius: '6px', background: 'rgba(0,180,216,.12)', border: '1px solid var(--acc)', fontSize: '12px', marginBottom: '11px' },
+      });
+      const usoLabel = el('span');
+      usoLabel.textContent = 'Uso atual: ' + Number(uso_atual || 0).toFixed(1) + ' ' + (unidade_uso || 'h') + ' — Marque os serviços executados';
+      infoBar.appendChild(usoLabel);
+
+      const btnReg = el('button', {
+        class: 'btn btn-primary',
+        style: { background: 'var(--green)', padding: '7px 16px', fontSize: '12px', marginTop: '10px' },
+        onclick: () => window._manutD.regManut(),
+      }, '✓ Registrar Manutencao');
+
+      const footer = el('div', { style: { marginTop: '12px' } },
+        el('div', { style: { marginBottom: '9px' } }, respLabel, respSel),
+        btnReg
+      );
+
+      body.replaceChildren(infoBar, list, footer);
     }
 
     function subHist() {
@@ -1981,7 +2079,8 @@
         </div>`).join('')}` : ''}`;
     }
 
-    const SUBS = { status: subStatus, uso: subUso, manut: subManut, hist: subHist, comb: subComb };
+    // NOTE: 'manut' is intentionally absent — renderSubManutAPI() is the sole async renderer for that tab.
+    const SUBS = { status: subStatus, uso: subUso, hist: subHist, comb: subComb };
     const TABS = [
       { id: 'status', label: '📊 Status' },
       { id: 'uso',    label: '⏱ Uso' },
@@ -1991,6 +2090,8 @@
     ];
 
     function renderSub() {
+      // manut tab: async API path — must return before the synchronous innerHTML path below
+      if (activeSub === 'manut') { renderSubManutAPI(subBody, ativo); return; }
       subBody.innerHTML = SUBS[activeSub]?.() || '';
     }
 
