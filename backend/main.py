@@ -2566,8 +2566,9 @@ async def update_fonoclama(ativo_id: str, body: dict):
 @app.get("/api/manutencao/vencimentos")
 async def manutencao_vencimentos(categoria: str | None = None):
     """Para cada ativo, resolve o plano pelo tipo (aplicavel_tipos) e calcula o
-    próximo vencimento de cada serviço por uso (h/km). Disparo por tempo é omitido
-    (sem base de data confiável). Plano↔tipo É a atribuição (decisão do modelo)."""
+    próximo vencimento por uso (h/km) e por tempo (dias). Disparo por_tempo usa
+    MAX(data) de manut_registros como base; sem registro, nenhum alerta é emitido.
+    Plano↔tipo É a atribuição (decisão do modelo)."""
     import json, math
     planos = await db.fetch_all("SELECT * FROM catalogo_planos WHERE ativo = 1")
     plano_by_tipo: dict[str, list] = {}
