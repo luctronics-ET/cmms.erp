@@ -9,6 +9,7 @@ _SCHEMAS = [
     os.path.join(_DATA_DIR, "schema_grama.sql"),
     os.path.join(_DATA_DIR, "schema_catalogo.sql"),
     os.path.join(_DATA_DIR, "schema_manutencao.sql"),   # fase 01 — uso_registros
+    os.path.join(_DATA_DIR, "schema_docs.sql"),          # fase 08 — ajuda + documentos
 ]
 
 
