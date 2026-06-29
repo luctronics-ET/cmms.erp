@@ -959,6 +959,13 @@ class MembroUpdate(BaseModel):
             raise ValueError("nome não pode ser vazio")
         return v.strip() if v else v
 
+    @field_validator("ativo")
+    @classmethod
+    def ativo_valido(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v not in (0, 1):
+            raise ValueError("ativo deve ser 0 (inativo) ou 1 (ativo)")
+        return v
+
 
 class _TurnoItem(BaseModel):
     """Item de turno dentro de ConfigIn.turnos."""
