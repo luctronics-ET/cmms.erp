@@ -9,11 +9,11 @@ Cada requisito mapeia para uma fase do roadmap. Brownfield: features importadas 
 
 ### Import de Features Legadas
 
-- [ ] **IMP-01**: Técnico pode registrar uso (horas/km) de um ativo numa aba "Registrar Uso", incrementando `uso_atual` de forma atômica e gravando histórico (`uso_registros`)
-- [ ] **IMP-02**: Técnico pode selecionar um ativo, ver o plano de manutenção aplicado e marcar múltiplos itens de serviço via checkboxes, salvando o estado por ativo (`ativo_plano_estado`)
-- [ ] **IMP-03**: Técnico pode consultar o estoque de sobressalentes local (separado do estoque central) por categoria
-- [ ] **IMP-04**: Gestor pode cadastrar e visualizar a equipe técnica (membros sem login de sistema) e a configuração de equipe que alimenta o cronograma
-- [ ] **IMP-05**: Gestor pode visualizar o cronograma de manutenção preventiva calculado considerando a capacidade da equipe (endpoint computado, sem estado persistente)
+- [x] **IMP-01**: Técnico pode registrar uso (horas/km) de um ativo numa aba "Registrar Uso", incrementando `uso_atual` de forma atômica e gravando histórico (`uso_registros`)
+- [x] **IMP-02**: Técnico pode selecionar um ativo, ver o plano de manutenção aplicado e marcar múltiplos itens de serviço via checkboxes, salvando o estado por ativo (`ativo_plano_estado`)
+- [x] **IMP-03**: Técnico pode consultar o estoque de sobressalentes local (separado do estoque central) por categoria
+- [x] **IMP-04**: Gestor pode cadastrar e visualizar a equipe técnica (membros sem login de sistema) e a configuração de equipe que alimenta o cronograma
+- [x] **IMP-05**: Gestor pode visualizar o cronograma de manutenção preventiva calculado considerando a capacidade da equipe (endpoint computado, sem estado persistente)
 
 ### Residuais Funcionais
 
@@ -26,12 +26,18 @@ Cada requisito mapeia para uma fase do roadmap. Brownfield: features importadas 
 ### Qualidade & Testes
 
 - [ ] **QA-01**: Suíte pytest (async, httpx + asgi-lifespan) cobre as novas rotas de manutenção importadas, sem regredir os testes existentes
-- [ ] **QA-02**: Migrações aditivas têm teste que roda o schema do zero e valida idempotência (`PRAGMA table_info`)
+- [x] **QA-02**: Migrações aditivas têm teste que roda o schema do zero e valida idempotência (`PRAGMA table_info`)
 
 ### Segurança Mínima
 
 - [ ] **SEC-01**: Login verifica senha com Argon2id (substituindo djb2), com upgrade lazy do hash no primeiro login bem-sucedido, sem quebrar o contrato `POST /api/auth/login` usado por módulos externos
 - [ ] **SEC-02**: Senha default hardcoded (`1234`/`170842`) é removida; ausência de hash não autentica
+
+### Ajuda & Documentação
+
+- [ ] **DOC-01**: Usuário acessa ajuda contextual (painel/drawer) com o texto de ajuda da página/seção atual; gestor edita e salva (persistido em `ajuda_topicos`)
+- [ ] **DOC-02**: Repositório de documentos/formulários (modelos, POPs) com controle de versão — armazenado localmente pelo cmasm.erp (filesystem + metadados SQLite); CRUD, histórico de versões (versão/autor/data), download/visualização
+- [ ] **DOC-03**: Resumos e guias de normas técnicas no mesmo repositório (tipo norma/guia), organizados e replicados por categoria (categorias do PMOC)
 
 ### Limpeza Final
 
@@ -67,12 +73,12 @@ Reconhecidos, fora do roadmap atual.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| IMP-01 | Phase 1 | Pending |
-| QA-02 | Phase 1 | Pending |
-| IMP-02 | Phase 2 | Pending |
-| IMP-03 | Phase 3 | Pending |
-| IMP-04 | Phase 4 | Pending |
-| IMP-05 | Phase 5 | Pending |
+| IMP-01 | Phase 1 | Complete |
+| QA-02 | Phase 1 | Complete |
+| IMP-02 | Phase 2 | Complete |
+| IMP-03 | Phase 3 | Complete |
+| IMP-04 | Phase 4 | Complete |
+| IMP-05 | Phase 5 | Complete |
 | RES-01 | Phase 6 | Pending |
 | RES-02 | Phase 6 | Pending |
 | RES-03 | Phase 6 | Pending |
@@ -81,13 +87,17 @@ Reconhecidos, fora do roadmap atual.
 | SEC-01 | Phase 7 | Pending |
 | SEC-02 | Phase 7 | Pending |
 | QA-01 | Phase 7 | Pending |
-| CLN-01 | Phase 8 | Pending |
+| DOC-01 | Phase 8 | Pending |
+| DOC-02 | Phase 8 | Pending |
+| DOC-03 | Phase 8 | Pending |
+| CLN-01 | Phase 9 | Pending |
 
 **Coverage:**
-- v1 requirements: 15 total
-- Mapped to phases: 15 ✓
+
+- v1 requirements: 18 total
+- Mapped to phases: 18 ✓
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-06-28*
-*Last updated: 2026-06-28 — traceability preenchida pelo roadmapper*
+*Last updated: 2026-06-29 — added DOC-01..03 (Ajuda & Documentação, Phase 8); Limpeza Final → Phase 9*

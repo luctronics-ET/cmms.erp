@@ -157,11 +157,27 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 
 **Plans**: TBD
 
-### Phase 8: Limpeza Final
+### Phase 8: Módulo Ajuda & Documentação
+
+**Goal**: Módulo de ajuda contextual + repositório de documentos/formulários com controle de versão e guias de normas técnicas, armazenado localmente pelo cmasm.erp e organizado por categoria
+**Mode:** mvp
+**Depends on**: Phase 6
+**Requirements**: DOC-01, DOC-02, DOC-03
+**Success Criteria** (what must be TRUE):
+
+  1. Usuário abre ajuda contextual (botão/painel) e vê o texto de ajuda da página/seção atual; gestor edita e salva (persistido em `ajuda_topicos`)
+  2. Usuário navega o repositório de documentos por categoria e vê modelos/formulários/normas com lista de versões; baixa/visualiza uma versão
+  3. Gestor faz upload de nova versão de um documento → versão incrementa, autor+data gravados, versão anterior preservada (controle de versão)
+  4. Documentos e guias organizados por categoria (mesmas categorias do PMOC: refrigeracao, predial, paiois, transportes, grama, eletrica, calibracao)
+  5. `pytest tests/test_docs.py` verde: CRUD documento + nova versão (versão++, histórico preservado) + ajuda GET/PUT; migrações aditivas idempotentes
+
+**Plans**: TBD
+
+### Phase 9: Limpeza Final
 
 **Goal**: Após todas as features importadas verificadas e testes verdes, os HTMLs legados de referência são removidos com checkpoint git — deixando o repositório sem arquivos de UI não mais necessários
 **Mode:** mvp
-**Depends on**: Phase 7
+**Depends on**: Phase 8
 **Requirements**: CLN-01
 **Success Criteria** (what must be TRUE):
 
@@ -181,6 +197,7 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 | 3. Estoque Sobressalentes | 2/2 | Complete    | 2026-06-29 |
 | 4. Equipe Tecnica | 2/2 | Complete    | 2026-06-29 |
 | 5. Cronograma Preventivo | 2/2 | Complete    | 2026-06-29 |
-| 6. Residuais Funcionais | 0/3 | Planned | - |
+| 6. Residuais Funcionais | 3/3 | Planned | - |
 | 7. Auth Hardening | 0/? | Not started | - |
-| 8. Limpeza Final | 0/? | Not started | - |
+| 8. Módulo Ajuda & Documentação | 0/? | Not started | - |
+| 9. Limpeza Final | 0/? | Not started | - |
