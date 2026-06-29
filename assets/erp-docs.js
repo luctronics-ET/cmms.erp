@@ -597,7 +597,9 @@
 
   // ── Ponto de montagem principal da página Documentos ─────────────────────
   function mount() {
-    docsRoot = document.getElementById('page-documentos');
+    // Tenta o div interno docs-root (padrão preferido, sem apagar o page-container)
+    // Fallback: page-documentos se docs-root não existir
+    docsRoot = document.getElementById('docs-root') || document.getElementById('page-documentos');
     if (!docsRoot) return;
     loadDocs();
   }

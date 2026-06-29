@@ -546,6 +546,7 @@ table{border-collapse:collapse;width:100%}
 <script src="assets/refrig-engine.js" defer></script>
 <script src="assets/erp-refrigeracao.js" defer></script>
 <script src="assets/erp-manutencao.js" defer></script>
+<script src="assets/erp-docs.js" defer></script>
 <script src="assets/tbl-enhance.js" defer></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
 <!-- xMap: componente de mapa multi-camadas (grama backend + aguada/elétrica importados) -->
@@ -653,6 +654,13 @@ table{border-collapse:collapse;width:100%}
     <div class="ni" data-page="estoque" onclick="showPage('estoque',this)">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
       Estoque MRP
+    </div>
+    <div class="ni" data-page="documentos" onclick="showPage('documentos',this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      Documentos
     </div>
 
     <div class="sb-section">Sistemas BMS e IOT</div>
@@ -782,6 +790,9 @@ table{border-collapse:collapse;width:100%}
       <button class="topbar-alert" title="Alternar tema" aria-label="Alternar tema" onclick="toggleTheme()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
+      <button class="topbar-alert" id="btn-ajuda-contextual" title="Ajuda contextual" aria-label="Ajuda contextual" onclick="(function(){var active=document.querySelector('.ni.active');var chave=(active&&active.dataset&&active.dataset.page)||'geral';if(window.erpDocs&&window.erpDocs.openAjuda)window.erpDocs.openAjuda(chave);}())">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
     </div>
   </div>
 </nav>
@@ -1416,6 +1427,12 @@ table{border-collapse:collapse;width:100%}
 <div id="page-manutencao" class="page">
   <!-- Conteúdo populado por assets/erp-manutencao.js (refatoração V1). -->
   <div id="manut-root"></div>
+</div>
+
+<!-- ════ DOCUMENTOS ══════════════════════════════════════════ -->
+<div id="page-documentos" class="page">
+  <!-- Conteúdo populado por assets/erp-docs.js (fase 08-03). -->
+  <div id="docs-root" style="padding:24px;max-width:1100px;"></div>
 </div>
 
 <!-- ── Modal Movimentação de Paiol ────────────────────────── -->
@@ -3086,6 +3103,7 @@ function showPage(page, el){
     perfil: ()=>renderPerfil(),
     admin: ()=>renderAdminDB(),
     manutencao: ()=>{ if(typeof window.manutRefresh==='function') window.manutRefresh(); },
+    documentos: ()=>{ if(window.erpDocs&&window.erpDocs.mount) window.erpDocs.mount(); },
   };
   if(renders[page])renders[page]();
 }
