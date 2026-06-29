@@ -1247,3 +1247,358 @@ async def put_config(
     }
 
     return {"config": saved, "capacidade": _capacidade(saved)}
+
+
+# ── Cronograma Preventivo — scheduling helpers (IMP-05) ──────────────────────
+# Porta exata de pmocCronograma() — .docs_cmasm/referencias/cmasm13-govbr-v8_3.html
+# linhas 1983-2086.
+
+from datetime import timedelta  # noqa: E402 — stdlib already imported above via `from datetime import date`
+
+# Duration estimation constants (verbatim from legacy lines 911-917)
+MIN_POR_ITEM = 10          # minutes per checklist item
+SETUP_MIN    = 15          # setup / displacement overhead
+
+FATOR_TIPO_EQUIP: dict[str, float] = {
+    "SPLIT":          1.0,
+    "PISO/TETO":      1.15,
+    "JANELA":         0.7,
+    "SELF CONTAINED": 1.6,
+}
+
+FATOR_MANUT: dict[str, float] = {
+    "INSPEÇÃO":     0.4,
+    "PREVENTIVA":   1.0,
+    "REVISÃO":      1.6,
+    "LIMPEZA":      0.6,
+    "CORRETIVA":    1.3,
+    "RECARGA GÁS":  0.8,
+    "SUBSTITUIÇÃO": 2.0,
+}
+
+# Checklist item counts (verbatim from legacy CHECKLIST, lines 1012-1057)
+N_CHECKLIST: dict[str, int] = {
+    "SPLIT":          9,
+    "PISO/TETO":      9,
+    "SELF CONTAINED": 12,
+    "JANELA":         6,
+    "_DEFAULT":       9,   # SPLIT baseline for non-refrigeration types
+}
+
+# Sort-key order (criticidade ASC index — CRÍTICA=0 first)
+CRIT_ORDER: dict[str, int] = {
+    "CRÍTICA": 0,
+    "ALTA":    1,
+    "MÉDIA":   2,
+    "BAIXA":   3,
+}
+_CRIT_VALID = frozenset(CRIT_ORDER.keys())
+
+# DOW mapping: equipe_config stores pt-BR abbrevs; Python weekday() is Mon=0
+# JS getDay() is Sun=0 — we use explicit map to avoid off-by-one (Pitfall 2)
+_DOW_STR_TO_PY: dict[str, int] = {
+    "seg": 0, "ter": 1, "qua": 2, "qui": 3,
+    "sex": 4, "sab": 5, "dom": 6,
+}
+
+# Portuguese day-of-week abbreviations for response (Assumption A4)
+_DOW_PY_TO_ABBR: dict[int, str] = {
+    0: "Seg", 1: "Ter", 2: "Qua", 3: "Qui",
+    4: "Sex", 5: "Sáb", 6: "Dom",
+}
+
+# Greedy packing guards (Pitfall 5 / T-05-03)
+MAX_JOBS    = 5000
+MAX_DAYS    = 365
+DEFAULT_CAP = 240    # fallback capacity in minutes (= 4h, same as legacy line 2006)
+
+
+def _est_duracao_min(tipo: str, tipo_manut: str = "PREVENTIVA") -> int:
+    """Porta exata de estTempoServico(e, tipoManut) — JS lines 919-925.
+
+    duration_min = round(n_checklist × MIN_POR_ITEM × FATOR_TIPO_EQUIP × FATOR_MANUT + SETUP_MIN)
+    Non-refrigeration types fall back to _DEFAULT (SPLIT baseline, f_eq=1.0).
+    """
+    n    = N_CHECKLIST.get(tipo, N_CHECKLIST["_DEFAULT"])
+    f_eq = FATOR_TIPO_EQUIP.get(tipo, 1.0)
+    f_m  = FATOR_MANUT.get(tipo_manut, 1.0)
+    return round(n * MIN_POR_ITEM * f_eq * f_m + SETUP_MIN)
+
+
+def _normaliza_crit(raw: str | None) -> str:
+    """Map stored criticidade to a canonical CRIT_ORDER key.
+
+    The ativos.criticidade migration default is 'operacional' — not a valid
+    scheduling criticidade. Treat it (and any unrecognized/None value) as 'MÉDIA'
+    (sort rank 2). Exact Unicode match required (Pitfall 4).
+    """
+    if raw and raw in _CRIT_VALID:
+        return raw
+    return "MÉDIA"
+
+
+def _dias_uteis_set(dias_semana: list) -> set:
+    """Convert equipe_config dias_semana list to Python weekday integer set.
+
+    Handles non-string / unrecognized entries defensively (constraint #2).
+    Falls back to Mon–Fri ({0,1,2,3,4}) if the result would be empty.
+    """
+    result = set()
+    for d in dias_semana:
+        if isinstance(d, str) and d in _DOW_STR_TO_PY:
+            result.add(_DOW_STR_TO_PY[d])
+    return result if result else {0, 1, 2, 3, 4}
+
+
+def _proximo_dia_util(cursor: date, dias_uteis_py: set) -> date:
+    """Advance cursor forward until a working day (mirrors JS while-loop, lines 2010-2012)."""
+    while cursor.weekday() not in dias_uteis_py:
+        cursor += timedelta(days=1)
+    return cursor
+
+
+def computar_cronograma(
+    fila: list,
+    cap_dia_min: float,
+    dias_uteis_py: set,
+    today: "date | None" = None,
+) -> tuple:
+    """Greedy packing scheduler — porta exata de pmocCronograma() JS lines 2004-2034.
+
+    Args:
+        fila         — sorted demand list: [{ativo_id, nome, tipo, criticidade,
+                        duracao_min, duracao_h, falta, status, ...}]
+        cap_dia_min  — daily capacity in minutes (h_dia_total × 60)
+        dias_uteis_py — working weekday integers in Python Mon=0 convention
+        today         — schedule start date (injectable for determinism; defaults to date.today())
+
+    Returns:
+        (dias, kpis) where:
+          dias  — list of day dicts {data, dia_semana, itens, horas_usadas, horas_disponiveis}
+          kpis  — {total_os, horas_pessoa, dias_uteis, data_conclusao, pct_utilizacao, alerta}
+    """
+    if today is None:
+        today = date.today()
+
+    # Guard zero/negative capacity (Pitfall 5 / T-05-03)
+    cap_dia_min = max(cap_dia_min, 1)
+
+    dias: list = []
+    cursor = today
+
+    def novo_dia() -> tuple:
+        """Open a new working day: advance cursor to next util day, record, then step forward."""
+        nonlocal cursor
+        cursor = _proximo_dia_util(cursor, dias_uteis_py)
+        dia: dict = {
+            "data": cursor.isoformat(),
+            "dia_semana": _DOW_PY_TO_ABBR.get(cursor.weekday(), "?"),
+            "itens": [],
+            "horas_usadas": 0.0,
+            "horas_disponiveis": round(cap_dia_min / 60, 2),
+        }
+        dias.append(dia)
+        cursor += timedelta(days=1)   # advance AFTER recording (mirrors JS line 2019)
+        restante = cap_dia_min
+        return dia, restante
+
+    dia_atual, restante = novo_dia()
+    guard = 0
+
+    for job in fila:
+        guard += 1
+        if guard > MAX_JOBS:
+            break
+
+        job_min = job["duracao_min"]
+
+        # Overflow only when current day already has at least 1 item (JS lines 2025-2027)
+        if job_min > restante and len(dia_atual["itens"]) > 0:
+            if len(dias) >= MAX_DAYS:
+                break
+            dia_atual, restante = novo_dia()
+
+        dia_atual["itens"].append(job)
+        dia_atual["horas_usadas"] = round(dia_atual["horas_usadas"] + job_min / 60, 2)
+        restante -= job_min
+
+        # Open next day after filling current (JS lines 2031-2032)
+        if restante <= 0:
+            if len(dias) >= MAX_DAYS:
+                break
+            dia_atual, restante = novo_dia()
+
+    # Remove trailing empty day (JS lines 2033-2034)
+    if dias and not dias[-1]["itens"]:
+        dias.pop()
+
+    # KPI computation — use guard to know how many jobs were actually processed
+    processed = min(guard, len(fila))
+    total_min    = sum(j["duracao_min"] for j in fila[:processed])
+    total_os     = processed
+    dias_uteis   = len(dias)
+    cap_total    = cap_dia_min * dias_uteis
+    horas_pessoa = round(total_min / 60, 1)           # true division (Pitfall 5)
+    data_conclusao = dias[-1]["data"] if dias else None
+    pct_utilizacao = round(total_min / cap_total * 100, 1) if cap_total > 0 else 0.0
+    alerta = total_min > cap_total
+
+    kpis = {
+        "total_os":       total_os,
+        "horas_pessoa":   horas_pessoa,
+        "dias_uteis":     dias_uteis,
+        "data_conclusao": data_conclusao,
+        "pct_utilizacao": pct_utilizacao,
+        "alerta":         alerta,
+    }
+    return dias, kpis
+
+
+# ── GET /cronograma endpoint (IMP-05) ─────────────────────────────────────────
+
+@router.get("/cronograma")
+async def get_cronograma(
+    categoria: Optional[str] = None,
+    today: Optional[str] = None,   # YYYY-MM-DD; injectable for deterministic tests
+    authorization: str | None = Header(None),
+):
+    """GET /api/manutencao/cronograma — cronograma preventivo computado (read-only).
+
+    Parâmetros:
+      categoria — filtro opcional por categoria de ativo
+      today     — data de início YYYY-MM-DD (override; omitir em produção → date.today())
+
+    Resposta: {dias:[{data, dia_semana, itens:[...], horas_usadas, horas_disponiveis}],
+               kpis:{total_os, horas_pessoa, dias_uteis, data_conclusao, pct_utilizacao, alerta}}
+
+    Mitigações: T-05-01 (SQL parameterizado), T-05-02 (_require_auth), T-05-03 (cap guard),
+                T-05-04 (date.fromisoformat → 422 on bad input).
+    """
+    await _require_auth(authorization)
+
+    # ── Parse today param (T-05-04) ──────────────────────────────────────────
+    if today is not None:
+        try:
+            today_date = date.fromisoformat(today)
+        except ValueError:
+            raise HTTPException(422, f"Parâmetro 'today' inválido: '{today}'. Use YYYY-MM-DD.")
+    else:
+        today_date = date.today()
+
+    # ── Load crew config + capacity (mirrors GET /equipe/config) ─────────────
+    db = _db()
+    row = await db.fetch_one("SELECT * FROM equipe_config WHERE id = 1")
+    if row:
+        config = dict(row)
+        try:
+            config["dias_semana"] = json.loads(config["dias_semana"])
+            config["turnos"] = json.loads(config["turnos"])
+        except (json.JSONDecodeError, TypeError):
+            config["dias_semana"] = _DEFAULT_CONFIG["dias_semana"]
+            config["turnos"] = _DEFAULT_CONFIG["turnos"]
+    else:
+        config = dict(_DEFAULT_CONFIG)
+
+    capacidade = _capacidade(config)
+    cap_dia_min = max(capacidade["h_dia_total"] * 60, 1)
+    dias_uteis_py = _dias_uteis_set(config["dias_semana"])
+
+    # ── Demand query (parameterized — T-05-01) ────────────────────────────────
+    # UNION: ativos with plan state + ativos without (initial mobilization, falta=0)
+    SQL = """
+        SELECT
+            a.id          AS ativo_id,
+            a.nome,
+            a.tipo,
+            a.categoria,
+            a.uso_atual,
+            COALESCE(
+                pr.criticidade, pt.criticidade, pc.criticidade, pf.criticidade,
+                CASE WHEN a.criticidade IN ('CRÍTICA','ALTA','MÉDIA','BAIXA')
+                     THEN a.criticidade ELSE NULL END
+            ) AS criticidade_raw,
+            ape.proximo_uso,
+            (ape.proximo_uso - a.uso_atual) AS falta,
+            ape.catalogo_plano_item_id      AS item_id
+        FROM ativos a
+        JOIN ativo_plano_estado ape ON ape.ativo_id = a.id
+        LEFT JOIN pmoc_refrigeracao pr ON pr.ativo_id = a.id
+        LEFT JOIN pmoc_transportes  pt ON pt.ativo_id = a.id
+        LEFT JOIN pmoc_corte        pc ON pc.ativo_id = a.id
+        LEFT JOIN pmoc_fonoclama    pf ON pf.ativo_id = a.id
+        WHERE a.ativo = 1
+          AND (? IS NULL OR a.categoria = ?)
+          AND ape.proximo_uso <= a.uso_atual + 500
+        ORDER BY a.id
+
+        UNION ALL
+
+        SELECT
+            a.id, a.nome, a.tipo, a.categoria, a.uso_atual,
+            COALESCE(
+                pr.criticidade, pt.criticidade, pc.criticidade, pf.criticidade,
+                CASE WHEN a.criticidade IN ('CRÍTICA','ALTA','MÉDIA','BAIXA')
+                     THEN a.criticidade ELSE NULL END
+            ),
+            NULL  AS proximo_uso,
+            0.0   AS falta,
+            NULL  AS item_id
+        FROM ativos a
+        LEFT JOIN ativo_plano_estado ape ON ape.ativo_id = a.id
+        LEFT JOIN pmoc_refrigeracao  pr  ON pr.ativo_id = a.id
+        LEFT JOIN pmoc_transportes   pt  ON pt.ativo_id = a.id
+        LEFT JOIN pmoc_corte         pc  ON pc.ativo_id = a.id
+        LEFT JOIN pmoc_fonoclama     pf  ON pf.ativo_id = a.id
+        WHERE a.ativo = 1
+          AND (? IS NULL OR a.categoria = ?)
+          AND ape.ativo_id IS NULL
+    """
+    rows = await db.fetch_all(SQL, (categoria, categoria, categoria, categoria))
+
+    # ── Dedup by ativo_id — keep most-urgent row (lowest falta; tie-break on item_id) ──
+    seen: dict[str, dict] = {}
+    for r in rows:
+        row_dict = dict(r)
+        aid = row_dict["ativo_id"]
+        if aid not in seen:
+            seen[aid] = row_dict
+        else:
+            existing = seen[aid]
+            # min falta; stable tie-break on item_id (Pitfall 3)
+            e_falta = existing.get("falta") or 0.0
+            r_falta = row_dict.get("falta") or 0.0
+            e_item  = existing.get("item_id") or 0
+            r_item  = row_dict.get("item_id") or 0
+            if (r_falta, r_item) < (e_falta, e_item):
+                seen[aid] = row_dict
+
+    # ── Build fila with computed fields ──────────────────────────────────────
+    fila = []
+    for row_dict in seen.values():
+        crit_raw    = row_dict.get("criticidade_raw")
+        criticidade = _normaliza_crit(crit_raw)
+        falta       = row_dict.get("falta") or 0.0
+        duracao_min = _est_duracao_min(row_dict.get("tipo") or "")
+        status      = "VENCIDA" if falta <= 0 else "PRÓXIMA"
+        fila.append({
+            "ativo_id":    row_dict["ativo_id"],
+            "nome":        row_dict.get("nome") or "",
+            "tipo":        row_dict.get("tipo") or "",
+            "criticidade": criticidade,
+            "duracao_min": duracao_min,
+            "duracao_h":   round(duracao_min / 60, 2),
+            "falta":       falta,
+            "status":      status,
+        })
+
+    # ── Sort: criticidade rank → falta ASC → ativo_id ASC (stable — Pitfall 2) ──
+    fila.sort(key=lambda j: (
+        CRIT_ORDER.get(j["criticidade"], 2),
+        j["falta"],
+        j["ativo_id"],
+    ))
+
+    # ── Pack greedy + compute KPIs ────────────────────────────────────────────
+    dias, kpis = computar_cronograma(fila, cap_dia_min, dias_uteis_py, today_date)
+
+    return {"dias": dias, "kpis": kpis}
