@@ -814,6 +814,69 @@ def test_cronograma_requires_auth(app_client):
     assert r.status_code == 401, f"Expected 401 without auth, got {r.status_code}: {r.text}"
 
 
+# ──────────────────────────── Fase 06: RES-04 locais.altura_m ────────────────
+
+
+def test_local_altura_m_persists(app_client):
+    """POST /api/locais with altura_m persists it; GET returns the value (RES-04)."""
+    client, main = app_client
+
+    r_create = client.post(
+        "/api/locais",
+        json={"nome": "Sala Teste", "tipo": "sala", "area": "OPE", "area_m2": 25.5, "altura_m": 2.7},
+    )
+    assert r_create.status_code == 201, f"Expected 201, got {r_create.status_code}: {r_create.text}"
+    body = r_create.json()
+    lid = body["id"]
+
+    # Round-trip: check the returned value directly
+    assert body.get("altura_m") == 2.7, (
+        f"altura_m not returned in POST response; got {body}"
+    )
+
+    # Verify via DB row directly
+    db_rows = _query(main, "SELECT altura_m FROM locais WHERE id = ?", (lid,))
+    assert len(db_rows) == 1
+    assert db_rows[0]["altura_m"] == 2.7, (
+        f"altura_m not persisted in DB; got {db_rows[0]['altura_m']}"
+    )
+
+
+def test_local_altura_m_null_safe_listagem(app_client):
+    """Local with area_m2=NULL and altura_m=NULL is listable via GET /api/locais without crash.
+
+    Also verifies the refrigeração endpoint does not crash when locais has NULL fields (RES-04).
+    """
+    client, main = app_client
+
+    # Create a local without area_m2 or altura_m (both None)
+    r_create = client.post(
+        "/api/locais",
+        json={"nome": "Sala Sem Medidas", "tipo": "sala", "area": "OPE"},
+    )
+    assert r_create.status_code == 201, f"Expected 201, got {r_create.status_code}: {r_create.text}"
+    body = r_create.json()
+    lid = body["id"]
+
+    # area_m2 and altura_m should be None/null
+    assert body.get("area_m2") is None, f"Expected area_m2=None; got {body.get('area_m2')}"
+    assert body.get("altura_m") is None, f"Expected altura_m=None; got {body.get('altura_m')}"
+
+    # GET /api/locais must return 200 with no crash
+    r_list = client.get("/api/locais")
+    assert r_list.status_code == 200, f"GET /api/locais failed: {r_list.status_code}"
+    items = r_list.json()
+    found = [item for item in (items if isinstance(items, list) else items.get("items", [])) if item.get("id") == lid]
+    assert len(found) >= 1, f"Local {lid} not found in listing: {items}"
+
+    # GET /api/pmoc/refrigeracao must return 200 (no ativo seeded; just no crash)
+    r_refrig = client.get("/api/pmoc/refrigeracao")
+    assert r_refrig.status_code == 200, (
+        f"GET /api/pmoc/refrigeracao crashed (expected 200 even with NULL area/altura): "
+        f"{r_refrig.status_code}: {r_refrig.text}"
+    )
+
+
 # ──────────────────────────── Fase 06: RES-01 por_tempo vencimentos ──────────
 
 
