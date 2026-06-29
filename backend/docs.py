@@ -70,7 +70,7 @@ ALLOWED_EXTS: frozenset[str] = frozenset({
     ".png",
     ".jpg",
     ".jpeg",
-    ".html",
+    # ".html" removed: XSS vector (WR-02); not in frontend <input accept> list either
 })
 
 MAX_UPLOAD_BYTES: int = 25 * 1024 * 1024  # 25 MB

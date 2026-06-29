@@ -413,7 +413,7 @@ def test_extension_rejected(docs_client):
     files_before = list(docs_dir.rglob("*"))
     file_count_before = sum(1 for f in files_before if f.is_file())
 
-    for bad_ext in [".exe", ".sh", ".zip"]:
+    for bad_ext in [".exe", ".sh", ".zip", ".html"]:
         bad_filename = f"malware{bad_ext}"
         r = client.post(
             f"/api/docs/documentos/{doc_id}/versoes",
