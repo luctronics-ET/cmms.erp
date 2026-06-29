@@ -179,6 +179,8 @@ async def registrar_uso(body: UsoIn, authorization: str | None = Header(None)):
     T-01-03 (_require_auth), T-01-04 (transação única), T-01-05 (audit row com operador+snapshot).
     """
     user = await _require_auth(authorization)
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não têm permissão de escrita")
     operador = user.get("mat") or user.get("nome") or str(user.get("usuario_id", ""))
 
     # db_path via singleton de main.py (sem importação circular)
@@ -517,6 +519,8 @@ async def registrar_manutencao(
     Mitigações STRIDE: T-02-01 (params), T-02-02, T-02-03, T-02-04 (audit), T-02-05 (txn atômica).
     """
     user = await _require_auth(authorization)
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não têm permissão de escrita")
     operador = user.get("mat") or user.get("nome") or str(user.get("usuario_id", ""))
 
     db_path = _db().db_path
