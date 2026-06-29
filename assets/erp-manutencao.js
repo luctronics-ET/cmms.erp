@@ -29,6 +29,7 @@
     { id: 'registrar-uso', icon: '⏱', label: 'Registrar Uso' },
     { id: 'sobressalentes', icon: '🔩', label: 'Sobressalentes' },
     { id: 'equipe-tecnica', icon: '👥', label: 'Equipe Técnica' },
+    { id: 'cronograma',    icon: '📅', label: 'Cronograma' },
   ];
 
   // categoria de navegação → categoria(s) de ativos no DB
