@@ -27,6 +27,7 @@
     { id: 'corte',        icon: '🌿', label: 'Máq. Corte' },
     { id: 'fonoclama',    icon: '📣', label: 'Fonoclama' },
     { id: 'registrar-uso', icon: '⏱', label: 'Registrar Uso' },
+    { id: 'sobressalentes', icon: '🔩', label: 'Sobressalentes' },
   ];
 
   // categoria de navegação → categoria(s) de ativos no DB
@@ -1523,6 +1524,418 @@
           ),
         ),
       );
+    },
+
+    // ── Sobressalentes ─────────────────────────────────────────────────────
+    async sobressalentes(cont) {
+      state._scopeCats = null;
+      const { el } = window.engine.utils;
+
+      // ── helpers locais (prefixo sb_ para evitar colisão com globals) ──
+
+      function sbToken() {
+        return localStorage.getItem('xcmasm_token') || '';
+      }
+
+      function sbAuthHeaders() {
+        return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sbToken() };
+      }
+
+      const cardStyle = {
+        background: 'var(--panel)', border: '1px solid var(--line)',
+        borderRadius: '8px', padding: '20px', marginBottom: '14px',
+      };
+      const labelStyle = { fontSize: '12px', color: 'var(--ink-2)', marginBottom: '4px', display: 'block' };
+      const inputStyle = {
+        width: '100%', boxSizing: 'border-box', padding: '7px 10px',
+        background: 'var(--bg2)', border: '1px solid var(--line)',
+        borderRadius: '6px', color: 'var(--ink)', fontSize: '13px',
+      };
+
+      // badge ZERADO/BAIXO/OK → CSS color token
+      function sbBadgeColor(badge) {
+        if (badge === 'ZERADO') return 'var(--red)';
+        if (badge === 'BAIXO')  return 'var(--amber)';
+        return 'var(--green)'; // OK
+      }
+
+      // Formata número como moeda BRL
+      function sbFmtBRL(v) {
+        return Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+
+      // ── overlay modal helper ──────────────────────────────────────────
+
+      function sbOpenModal(title, bodyBuilder, onSave) {
+        // remove overlay anterior se existir
+        const existingOverlay = document.getElementById('sb-modal-overlay');
+        if (existingOverlay) existingOverlay.remove();
+
+        const overlay = el('div', {
+          id: 'sb-modal-overlay',
+          style: {
+            position: 'fixed', inset: '0', zIndex: '9000',
+            background: 'rgba(0,0,0,0.65)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          },
+        });
+
+        const modal = el('div', {
+          style: {
+            background: 'var(--bg)', border: '1px solid var(--line)',
+            borderRadius: '10px', padding: '24px', minWidth: '360px',
+            maxWidth: '520px', width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          },
+        });
+
+        const closeBtn = el('button', {
+          class: 'pe-btn pe-btn--ghost',
+          style: { float: 'right', marginTop: '-4px' },
+        }, '✕');
+        closeBtn.addEventListener('click', () => overlay.remove());
+
+        const titleEl = el('h3', { style: { margin: '0 0 18px 0', fontWeight: '600', fontSize: '15px' } }, title);
+
+        const bodyEl = el('div');
+        const fields = bodyBuilder(bodyEl, inputStyle, labelStyle);
+
+        const saveBtn = el('button', {
+          class: 'pe-btn pe-btn--primary',
+          style: { marginTop: '16px', width: '100%' },
+        }, 'Salvar');
+        const cancelBtn = el('button', {
+          class: 'pe-btn pe-btn--ghost',
+          style: { marginTop: '8px', width: '100%' },
+        }, 'Cancelar');
+
+        saveBtn.addEventListener('click', async () => {
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Salvando...';
+          try {
+            await onSave(fields, overlay);
+          } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Salvar';
+          }
+        });
+        cancelBtn.addEventListener('click', () => overlay.remove());
+
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+        modal.append(closeBtn, titleEl, bodyEl, saveBtn, cancelBtn);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+      }
+
+      // ── carregar e renderizar lista ───────────────────────────────────
+
+      async function sbRender() {
+        cont.innerHTML = '<div style="padding:24px;color:var(--ink-3);font-size:13px">Carregando...</div>';
+
+        let data;
+        try {
+          const r = await fetch(apiUrl('/api/manutencao/sobressalentes'), {
+            headers: { 'Authorization': 'Bearer ' + sbToken() },
+          });
+          if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            toast(err.detail || 'Erro ao carregar sobressalentes (HTTP ' + r.status + ')', 'red');
+            cont.innerHTML = '';
+            return;
+          }
+          data = await r.json();
+        } catch (e) {
+          toast('Erro de rede: ' + e.message, 'red');
+          cont.innerHTML = '';
+          return;
+        }
+
+        const pecas = data.items || [];
+        const valorTotal = data.valor_estimado_total || 0;
+
+        // ── Botão + Nova Peça ─────────────────────────────────────────
+
+        function sbOpenPecaForm(peca) {
+          const isEdit = !!peca;
+          sbOpenModal(
+            isEdit ? 'Editar Peça' : '+ Nova Peça',
+            (bodyEl, iStyle, lStyle) => {
+              const fields = {};
+
+              const rows = [
+                { key: 'nome',          label: 'Nome *',        type: 'text',   placeholder: 'Nome da peça' },
+                { key: 'codigo',        label: 'Código',        type: 'text',   placeholder: 'Código (opcional)' },
+                { key: 'unidade',       label: 'Unidade',       type: 'text',   placeholder: 'un' },
+                { key: 'qtd_minima',    label: 'Qtd mínima',    type: 'number', placeholder: '0' },
+                { key: 'preco_unitario', label: 'Preço unitário (R$)', type: 'number', placeholder: '0.00' },
+                { key: 'obs',           label: 'Observações',   type: 'text',   placeholder: '' },
+              ];
+
+              rows.forEach(row => {
+                const wrap = el('div', { style: { marginBottom: '12px' } });
+                const lbl = el('label', { style: lStyle }, row.label);
+                let input;
+                if (row.key === 'obs') {
+                  input = el('textarea', {
+                    placeholder: row.placeholder,
+                    rows: '2',
+                    style: { ...iStyle, resize: 'vertical' },
+                  });
+                } else {
+                  input = el('input', {
+                    type: row.type,
+                    placeholder: row.placeholder,
+                    style: { ...iStyle },
+                  });
+                }
+                if (isEdit && peca[row.key] != null) {
+                  input.value = peca[row.key];
+                }
+                fields[row.key] = input;
+                wrap.append(lbl, input);
+                bodyEl.appendChild(wrap);
+              });
+
+              // Categoria select
+              const catWrap = el('div', { style: { marginBottom: '12px' } });
+              const catLbl = el('label', { style: lStyle }, 'Categoria');
+              const catSel = el('select', { style: iStyle });
+              ['consumivel', 'sobressalente', 'ferramenta'].forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt;
+                o.textContent = opt;
+                if (isEdit && peca.categoria === opt) o.selected = true;
+                catSel.appendChild(o);
+              });
+              fields.categoria = catSel;
+              catWrap.append(catLbl, catSel);
+              bodyEl.appendChild(catWrap);
+
+              return fields;
+            },
+            async (fields, overlay) => {
+              const nome = fields.nome.value.trim();
+              if (!nome) { toast('Nome é obrigatório.', 'amber'); return; }
+
+              const payload = {
+                nome,
+                codigo:        fields.codigo.value.trim() || null,
+                categoria:     fields.categoria.value || 'sobressalente',
+                unidade:       fields.unidade.value.trim() || 'un',
+                qtd_minima:    parseFloat(fields.qtd_minima.value) || 0,
+                preco_unitario: parseFloat(fields.preco_unitario.value) || 0,
+                obs:           fields.obs.value.trim() || null,
+              };
+
+              const url    = isEdit
+                ? apiUrl('/api/manutencao/sobressalentes/' + peca.id)
+                : apiUrl('/api/manutencao/sobressalentes');
+              const method = isEdit ? 'PUT' : 'POST';
+
+              const res = await fetch(url, {
+                method,
+                headers: sbAuthHeaders(),
+                body: JSON.stringify(payload),
+              });
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                toast(err.detail || 'Erro ao salvar (HTTP ' + res.status + ')', 'red');
+                return;
+              }
+              toast(isEdit ? 'Peça atualizada.' : 'Peça criada.', 'green');
+              overlay.remove();
+              sbRender();
+            },
+          );
+        }
+
+        // ── Ajustar modal ─────────────────────────────────────────────
+
+        function sbOpenAjuste(peca) {
+          sbOpenModal(
+            'Ajustar Quantidade — ' + peca.nome,
+            (bodyEl, iStyle, lStyle) => {
+              const fields = {};
+
+              // Tipo
+              const tipoWrap = el('div', { style: { marginBottom: '12px' } });
+              const tipoLbl = el('label', { style: lStyle }, 'Tipo *');
+              const tipoSel = el('select', { style: iStyle });
+              ['entrada', 'saida', 'ajuste'].forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt;
+                o.textContent = opt.charAt(0).toUpperCase() + opt.slice(1);
+                tipoSel.appendChild(o);
+              });
+              fields.tipo = tipoSel;
+              tipoWrap.append(tipoLbl, tipoSel);
+              bodyEl.appendChild(tipoWrap);
+
+              // Quantidade
+              const qtdWrap = el('div', { style: { marginBottom: '12px' } });
+              const qtdLbl = el('label', { style: lStyle }, 'Quantidade *');
+              const qtdInput = el('input', { type: 'number', min: '0.001', step: '0.001', placeholder: '0', style: iStyle });
+              fields.quantidade = qtdInput;
+              qtdWrap.append(qtdLbl, qtdInput);
+              bodyEl.appendChild(qtdWrap);
+
+              // Motivo
+              const motWrap = el('div', { style: { marginBottom: '12px' } });
+              const motLbl = el('label', { style: lStyle }, 'Motivo *');
+              const motInput = el('input', { type: 'text', placeholder: 'Motivo do ajuste', style: iStyle });
+              fields.motivo = motInput;
+              motWrap.append(motLbl, motInput);
+              bodyEl.appendChild(motWrap);
+
+              // Obs
+              const obsWrap = el('div', { style: { marginBottom: '12px' } });
+              const obsLbl = el('label', { style: lStyle }, 'Observações');
+              const obsInput = el('textarea', { placeholder: 'Observações (opcional)', rows: '2', style: { ...iStyle, resize: 'vertical' } });
+              fields.obs = obsInput;
+              obsWrap.append(obsLbl, obsInput);
+              bodyEl.appendChild(obsWrap);
+
+              return fields;
+            },
+            async (fields, overlay) => {
+              const quantidade = parseFloat(fields.quantidade.value);
+              const motivo    = fields.motivo.value.trim();
+              if (!quantidade || quantidade <= 0) { toast('Informe uma quantidade > 0.', 'amber'); return; }
+              if (!motivo) { toast('Motivo é obrigatório.', 'amber'); return; }
+
+              const payload = {
+                tipo:      fields.tipo.value,
+                quantidade,
+                motivo,
+                obs: fields.obs.value.trim() || null,
+              };
+
+              const res = await fetch(apiUrl('/api/manutencao/sobressalentes/' + peca.id + '/ajuste'), {
+                method: 'POST',
+                headers: sbAuthHeaders(),
+                body: JSON.stringify(payload),
+              });
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                toast(err.detail || 'Erro ao ajustar (HTTP ' + res.status + ')', 'red');
+                return;
+              }
+              toast('Ajuste registrado.', 'green');
+              overlay.remove();
+              sbRender();
+            },
+          );
+        }
+
+        // ── Cabeçalho com valor total + botão Nova Peça ───────────────
+
+        const btnNova = el('button', { class: 'pe-btn pe-btn--primary' }, '+ Nova Peça');
+        btnNova.addEventListener('click', () => sbOpenPecaForm(null));
+
+        const valorBadge = el('span', {
+          style: {
+            fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: '600',
+            color: 'var(--acc)', padding: '4px 12px',
+            background: 'var(--bg3)', borderRadius: '6px',
+          },
+        });
+        valorBadge.textContent = 'R$ ' + sbFmtBRL(valorTotal);
+
+        const headerCard = el('div', {
+          style: {
+            ...cardStyle,
+            display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap',
+          },
+        },
+          el('div', { style: { fontWeight: '600', fontSize: '14px' } }, 'Valor estimado do estoque:'),
+          valorBadge,
+          el('div', { style: { flex: '1' } }),
+          btnNova,
+        );
+
+        // ── Tabela de peças ───────────────────────────────────────────
+
+        let tableNode;
+        if (!pecas.length) {
+          tableNode = el('div', {
+            style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center', fontSize: '13px' },
+          }, 'Nenhuma peça cadastrada. Clique em "+ Nova Peça" para começar.');
+        } else {
+          const thead = el('thead', {},
+            el('tr', { style: { color: 'var(--ink-3)', textAlign: 'left', fontSize: '12px' } },
+              el('th', { style: { padding: '8px 10px', borderBottom: '1px solid var(--line)' } }, 'Nome'),
+              el('th', { style: { padding: '8px 10px', borderBottom: '1px solid var(--line)' } }, 'Categoria'),
+              el('th', { style: { padding: '8px 10px', borderBottom: '1px solid var(--line)', textAlign: 'right' } }, 'Qtd atual'),
+              el('th', { style: { padding: '8px 10px', borderBottom: '1px solid var(--line)' } }, 'Un'),
+              el('th', { style: { padding: '8px 10px', borderBottom: '1px solid var(--line)' } }, 'Status'),
+              el('th', { style: { padding: '8px 10px', borderBottom: '1px solid var(--line)', textAlign: 'right' } }, 'Preço un.'),
+              el('th', { style: { padding: '8px 10px', borderBottom: '1px solid var(--line)' } }, 'Ações'),
+            ),
+          );
+
+          const tbody = el('tbody', {},
+            ...pecas.map(p => {
+              const badgeEl = el('span', {
+                style: {
+                  display: 'inline-block', padding: '2px 8px', borderRadius: '4px',
+                  fontSize: '11px', fontWeight: '600',
+                  background: sbBadgeColor(p.badge) + '22',
+                  color: sbBadgeColor(p.badge),
+                  border: '1px solid ' + sbBadgeColor(p.badge) + '55',
+                },
+              });
+              badgeEl.textContent = p.badge || 'OK';
+
+              const nomeEl = el('td', { style: { padding: '8px 10px', fontWeight: '500' } });
+              nomeEl.textContent = p.nome || '—';
+
+              const catEl = el('td', { style: { padding: '8px 10px', color: 'var(--ink-2)', fontSize: '12px' } });
+              catEl.textContent = p.categoria || '—';
+
+              const qtdEl = el('td', { style: { padding: '8px 10px', fontFamily: 'var(--font-mono)', textAlign: 'right' } });
+              qtdEl.textContent = Number(p.qtd_atual || 0).toFixed(2);
+
+              const unEl = el('td', { style: { padding: '8px 10px', color: 'var(--ink-2)', fontSize: '12px' } });
+              unEl.textContent = p.unidade || 'un';
+
+              const badgeTd = el('td', { style: { padding: '8px 10px' } }, badgeEl);
+
+              const precoEl = el('td', { style: { padding: '8px 10px', fontFamily: 'var(--font-mono)', textAlign: 'right', color: 'var(--ink-2)' } });
+              precoEl.textContent = 'R$ ' + sbFmtBRL(p.preco_unitario);
+
+              const btnEditar = el('button', { class: 'pe-btn pe-btn--ghost', style: { fontSize: '12px', padding: '3px 10px' } }, 'Editar');
+              btnEditar.addEventListener('click', () => sbOpenPecaForm(p));
+
+              const btnAjustar = el('button', { class: 'pe-btn', style: { fontSize: '12px', padding: '3px 10px', marginLeft: '6px' } }, 'Ajustar');
+              btnAjustar.addEventListener('click', () => sbOpenAjuste(p));
+
+              const acoesTd = el('td', { style: { padding: '8px 10px', whiteSpace: 'nowrap' } }, btnEditar, btnAjustar);
+
+              return el('tr', { style: { borderBottom: '1px solid var(--line)' } },
+                nomeEl, catEl, qtdEl, unEl, badgeTd, precoEl, acoesTd,
+              );
+            }),
+          );
+
+          tableNode = el('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: '13px' } },
+            thead, tbody,
+          );
+        }
+
+        const listCard = el('div', { style: { ...cardStyle, padding: '0', overflow: 'hidden' } });
+        listCard.appendChild(tableNode);
+
+        cont.replaceChildren(
+          el('div', {},
+            el('h3', { style: { marginTop: '0', marginBottom: '16px', fontWeight: '600' } }, '🔩 Sobressalentes'),
+            headerCard,
+            listCard,
+          ),
+        );
+      }
+
+      // Renderiza imediatamente
+      await sbRender();
     },
   };
 
