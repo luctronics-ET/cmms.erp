@@ -28,6 +28,7 @@
     { id: 'fonoclama',    icon: '📣', label: 'Fonoclama' },
     { id: 'registrar-uso', icon: '⏱', label: 'Registrar Uso' },
     { id: 'sobressalentes', icon: '🔩', label: 'Sobressalentes' },
+    { id: 'equipe-tecnica', icon: '👥', label: 'Equipe Técnica' },
   ];
 
   // categoria de navegação → categoria(s) de ativos no DB
@@ -1936,6 +1937,455 @@
 
       // Renderiza imediatamente
       await sbRender();
+    },
+
+    // ── Equipe Técnica ──────────────────────────────────────────────────────
+    async 'equipe-tecnica'(cont) {
+      state._scopeCats = null;
+      const { el } = window.engine.utils;
+
+      // ── helpers locais (prefixo eq_ para evitar colisão com globals) ──
+
+      function eqToken() {
+        return localStorage.getItem('xcmasm_token') || '';
+      }
+
+      function eqAuthHeaders() {
+        return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + eqToken() };
+      }
+
+      const cardStyle = {
+        background: 'var(--panel)', border: '1px solid var(--line)',
+        borderRadius: '8px', padding: '20px', marginBottom: '14px',
+      };
+      const labelStyle = { fontSize: '12px', color: 'var(--ink-2)', marginBottom: '4px', display: 'block' };
+      const inputStyle = {
+        width: '100%', boxSizing: 'border-box', padding: '7px 10px',
+        background: 'var(--bg2)', border: '1px solid var(--line)',
+        borderRadius: '6px', color: 'var(--ink)', fontSize: '13px',
+      };
+      const thStyle = { padding: '8px 10px', borderBottom: '1px solid var(--line)', textAlign: 'left', fontWeight: '500' };
+      const tdStyle = { padding: '8px 10px', borderBottom: '1px solid var(--line)' };
+
+      // ── overlay modal helper (igual ao de sobressalentes) ──────────────
+
+      function eqOpenModal(title, bodyBuilder, onSave) {
+        const existingOverlay = document.getElementById('eq-modal-overlay');
+        if (existingOverlay) existingOverlay.remove();
+
+        const overlay = el('div', {
+          id: 'eq-modal-overlay',
+          style: {
+            position: 'fixed', inset: '0', zIndex: '9000',
+            background: 'rgba(0,0,0,0.65)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          },
+        });
+
+        const modal = el('div', {
+          style: {
+            background: 'var(--bg)', border: '1px solid var(--line)',
+            borderRadius: '10px', padding: '24px', minWidth: '360px',
+            maxWidth: '520px', width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          },
+        });
+
+        const closeBtn = el('button', { class: 'pe-btn pe-btn--ghost', style: { float: 'right', marginTop: '-4px' } }, '✕');
+        closeBtn.addEventListener('click', () => overlay.remove());
+
+        const titleEl = el('h3', { style: { margin: '0 0 18px 0', fontWeight: '600', fontSize: '15px' } }, title);
+
+        const bodyEl = el('div');
+        const fields = bodyBuilder(bodyEl, inputStyle, labelStyle);
+
+        const saveBtn = el('button', { class: 'pe-btn pe-btn--primary', style: { marginTop: '16px', width: '100%' } }, 'Salvar');
+        const cancelBtn = el('button', { class: 'pe-btn pe-btn--ghost', style: { marginTop: '8px', width: '100%' } }, 'Cancelar');
+
+        saveBtn.addEventListener('click', async () => {
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Salvando...';
+          try {
+            await onSave(fields, overlay);
+          } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Salvar';
+          }
+        });
+        cancelBtn.addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+        modal.append(closeBtn, titleEl, bodyEl, saveBtn, cancelBtn);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+      }
+
+      // ── Formulário de membro (criar/editar) ──────────────────────────
+
+      function eqOpenMembroForm(membro, onDone) {
+        const isEdit = !!membro;
+        eqOpenModal(
+          isEdit ? 'Editar Membro' : '+ Novo Membro',
+          (bodyEl, iStyle, lStyle) => {
+            const fields = {};
+
+            const rows = [
+              { key: 'nome',        label: 'Nome *',       type: 'text',   placeholder: 'Nome completo' },
+              { key: 'posto_grad',  label: 'Posto/Grad',   type: 'text',   placeholder: 'Ex: CB, SGT, TEN...' },
+              { key: 'especialidade', label: 'Especialidade', type: 'text', placeholder: 'Ex: Refrigeração, Elétrica...' },
+            ];
+
+            rows.forEach(row => {
+              const wrap = el('div', { style: { marginBottom: '12px' } });
+              const lbl = el('label', { style: lStyle }, row.label);
+              const input = el('input', { type: row.type, placeholder: row.placeholder, style: { ...iStyle } });
+              if (isEdit && membro[row.key] != null) input.value = membro[row.key];
+              fields[row.key] = input;
+              wrap.append(lbl, input);
+              bodyEl.appendChild(wrap);
+            });
+
+            // tem_login checkbox
+            const loginWrap = el('div', { style: { marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' } });
+            const loginCheck = el('input', { type: 'checkbox', id: 'eq-tem-login' });
+            if (isEdit && membro.tem_login) loginCheck.checked = true;
+            const loginLbl = el('label', { for: 'eq-tem-login', style: { fontSize: '13px', color: 'var(--ink)', cursor: 'pointer' } }, 'Possui login no sistema');
+            fields.tem_login = loginCheck;
+            loginWrap.append(loginCheck, loginLbl);
+            bodyEl.appendChild(loginWrap);
+
+            // usuario_mat (opcional — visível sempre, preenchido opcionalmente)
+            const matWrap = el('div', { style: { marginBottom: '12px' } });
+            const matLbl = el('label', { style: lStyle }, 'Matrícula (se tem login)');
+            const matInput = el('input', { type: 'text', placeholder: 'Ex: 000001', style: { ...iStyle } });
+            if (isEdit && membro.usuario_mat != null) matInput.value = membro.usuario_mat;
+            fields.usuario_mat = matInput;
+            matWrap.append(matLbl, matInput);
+            bodyEl.appendChild(matWrap);
+
+            return fields;
+          },
+          async (fields, overlay) => {
+            const nome = fields.nome.value.trim();
+            if (!nome) { toast('Nome é obrigatório.', 'amber'); return; }
+
+            const payload = {
+              nome,
+              posto_grad:   fields.posto_grad.value.trim() || null,
+              especialidade: fields.especialidade.value.trim() || null,
+              tem_login:    fields.tem_login.checked ? 1 : 0,
+              usuario_mat:  fields.usuario_mat.value.trim() || null,
+            };
+
+            const url    = isEdit
+              ? apiUrl('/api/manutencao/equipe/membros/' + membro.id)
+              : apiUrl('/api/manutencao/equipe/membros');
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const res = await fetch(url, { method, headers: eqAuthHeaders(), body: JSON.stringify(payload) });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              toast(err.detail || 'Erro ao salvar (HTTP ' + res.status + ')', 'red');
+              return;
+            }
+            toast(isEdit ? 'Membro atualizado.' : 'Membro adicionado.', 'green');
+            overlay.remove();
+            onDone();
+          },
+        );
+      }
+
+      // ── Desativar membro (soft-delete) ────────────────────────────────
+
+      async function eqDesativar(membro, onDone) {
+        if (!confirm('Desativar "' + membro.nome + '"? O registro será mantido como inativo.')) return;
+        try {
+          const res = await fetch(apiUrl('/api/manutencao/equipe/membros/' + membro.id), {
+            method: 'PUT',
+            headers: eqAuthHeaders(),
+            body: JSON.stringify({ ativo: 0 }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            toast(err.detail || 'Erro ao desativar (HTTP ' + res.status + ')', 'red');
+            return;
+          }
+          toast('Membro desativado.', 'amber');
+          onDone();
+        } catch (e) {
+          toast('Erro de rede: ' + e.message, 'red');
+        }
+      }
+
+      // ── Render principal (roster + config) ───────────────────────────
+
+      async function eqRender() {
+        cont.replaceChildren(el('div', { style: { padding: '24px', color: 'var(--ink-3)', fontSize: '13px' } }, 'Carregando...'));
+
+        // Fetch roster e config em paralelo
+        let membros = [];
+        let configData = null;
+        try {
+          const [rMembros, rConfig] = await Promise.all([
+            fetch(apiUrl('/api/manutencao/equipe/membros'), { headers: { 'Authorization': 'Bearer ' + eqToken() } }),
+            fetch(apiUrl('/api/manutencao/equipe/config'),  { headers: { 'Authorization': 'Bearer ' + eqToken() } }),
+          ]);
+
+          if (!rMembros.ok) {
+            const err = await rMembros.json().catch(() => ({}));
+            toast(err.detail || 'Erro ao carregar membros (HTTP ' + rMembros.status + ')', 'red');
+          } else {
+            membros = await rMembros.json();
+          }
+
+          if (!rConfig.ok) {
+            const err = await rConfig.json().catch(() => ({}));
+            toast(err.detail || 'Erro ao carregar configuração (HTTP ' + rConfig.status + ')', 'red');
+          } else {
+            configData = await rConfig.json();
+          }
+        } catch (e) {
+          toast('Erro de rede: ' + e.message, 'red');
+          cont.replaceChildren();
+          return;
+        }
+
+        // ── Seção Roster ───────────────────────────────────────────────
+
+        const btnNovo = el('button', { class: 'pe-btn pe-btn--primary' }, '+ Membro');
+        btnNovo.addEventListener('click', () => eqOpenMembroForm(null, eqRender));
+
+        const rosterHeader = el('div', {
+          style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' },
+        },
+          el('h3', { style: { margin: '0', fontWeight: '600', fontSize: '15px' } }, '👥 Equipe Técnica — Membros'),
+          el('div', { style: { flex: '1' } }),
+          btnNovo,
+        );
+
+        let tableNode;
+        if (!membros.length) {
+          tableNode = el('div', {
+            style: { padding: '24px', color: 'var(--ink-3)', textAlign: 'center', fontSize: '13px' },
+          }, 'Nenhum membro cadastrado. Clique em "+ Membro" para adicionar.');
+        } else {
+          const thead = el('thead', {},
+            el('tr', { style: { color: 'var(--ink-3)', fontSize: '12px' } },
+              el('th', { style: thStyle }, 'Nome'),
+              el('th', { style: thStyle }, 'Posto/Grad'),
+              el('th', { style: thStyle }, 'Especialidade'),
+              el('th', { style: thStyle }, 'Status'),
+              el('th', { style: { ...thStyle, whiteSpace: 'nowrap' } }, 'Ações'),
+            ),
+          );
+
+          const tbody = el('tbody', {},
+            ...membros.map(m => {
+              const nomeEl = el('td', { style: { ...tdStyle, fontWeight: '500' } });
+              nomeEl.textContent = m.nome || '—';
+
+              const postoEl = el('td', { style: { ...tdStyle, color: 'var(--ink-2)', fontSize: '12px' } });
+              postoEl.textContent = m.posto_grad || '—';
+
+              const espEl = el('td', { style: { ...tdStyle, color: 'var(--ink-2)', fontSize: '12px' } });
+              espEl.textContent = m.especialidade || '—';
+
+              const ativo = m.ativo !== 0;
+              const badgeEl = el('span', {
+                style: {
+                  display: 'inline-block', padding: '2px 8px', borderRadius: '4px',
+                  fontSize: '11px', fontWeight: '600',
+                  background: (ativo ? 'var(--green)' : 'var(--red)') + '22',
+                  color: ativo ? 'var(--green)' : 'var(--red)',
+                  border: '1px solid ' + (ativo ? 'var(--green)' : 'var(--red)') + '55',
+                },
+              });
+              badgeEl.textContent = ativo ? 'Ativo' : 'Inativo';
+              const statusTd = el('td', { style: tdStyle }, badgeEl);
+
+              const btnEditar = el('button', { class: 'pe-btn pe-btn--ghost', style: { fontSize: '12px', padding: '3px 10px' } }, 'Editar');
+              btnEditar.addEventListener('click', () => eqOpenMembroForm(m, eqRender));
+
+              const btnDesativar = el('button', {
+                class: 'pe-btn',
+                style: { fontSize: '12px', padding: '3px 10px', marginLeft: '6px',
+                  background: 'var(--red)22', color: 'var(--red)', border: '1px solid var(--red)55' },
+                disabled: !ativo,
+              }, 'Desativar');
+              if (ativo) btnDesativar.addEventListener('click', () => eqDesativar(m, eqRender));
+
+              const acoesTd = el('td', { style: { ...tdStyle, whiteSpace: 'nowrap' } }, btnEditar, btnDesativar);
+
+              return el('tr', { style: { borderBottom: '1px solid var(--line)' } },
+                nomeEl, postoEl, espEl, statusTd, acoesTd,
+              );
+            }),
+          );
+
+          tableNode = el('table', { style: { width: '100%', borderCollapse: 'collapse', fontSize: '13px' } }, thead, tbody);
+        }
+
+        const rosterCard = el('div', { style: { ...cardStyle, padding: '0', overflow: 'hidden' } });
+        rosterCard.appendChild(tableNode);
+
+        const rosterSection = el('div', { style: { marginBottom: '8px' } }, rosterHeader, rosterCard);
+
+        // ── Seção Config de Capacidade ─────────────────────────────────
+
+        const cfg  = configData?.config      || {};
+        const cap  = configData?.capacidade  || {};
+
+        // num_equipes
+        const numEquipesInput = el('input', {
+          type: 'number', min: '1', step: '1',
+          style: { ...inputStyle, width: '120px' },
+        });
+        numEquipesInput.value = cfg.num_equipes != null ? String(cfg.num_equipes) : '1';
+
+        // dias_semana checkboxes
+        const DIAS = [
+          { token: 'seg', label: 'Seg' },
+          { token: 'ter', label: 'Ter' },
+          { token: 'qua', label: 'Qua' },
+          { token: 'qui', label: 'Qui' },
+          { token: 'sex', label: 'Sex' },
+          { token: 'sab', label: 'Sáb' },
+          { token: 'dom', label: 'Dom' },
+        ];
+        const diasChecked = new Set(Array.isArray(cfg.dias_semana) ? cfg.dias_semana : ['seg','ter','qua','qui','sex']);
+        const diasChecks = {};
+        const diasRow = el('div', { style: { display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '6px' } },
+          ...DIAS.map(d => {
+            const cb = el('input', { type: 'checkbox', id: 'eq-dia-' + d.token });
+            cb.checked = diasChecked.has(d.token);
+            diasChecks[d.token] = cb;
+            const lbl = el('label', { for: 'eq-dia-' + d.token, style: { fontSize: '13px', color: 'var(--ink)', cursor: 'pointer', userSelect: 'none' } }, d.label);
+            return el('span', { style: { display: 'flex', alignItems: 'center', gap: '5px' } }, cb, lbl);
+          }),
+        );
+
+        // turnos list (dinâmico)
+        const turnosIniciados = (cfg.turnos && cfg.turnos.length) ? cfg.turnos : [{ nome: 'Manhã', horas: 4 }, { nome: 'Tarde', horas: 4 }];
+        const turnosList = el('div', { id: 'eq-turnos-list', style: { marginTop: '6px' } });
+
+        function eqBuildTurnoRow(turno) {
+          const nomeInp = el('input', { type: 'text', placeholder: 'Nome do turno', style: { ...inputStyle, width: '140px', display: 'inline-block' } });
+          nomeInp.value = turno.nome || '';
+          const horasInp = el('input', { type: 'number', min: '0.5', step: '0.5', placeholder: 'h', style: { ...inputStyle, width: '70px', display: 'inline-block', marginLeft: '8px' } });
+          horasInp.value = turno.horas != null ? String(turno.horas) : '';
+          const btnRem = el('button', { class: 'pe-btn pe-btn--ghost', style: { fontSize: '11px', padding: '3px 8px', marginLeft: '8px', color: 'var(--red)' } }, '✕');
+          const row = el('div', { style: { display: 'flex', alignItems: 'center', marginBottom: '6px' } }, nomeInp, horasInp, btnRem);
+          btnRem.addEventListener('click', () => { row.remove(); });
+          row._nomeInp  = nomeInp;
+          row._horasInp = horasInp;
+          return row;
+        }
+
+        turnosIniciados.forEach(t => turnosList.appendChild(eqBuildTurnoRow(t)));
+
+        const btnAddTurno = el('button', { class: 'pe-btn pe-btn--ghost', style: { fontSize: '12px', padding: '4px 12px', marginTop: '6px' } }, '+ Turno');
+        btnAddTurno.addEventListener('click', () => turnosList.appendChild(eqBuildTurnoRow({ nome: '', horas: 4 })));
+
+        // Painel de capacidade (preenchido após save ou imediatamente com dados do GET)
+        const capPanel = el('div', {
+          style: {
+            display: 'flex', gap: '20px', flexWrap: 'wrap',
+            marginTop: '14px', padding: '12px 16px',
+            background: 'var(--bg3)', border: '1px solid var(--line)', borderRadius: '8px',
+          },
+        });
+
+        function eqRenderCap(c) {
+          const items = [
+            { label: 'h/dia',    value: c.h_dia_total  != null ? String(c.h_dia_total)  : '—' },
+            { label: 'h/semana', value: c.h_semana     != null ? String(c.h_semana)     : '—' },
+            { label: 'h/ano',    value: c.h_ano        != null ? String(c.h_ano)        : '—' },
+          ];
+          capPanel.replaceChildren(
+            el('span', { style: { fontSize: '12px', color: 'var(--ink-3)', alignSelf: 'center' } }, 'Capacidade:'),
+            ...items.map(it => {
+              const valEl = el('span', { style: { fontFamily: 'var(--font-mono)', fontSize: '18px', color: 'var(--acc)', fontWeight: '700' } });
+              valEl.textContent = it.value;
+              const lblEl = el('span', { style: { fontSize: '11px', color: 'var(--ink-3)', marginLeft: '4px' } });
+              lblEl.textContent = it.label;
+              return el('span', { style: { display: 'flex', alignItems: 'baseline', gap: '2px' } }, valEl, lblEl);
+            }),
+          );
+        }
+        eqRenderCap(cap);
+
+        // Botão salvar config
+        const feedbackEl = el('div', { style: { fontSize: '12px', color: 'var(--green)', minHeight: '18px', marginTop: '6px' } });
+        const btnSalvar = el('button', { class: 'pe-btn pe-btn--primary', style: { marginTop: '14px' } }, 'Salvar configuração');
+
+        btnSalvar.addEventListener('click', async () => {
+          btnSalvar.disabled = true;
+          btnSalvar.textContent = 'Salvando...';
+          feedbackEl.textContent = '';
+
+          const num_equipes = parseInt(numEquipesInput.value, 10) || 1;
+          const dias_semana = DIAS.filter(d => diasChecks[d.token].checked).map(d => d.token);
+          const turnoRows = Array.from(turnosList.children);
+          const turnos = turnoRows
+            .map(row => ({ nome: row._nomeInp.value.trim(), horas: parseFloat(row._horasInp.value) || 0 }))
+            .filter(t => t.nome || t.horas > 0);
+
+          try {
+            const res = await fetch(apiUrl('/api/manutencao/equipe/config'), {
+              method: 'PUT',
+              headers: eqAuthHeaders(),
+              body: JSON.stringify({ num_equipes, dias_semana, turnos }),
+            });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              toast(err.detail || 'Erro ao salvar configuração (HTTP ' + res.status + ')', 'red');
+            } else {
+              const saved = await res.json();
+              // Mostrar capacidade recomputada pelo backend (fonte única de verdade)
+              eqRenderCap(saved.capacidade || {});
+              feedbackEl.textContent = 'Configuração salva com sucesso.';
+              setTimeout(() => { feedbackEl.textContent = ''; }, 3000);
+              toast('Configuração salva.', 'green');
+            }
+          } catch (e) {
+            toast('Erro de rede: ' + e.message, 'red');
+          } finally {
+            btnSalvar.disabled = false;
+            btnSalvar.textContent = 'Salvar configuração';
+          }
+        });
+
+        const configSection = el('div', { style: cardStyle },
+          el('h3', { style: { margin: '0 0 16px 0', fontWeight: '600', fontSize: '15px' } }, '⚙️ Configuração de Capacidade'),
+          // num_equipes
+          el('div', { style: { marginBottom: '14px' } },
+            el('label', { style: labelStyle }, 'Número de equipes'),
+            numEquipesInput,
+          ),
+          // dias_semana
+          el('div', { style: { marginBottom: '14px' } },
+            el('label', { style: labelStyle }, 'Dias de trabalho'),
+            diasRow,
+          ),
+          // turnos
+          el('div', { style: { marginBottom: '14px' } },
+            el('label', { style: labelStyle }, 'Turnos (nome + horas/dia)'),
+            turnosList,
+            btnAddTurno,
+          ),
+          btnSalvar,
+          feedbackEl,
+          capPanel,
+        );
+
+        cont.replaceChildren(
+          el('div', { style: { maxWidth: '900px' } },
+            rosterSection,
+            configSection,
+          ),
+        );
+      }
+
+      await eqRender();
     },
   };
 
