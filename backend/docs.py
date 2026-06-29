@@ -17,11 +17,12 @@ Segurança:
   - _require_escrita (403 visualizador) em PUT ajuda, POST documentos, POST versoes
   - categoria validada contra ALLOWED_CATS frozenset ANTES de qualquer uso em path
   - extensão derivada de file.filename, validada contra ALLOWED_EXTS whitelist
-  - path em disco = data/documentos/<categoria>/<doc_id>_v<versao><ext> (nunca usa nome do cliente)
+  - path em disco = <CMASM_DOCS_DIR>/<categoria>/<doc_id>_v<versao><ext>
+    NUNCA usa o nome original do cliente; NUNCA dentro da árvore /static/ (CR-01)
   - arquivo_nome = nome original (apenas metadado para Content-Disposition)
   - tamanho checado ANTES de gravar em disco (413 se > MAX_UPLOAD_BYTES)
   - download: os.path.normpath + abspath prefix check (2ª linha de defesa)
-  - Content-Disposition: attachment (não inline — neutraliza XSS em .html)
+  - Content-Disposition: attachment (não inline)
   - versão atômica: SELECT COALESCE(MAX(versao),0)+1 + INSERT em UMA conexão aiosqlite
 
 Referências: CONTEXT.md Phase 8, Rules.md (aditivo), REQUISITOS.md DOC-01/DOC-02/DOC-03,
@@ -74,11 +75,14 @@ ALLOWED_EXTS: frozenset[str] = frozenset({
 
 MAX_UPLOAD_BYTES: int = 25 * 1024 * 1024  # 25 MB
 
-# Absolute path to the local document storage root (server-controlled).
-# Resolved relative to this file so it works regardless of cwd.
+# Absolute path to the document storage root — MUST be outside the /static/ web-served
+# tree to prevent unauthenticated access (CR-01).  Configurable via CMASM_DOCS_DIR env
+# var so deployments can choose the location.  Defaults to ~/.cmasm/docs which is
+# sibling to (i.e. entirely outside) the repo root that StaticFiles exposes.
 _DATA_DOCS: str = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "data", "documentos")
+    os.environ.get("CMASM_DOCS_DIR") or os.path.expanduser("~/.cmasm/docs")
 )
+os.makedirs(_DATA_DOCS, exist_ok=True)  # ensure root exists at import time
 
 # ── DB / Auth helpers (copied from manutencao.py pattern — no circular import) ─
 
@@ -341,9 +345,8 @@ async def upload_versao(
 
         # T-08-01: path gerado exclusivamente de dados server-controlled (doc_id, next_v, ext)
         abs_path = _make_safe_path(doc["categoria"], doc_id, next_v, ext)
-        # Caminho relativo para armazenar no DB (relativo a data/)
-        data_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data"))
-        rel_path = os.path.relpath(abs_path, start=data_dir)
+        # Caminho relativo para armazenar no DB (relativo a _DATA_DOCS, nunca a data/)
+        rel_path = os.path.relpath(abs_path, start=_DATA_DOCS)
 
         # Gravar bytes em disco com aiofiles ANTES do INSERT no DB
         async with aiofiles.open(abs_path, "wb") as f:
@@ -399,10 +402,10 @@ async def download_versao(
     if not row:
         raise HTTPException(404, "Versão não encontrada")
 
-    # T-08-02: resolver path absoluto e verificar que permanece dentro de _DATA_DOCS
-    data_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data"))
-    abs_path = os.path.normpath(os.path.join(data_dir, row["arquivo_path"]))
+    # T-08-02: resolver path absoluto e verificar que permanece dentro de _DATA_DOCS.
+    # arquivo_path é relativo a _DATA_DOCS (nunca a data/) — ver upload_versao.
     data_docs_abs = os.path.abspath(_DATA_DOCS)
+    abs_path = os.path.normpath(os.path.join(data_docs_abs, row["arquivo_path"]))
 
     # Garantir separador de diretório após o prefixo para evitar falso-positivo
     # (ex: abspath '/data/documentos_evil' não deve passar no check de '/data/documentos')

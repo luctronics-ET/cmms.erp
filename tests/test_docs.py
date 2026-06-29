@@ -696,3 +696,36 @@ def test_ajuda_list_all(docs_client):
     chaves = [i["chave"] for i in items]
     assert "chave_a" in chaves, f"chave_a not found in list: {chaves}"
     assert "chave_b" in chaves, f"chave_b not found in list: {chaves}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Security (CR-01): uploaded files must NOT be stored inside the /static/ tree
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def test_docs_storage_not_under_static_tree(docs_client, tmp_path):
+    """_DATA_DOCS (or the monkeypatched docs_dir) must NOT be a subdirectory of the
+    /static-mounted repo root.
+
+    The /static/ StaticFiles mount exposes the repo root unauthenticated. Files stored
+    inside that tree can be fetched without a token, bypassing the authed download
+    endpoint (CR-01).
+
+    In production _DATA_DOCS defaults to ~/.cmasm/docs; in tests it is patched to a
+    tmp_path subdirectory — both are outside the repo root served by /static/.
+    """
+    _client, main, docs_dir = docs_client
+
+    # Resolve the repo root the same way main.py does
+    import backend.main as _main_mod
+    repo_root = os.path.normpath(
+        os.path.join(os.path.dirname(_main_mod.__file__), "..")
+    )
+
+    docs_dir_abs = os.path.abspath(str(docs_dir))
+
+    assert not docs_dir_abs.startswith(repo_root + os.sep) and docs_dir_abs != repo_root, (
+        f"Document storage dir {docs_dir_abs!r} is INSIDE the repo root {repo_root!r} "
+        f"which is served unauthenticated by the /static/ StaticFiles mount. "
+        f"Storage must be outside the web-served tree (CR-01)."
+    )
