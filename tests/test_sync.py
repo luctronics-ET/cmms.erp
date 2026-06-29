@@ -37,7 +37,9 @@ def test_list_modulos_parses_categorias_atend_as_list(app_client):
     refrig = next(m for m in r.json() if m["nome"] == "pmoc_refrigeracao")
     assert refrig["categorias_atend"] == ["climatizacao"]
     transp = next(m for m in r.json() if m["nome"] == "pmoc_transportes")
-    assert set(transp["categorias_atend"]) == {"frota_terrestre", "frota_naval"}
+    # Real category names in DB are 'viaturas'/'embarcacoes' (not legacy
+    # 'frota_terrestre'/'frota_naval') — corrected by _migrate_modulo_transportes_categorias.
+    assert set(transp["categorias_atend"]) == {"viaturas", "embarcacoes"}
 
 
 # ────────────────────────── /api/sync/cursor ──────────────────────────

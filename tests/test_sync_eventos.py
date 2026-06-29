@@ -109,15 +109,17 @@ def _seed_item(main, item_id=1, nome="Óleo SAE 30", qtd=100, qtd_min=10):
 
 
 def test_estoque_mov_saida_decrementa_qtd(app_client):
+    # Use item_id=1010 to avoid UNIQUE conflict with the 10 fonoclama peças
+    # seeded by _seed_fonoclama_if_empty() on startup (autoincrement IDs 1-10).
     client, main = app_client
-    _seed_item(main, item_id=10, qtd=50)
+    _seed_item(main, item_id=1010, qtd=50)
     r = _push(client, [_ev("estoque_mov", {
-        "item_id": 10, "tipo": "saida", "quantidade": 15, "obs": "consumo OS-1"
+        "item_id": 1010, "tipo": "saida", "quantidade": 15, "obs": "consumo OS-1"
     })])
     assert r.json()["aceitos"] and not r.json()["rejeitados"]
-    rows = _query(main, "SELECT qtd_atual FROM estoque WHERE id=10")
+    rows = _query(main, "SELECT qtd_atual FROM estoque WHERE id=1010")
     assert rows[0]["qtd_atual"] == 35
-    movs = _query(main, "SELECT tipo, quantidade, obs FROM estoque_movimentos WHERE item_id=10")
+    movs = _query(main, "SELECT tipo, quantidade, obs FROM estoque_movimentos WHERE item_id=1010")
     assert movs == [{"tipo": "saida", "quantidade": 15, "obs": "consumo OS-1"}]
 
 
