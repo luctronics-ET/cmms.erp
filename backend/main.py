@@ -980,13 +980,37 @@ async def login(body: LoginIn):
         (body.mat, body.mat),
     )
     if not user:
-        raise HTTPException(401, "Usuário não encontrado")
+        raise HTTPException(401, "Credenciais inválidas")
 
-    expected = user.get("pw_hash") or _djb2("1234")
-    given    = _djb2(body.senha)
-    # Aceita também comparação direta (hash já armazenado como djb2 hex)
-    if given != expected:
-        raise HTTPException(401, "Senha incorreta")
+    stored = user.get("pw_hash")
+
+    # SEC-02 (login side): conta sem hash não autentica — sem fallback de senha default.
+    if not stored:
+        raise HTTPException(401, "Credenciais inválidas")
+
+    if stored.startswith("$argon2"):
+        # Caminho Argon2id: verificação moderna.
+        try:
+            _ph.verify(stored, body.senha)
+        except (VerifyMismatchError, InvalidHash):
+            raise HTTPException(401, "Credenciais inválidas")
+        # Re-hash se os parâmetros do PasswordHasher mudaram (future-proof).
+        if _ph.check_needs_rehash(stored):
+            new_hash = _ph.hash(body.senha)
+            await db.execute(
+                "UPDATE usuarios SET pw_hash = ? WHERE id = ?",
+                (new_hash, user["id"]),
+            )
+    else:
+        # Caminho legado djb2: verificar e fazer upgrade lazy para Argon2id.
+        if _djb2(body.senha) != stored:
+            raise HTTPException(401, "Credenciais inválidas")
+        # Upgrade lazy: re-hash para Argon2id e persistir na mesma requisição.
+        new_hash = _ph.hash(body.senha)
+        await db.execute(
+            "UPDATE usuarios SET pw_hash = ? WHERE id = ?",
+            (new_hash, user["id"]),
+        )
 
     token = secrets.token_urlsafe(32)
     expira = datetime.utcnow() + timedelta(hours=TOKEN_TTL)
