@@ -1946,6 +1946,8 @@
 
       // ── helpers locais (prefixo eq_ para evitar colisão com globals) ──
 
+      let eqShowAll = false;   // toggle: incluir membros inativos no roster
+
       function eqToken() {
         return localStorage.getItem('xcmasm_token') || '';
       }
@@ -2125,8 +2127,9 @@
         let membros = [];
         let configData = null;
         try {
+          const membrosUrl = '/api/manutencao/equipe/membros' + (eqShowAll ? '?incluir_inativos=1' : '');
           const [rMembros, rConfig] = await Promise.all([
-            fetch(apiUrl('/api/manutencao/equipe/membros'), { headers: { 'Authorization': 'Bearer ' + eqToken() } }),
+            fetch(apiUrl(membrosUrl), { headers: { 'Authorization': 'Bearer ' + eqToken() } }),
             fetch(apiUrl('/api/manutencao/equipe/config'),  { headers: { 'Authorization': 'Bearer ' + eqToken() } }),
           ]);
 
@@ -2154,11 +2157,18 @@
         const btnNovo = el('button', { class: 'pe-btn pe-btn--primary' }, '+ Membro');
         btnNovo.addEventListener('click', () => eqOpenMembroForm(null, eqRender));
 
+        const showAllCb = el('input', { type: 'checkbox', id: 'eq-show-all' });
+        showAllCb.checked = eqShowAll;
+        showAllCb.addEventListener('change', () => { eqShowAll = showAllCb.checked; eqRender(); });
+        const showAllLbl = el('label', { for: 'eq-show-all', style: { fontSize: '12px', color: 'var(--ink-2)', cursor: 'pointer', userSelect: 'none' } }, 'incluir inativos');
+        const showAllWrap = el('span', { style: { display: 'flex', alignItems: 'center', gap: '5px' } }, showAllCb, showAllLbl);
+
         const rosterHeader = el('div', {
           style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' },
         },
           el('h3', { style: { margin: '0', fontWeight: '600', fontSize: '15px' } }, '👥 Equipe Técnica — Membros'),
           el('div', { style: { flex: '1' } }),
+          showAllWrap,
           btnNovo,
         );
 
@@ -2205,15 +2215,41 @@
               const btnEditar = el('button', { class: 'pe-btn pe-btn--ghost', style: { fontSize: '12px', padding: '3px 10px' } }, 'Editar');
               btnEditar.addEventListener('click', () => eqOpenMembroForm(m, eqRender));
 
-              const btnDesativar = el('button', {
-                class: 'pe-btn',
-                style: { fontSize: '12px', padding: '3px 10px', marginLeft: '6px',
-                  background: 'var(--red)22', color: 'var(--red)', border: '1px solid var(--red)55' },
-                disabled: !ativo,
-              }, 'Desativar');
-              if (ativo) btnDesativar.addEventListener('click', () => eqDesativar(m, eqRender));
+              let btnAcao;
+              if (ativo) {
+                btnAcao = el('button', {
+                  class: 'pe-btn',
+                  style: { fontSize: '12px', padding: '3px 10px', marginLeft: '6px',
+                    background: 'var(--red)22', color: 'var(--red)', border: '1px solid var(--red)55' },
+                }, 'Desativar');
+                btnAcao.addEventListener('click', () => eqDesativar(m, eqRender));
+              } else {
+                btnAcao = el('button', {
+                  class: 'pe-btn',
+                  style: { fontSize: '12px', padding: '3px 10px', marginLeft: '6px',
+                    background: 'var(--green)22', color: 'var(--green)', border: '1px solid var(--green)55' },
+                }, 'Reativar');
+                btnAcao.addEventListener('click', async () => {
+                  try {
+                    const res = await fetch(apiUrl('/api/manutencao/equipe/membros/' + m.id), {
+                      method: 'PUT',
+                      headers: eqAuthHeaders(),
+                      body: JSON.stringify({ ativo: 1 }),
+                    });
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({}));
+                      toast(err.detail || 'Erro ao reativar (HTTP ' + res.status + ')', 'red');
+                      return;
+                    }
+                    toast('Membro reativado.', 'green');
+                    eqRender();
+                  } catch (e) {
+                    toast('Erro de rede: ' + e.message, 'red');
+                  }
+                });
+              }
 
-              const acoesTd = el('td', { style: { ...tdStyle, whiteSpace: 'nowrap' } }, btnEditar, btnDesativar);
+              const acoesTd = el('td', { style: { ...tdStyle, whiteSpace: 'nowrap' } }, btnEditar, btnAcao);
 
               return el('tr', { style: { borderBottom: '1px solid var(--line)' } },
                 nomeEl, postoEl, espEl, statusTd, acoesTd,
