@@ -1193,9 +1193,13 @@ async def get_config(authorization: str | None = Header(None)):
     row = await db.fetch_one("SELECT * FROM equipe_config WHERE id = 1")
     if row:
         config = dict(row)
-        # Deserialize JSON fields stored as TEXT
-        config["dias_semana"] = json.loads(config["dias_semana"])
-        config["turnos"] = json.loads(config["turnos"])
+        # Deserialize JSON fields stored as TEXT; fall back to defaults on corrupt row
+        try:
+            config["dias_semana"] = json.loads(config["dias_semana"])
+            config["turnos"] = json.loads(config["turnos"])
+        except (json.JSONDecodeError, TypeError):
+            config["dias_semana"] = _DEFAULT_CONFIG["dias_semana"]
+            config["turnos"] = _DEFAULT_CONFIG["turnos"]
     else:
         # Return schema defaults without inserting (idempotent GET)
         config = dict(_DEFAULT_CONFIG)
