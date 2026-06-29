@@ -67,7 +67,9 @@
   }
 
   function canWrite() {
-    return getUserRole() !== 'visitante';
+    const role = getUserRole();
+    // 'visitante' = unauthenticated/unparseable; 'visualizador' = DB read-only role (WR-01)
+    return role !== 'visitante' && role !== 'visualizador';
   }
 
   // ── Constantes ─────────────────────────────────────────────────────────────
