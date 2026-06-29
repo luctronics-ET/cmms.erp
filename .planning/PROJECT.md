@@ -23,29 +23,24 @@ A gestão de manutenção (ativos → planos → OS → estoque) tem que funcion
 - ✓ Débito de estoque ao concluir OS (idempotente); pré-preenchimento de OS/SR por contexto — existente
 - ✓ Suíte pytest cobrindo catálogo, sync, imports e smoke de manutenção (`tests/`) — existente
 
+<!-- Entregue no milestone v1.0 (Produção: Import + Hardening). -->
+
+- ✓ Aba "Registrar Uso" — incremento atômico de `uso_atual` + histórico `uso_registros` + alerta de vencimento — **v1.0**
+- ✓ Plano no ativo: itens com checkboxes, status/progresso, estado por item em `ativo_plano_estado` (anti-double-count) — **v1.0**
+- ✓ Estoque de sobressalentes local dos técnicos (tabelas separadas do estoque central) — **v1.0**
+- ✓ Equipe Técnica (membros + config de capacidade derivada) — **v1.0**
+- ✓ Cronograma preventivo: packing greedy determinístico por capacidade de equipe + KPIs — **v1.0**
+- ✓ Residuais: disparo `por_tempo`, `departamento` na OS + SR prefill, religar `local_id`, térmico `altura_m`, role `visualizador` 403 — **v1.0**
+- ✓ Auth hardening: Argon2id com upgrade lazy do djb2, senha default removida — **v1.0**
+- ✓ QA: suíte pytest expandida (auth, docs, todas as rotas de manutenção); 2 falhas pré-existentes fechadas — **v1.0**
+- ✓ Módulo Ajuda & Documentação: ajuda contextual + repositório de documentos versionado por categoria (storage local seguro fora da árvore web) — **v1.0**
+- ✓ Limpeza: HTMLs legados de referência removidos, código limpo (tag `milestone-import-verificado`) — **v1.0**
+
 ### Active
 
-<!-- Escopo deste milestone: produção. Hipóteses até entregues e validadas. -->
+<!-- Próximo milestone — candidatos (nada em execução agora). -->
 
-**Import de features legadas (front visual bom → integrar ao `core.db`):**
-- [ ] Aba "Registrar Uso" (incremento de `uso_atual` por ativo) — de `.docs_cmasm/referencias/CMASM_Gestao_v2.html`
-- [ ] Manutenção: plano aplicado ao ativo selecionado + itens de serviço com checkboxes (multi-seleção) — de `CMASM_Gestao_v2.html`
-- [ ] Estoque de sobressalentes (estoque local dos técnicos) — de `CMASM_Gestao_v2.html`
-- [ ] Equipe Técnica — de `.docs_cmasm/referencias/cmasm13-govbr-v8_3.html`
-- [ ] Cronograma de manutenção preventiva + cálculo do cronograma considerando a equipe — de `cmasm13-govbr-v8_3.html`
-- [ ] Detalhes visuais menores adicionais, importados incrementalmente ("aos poucos")
-
-**Residuais funcionais (FALTAs do `todo.md`):**
-- [ ] Térmico real: preencher `locais.area_m2` / `altura_m`
-- [ ] Disparo `por_tempo` no vencimento (base de data/última execução)
-- [ ] SR pré-preencher ativo+item quando vier de serviço; gravar `departamento` na OS (coluna nova)
-- [ ] Religar `local_id` dos ativos não-climatização; atribuir local de `refri171`
-- [ ] Role `visualizador` enforced nas rotas (403 em escrita)
-
-**Qualidade e segurança mínima:**
-- [ ] Expandir suíte pytest cobrindo código novo/alterado (não regredir produção)
-- [ ] Segurança mínima: substituir hash djb2 por bcrypt + remover senha default `1234`/`170842`
-- [ ] Revisões/ajustes/melhorias sucessivas até o código estar OK (não precisa 100% funcional)
+(Nenhum em execução — v1.0 entregue. Candidatos a v1.1 em "Out of Scope"/v2: paginação, cache de vencimentos, CSRF/cookies/rate-limit, audit trail.)
 
 ### Out of Scope
 
@@ -57,6 +52,7 @@ A gestão de manutenção (ativos → planos → OS → estoque) tem que funcion
 
 ## Context
 
+- **Estado atual (v1.0 entregue 2026-06-29)**: 9 fases, 18 requisitos. Novos módulos no núcleo: Registrar Uso, Plano-no-ativo, Sobressalentes, Equipe Técnica, Cronograma (router `backend/manutencao.py` + `schema_manutencao.sql`), Auth Argon2id, e o módulo Ajuda & Documentação (`backend/docs.py` + `schema_docs.sql`, storage em `~/.cmasm/docs`). Suíte: 138 passed / 12 falhas pré-existentes (catalogo não-implementado + sync legado — fora de escopo). Tag `v1.0` + `milestone-import-verificado`.
 - **Brownfield**: código maduro e em uso. Mapa completo em `.planning/codebase/` (STACK, ARCHITECTURE, STRUCTURE, CONVENTIONS, TESTING, INTEGRATIONS, CONCERNS).
 - **Legado a importar**: HTMLs de referência em `.docs_cmasm/referencias/` (`CMASM_Gestao_v2.html`, `cmasm13-govbr-v8_3.html`, etc.) e material em `.delete/`. Visual/layout dessas telas é considerado bom — copiar front e ligar ao banco real.
 - **Dados de produção**: preservar tudo que já existe no `core.db` (171 máquinas refrig, catálogo, planos, OS). Nenhum import pode destruir dado existente.
@@ -76,11 +72,11 @@ A gestão de manutenção (ativos → planos → OS → estoque) tem que funcion
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Importar features do legado HTML em vez de reescrever | Visual/layout legado já bom; menor risco; aproveita trabalho feito | — Pending |
-| Import incremental ("aos poucos") com revisões sucessivas | Reduz risco em produção; permite validar cada feature antes da próxima | — Pending |
-| Migração de banco fora de escopo | Escala atual (SQLite) suficiente; migração dominaria o milestone | — Pending |
-| Segurança só mínima (bcrypt + sem default) | Rede interna; CSRF/cookies/rate-limit dariam escopo grande sem ganho proporcional agora | — Pending |
-| Preservar dados de produção; migrações aditivas | Sistema já em uso com dados reais | — Pending |
+| Importar features do legado HTML em vez de reescrever | Visual/layout legado já bom; menor risco; aproveita trabalho feito | ✓ Good — 9 fases entregues sem quebrar produção |
+| Import incremental ("aos poucos") com revisões sucessivas | Reduz risco em produção; permite validar cada feature antes da próxima | ✓ Good — review+verify por fase pegou bugs reais (XSS, auth bypass, crash pós-commit) |
+| Migração de banco fora de escopo | Escala atual (SQLite) suficiente; migração dominaria o milestone | ✓ Good |
+| Segurança mínima (Argon2id + sem default) | Rede interna; CSRF/cookies/rate-limit fora de escopo | ✓ Good — usou Argon2id (não bcrypt); upgrade lazy sem lockout |
+| Preservar dados de produção; migrações aditivas | Sistema já em uso com dados reais | ✓ Good — todas migrações aditivas, db.init() idempotente |
 
 ## Evolution
 
@@ -100,4 +96,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-28 after initialization*
+*Last updated: 2026-06-29 after v1.0 milestone*
