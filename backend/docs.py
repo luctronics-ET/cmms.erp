@@ -348,25 +348,35 @@ async def upload_versao(
         # Caminho relativo para armazenar no DB (relativo a _DATA_DOCS, nunca a data/)
         rel_path = os.path.relpath(abs_path, start=_DATA_DOCS)
 
-        # Gravar bytes em disco com aiofiles ANTES do INSERT no DB
+        # CR-02: write file first, then INSERT+commit; on any DB failure remove the
+        # orphaned file before re-raising so no dangling bytes are left on disk.
         async with aiofiles.open(abs_path, "wb") as f:
             await f.write(contents)
 
-        await conn.execute(
-            "INSERT INTO docs_versoes "
-            "(documento_id, versao, arquivo_path, arquivo_nome, mime, tamanho, autor) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                doc_id,
-                next_v,
-                rel_path,
-                file.filename,              # original filename — metadata only
-                file.content_type,          # client mime — metadata only, not trusted
-                len(contents),
-                user["nome"],
-            ),
-        )
-        await conn.commit()
+        try:
+            await conn.execute(
+                "INSERT INTO docs_versoes "
+                "(documento_id, versao, arquivo_path, arquivo_nome, mime, tamanho, autor) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    doc_id,
+                    next_v,
+                    rel_path,
+                    file.filename,              # original filename — metadata only
+                    file.content_type,          # client mime — metadata only, not trusted
+                    len(contents),
+                    user["nome"],
+                ),
+            )
+            await conn.commit()
+        except Exception:
+            # INSERT or commit failed (e.g. UNIQUE constraint, I/O error).
+            # Remove the just-written file so no orphan bytes survive on disk.
+            try:
+                os.remove(abs_path)
+            except OSError:
+                pass
+            raise
 
     return {
         "documento_id": doc_id,
