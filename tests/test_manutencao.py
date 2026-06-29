@@ -812,3 +812,164 @@ def test_cronograma_requires_auth(app_client):
     client, _main = app_client
     r = client.get("/api/manutencao/cronograma")
     assert r.status_code == 401, f"Expected 401 without auth, got {r.status_code}: {r.text}"
+
+
+# ──────────────────────────── Fase 06: RES-01 por_tempo vencimentos ──────────
+
+
+def _seed_por_tempo_plano(main, ativo_id: str = "pt-001", intervalo_dias: int = 90) -> dict:
+    """Seeds ativo + catalogo entries for a por_tempo plan.
+
+    Returns dict with keys: ativo_id, servico_id, plano_id, item_id.
+    """
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO ativos "
+        "(id, nome, tipo, categoria, uso_atual, unidade_uso, ativo) "
+        "VALUES (?, ?, 'AC_SPLIT', 'refrigeracao', 0, 'h', 1)",
+        (ativo_id, f"Ativo PorTempo {ativo_id}"),
+    )
+
+    servico_id = f"svc-pt-{ativo_id}"
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO catalogo_servicos "
+        "(id, codigo, nome, escopo, criado_por_modulo, ativo) "
+        "VALUES (?, 'LIMP_PT', 'Limpeza PorTempo', 'central', 'manutencao', 1)",
+        (servico_id,),
+    )
+
+    plano_id = f"pln-pt-{ativo_id}"
+    frequencia = f'{{"tipo":"por_tempo","valor":{intervalo_dias},"unidade":"dias"}}'
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO catalogo_planos "
+        "(id, codigo, nome, categoria, tipo_codigo, ativo, frequencia) "
+        "VALUES (?, 'PT-TEST', 'Plano PorTempo', 'climatizacao', 'AC_SPLIT', 1, ?)",
+        (plano_id, frequencia),
+    )
+
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO catalogo_plano_itens "
+        "(plano_id, servico_id, seq, classe) "
+        "VALUES (?, ?, 0, 'prev')",
+        (plano_id, servico_id),
+    )
+
+    rows = _query(main, "SELECT id FROM catalogo_plano_itens WHERE plano_id = ?", (plano_id,))
+    item_id = rows[0]["id"]
+
+    return {
+        "ativo_id": ativo_id,
+        "servico_id": servico_id,
+        "plano_id": plano_id,
+        "item_id": item_id,
+    }
+
+
+def test_por_tempo_alerta_por_data(app_client):
+    """por_tempo plan fires an alert when last execution >= intervalo days ago.
+
+    Seeds a manut_registro dated 91 days ago (past the 90-day interval) and verifies
+    that GET /api/manutencao/vencimentos returns an alert entry for this ativo.
+    """
+    import datetime
+    client, main = app_client
+    headers = _auth(main)
+
+    ids = _seed_por_tempo_plano(main, ativo_id="pt-002", intervalo_dias=90)
+    ativo_id = ids["ativo_id"]
+
+    # Seed a manut_registro 91 days ago (past threshold)
+    data_antiga = (datetime.date.today() - datetime.timedelta(days=91)).isoformat()
+    _exec(
+        main,
+        "INSERT INTO manut_registros (ativo_id, responsavel, data, uso_no_momento, itens_json) "
+        "VALUES (?, 'Tecnico', ?, 0, '[]')",
+        (ativo_id, data_antiga),
+    )
+
+    r = client.get("/api/manutencao/vencimentos?categoria=refrigeracao", headers=headers)
+    assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+    data = r.json()
+
+    # Find alert entry for this ativo
+    alertas = [e for e in data if e.get("ativo_id") == ativo_id]
+    assert len(alertas) >= 1, (
+        f"Expected at least 1 alert for por_tempo ativo {ativo_id} with 91-day-old registro; "
+        f"got 0 from response: {data}"
+    )
+    alerta = alertas[0]
+    assert alerta.get("unidade") == "dias", f"Expected unidade='dias', got {alerta}"
+    assert "proximo" in alerta, f"por_tempo alert must include 'proximo' key: {alerta}"
+    assert "falta" in alerta, f"por_tempo alert must include 'falta' key: {alerta}"
+
+
+def test_por_tempo_sem_registro_nao_alerta(app_client):
+    """por_tempo plan with NO manut_registros does NOT alert and does NOT crash."""
+    client, main = app_client
+    headers = _auth(main)
+
+    ids = _seed_por_tempo_plano(main, ativo_id="pt-003", intervalo_dias=90)
+    ativo_id = ids["ativo_id"]
+    # No manut_registros seeded for this ativo
+
+    r = client.get("/api/manutencao/vencimentos?categoria=refrigeracao", headers=headers)
+    assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+    data = r.json()
+
+    alertas = [e for e in data if e.get("ativo_id") == ativo_id]
+    assert len(alertas) == 0, (
+        f"Expected 0 alerts for por_tempo ativo with no manut_registros; got {alertas}"
+    )
+
+
+def test_por_tempo_recente_nao_alerta(app_client):
+    """por_tempo plan does NOT alert when last execution is recent (well within interval)."""
+    import datetime
+    client, main = app_client
+    headers = _auth(main)
+
+    ids = _seed_por_tempo_plano(main, ativo_id="pt-004", intervalo_dias=90)
+    ativo_id = ids["ativo_id"]
+
+    # Seed a registro from just 5 days ago (far from the 90-day threshold)
+    data_recente = (datetime.date.today() - datetime.timedelta(days=5)).isoformat()
+    _exec(
+        main,
+        "INSERT INTO manut_registros (ativo_id, responsavel, data, uso_no_momento, itens_json) "
+        "VALUES (?, 'Tecnico', ?, 0, '[]')",
+        (ativo_id, data_recente),
+    )
+
+    r = client.get("/api/manutencao/vencimentos?categoria=refrigeracao", headers=headers)
+    assert r.status_code == 200
+    data = r.json()
+
+    alertas = [e for e in data if e.get("ativo_id") == ativo_id]
+    assert len(alertas) == 0, (
+        f"Expected 0 alerts for por_tempo with recent execution (5 days ago / 90-day interval); "
+        f"got {alertas}"
+    )
+
+
+def test_por_uso_nao_afetado_por_por_tempo(app_client):
+    """por_uso plan remains unaffected when por_tempo branch is added."""
+    client, main = app_client
+    headers = _auth(main)
+
+    ids = _seed_plano(main, ativo_id="pu-001", uso_inicial=1000.0)
+    ativo_id = ids["ativo_id"]
+    # uso_atual=1000, interval=250 → proximo=1250, falta=250 → not within 15% window (37.5)
+    # So no alert expected; test is really "no crash + correct filtering"
+
+    r = client.get("/api/manutencao/vencimentos", headers=headers)
+    assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+    data = r.json()
+    # por_uso ativo must still appear only when within window (not in this case)
+    por_uso_entries = [e for e in data if e.get("ativo_id") == ativo_id]
+    # No alert expected (falta=250 >> iv*0.15=37.5)
+    assert len(por_uso_entries) == 0, (
+        f"por_uso ativo with falta=250 (>>37.5 threshold) should not alert; got {por_uso_entries}"
+    )
