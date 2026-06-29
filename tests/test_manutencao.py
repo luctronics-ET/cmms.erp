@@ -955,21 +955,35 @@ def test_por_tempo_recente_nao_alerta(app_client):
 
 
 def test_por_uso_nao_afetado_por_por_tempo(app_client):
-    """por_uso plan remains unaffected when por_tempo branch is added."""
+    """por_uso plan remains unaffected when por_tempo branch is added.
+
+    Verifies that a por_uso plan entry:
+    - Has unidade != 'dias' (not contaminated by por_tempo branch)
+    - Has uso_atual set (por_tempo sets uso_atual=None)
+    - Has pct set (por_tempo sets pct=None)
+    """
     client, main = app_client
     headers = _auth(main)
 
     ids = _seed_plano(main, ativo_id="pu-001", uso_inicial=1000.0)
     ativo_id = ids["ativo_id"]
-    # uso_atual=1000, interval=250 → proximo=1250, falta=250 → not within 15% window (37.5)
-    # So no alert expected; test is really "no crash + correct filtering"
 
     r = client.get("/api/manutencao/vencimentos", headers=headers)
     assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
     data = r.json()
-    # por_uso ativo must still appear only when within window (not in this case)
+
+    # por_uso entry: must be present with por_uso-specific fields intact
     por_uso_entries = [e for e in data if e.get("ativo_id") == ativo_id]
-    # No alert expected (falta=250 >> iv*0.15=37.5)
-    assert len(por_uso_entries) == 0, (
-        f"por_uso ativo with falta=250 (>>37.5 threshold) should not alert; got {por_uso_entries}"
+    assert len(por_uso_entries) >= 1, f"por_uso entry missing from response: {data}"
+    entry = por_uso_entries[0]
+
+    # por_tempo branch must NOT have contaminated this entry
+    assert entry.get("unidade") != "dias", (
+        f"por_uso entry should not have unidade='dias'; got {entry}"
+    )
+    assert entry.get("uso_atual") is not None, (
+        f"por_uso entry must have uso_atual set (por_tempo sets None); got {entry}"
+    )
+    assert entry.get("pct") is not None, (
+        f"por_uso entry must have pct set (por_tempo sets None); got {entry}"
     )

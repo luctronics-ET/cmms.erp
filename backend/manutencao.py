@@ -107,7 +107,40 @@ async def _vencimentos_para_ativo(ativo_id: str, uso_atual_novo: float) -> list[
                 f = json.loads(raw)
                 if not isinstance(f, dict):
                     continue                       # guard: bare number/array/string
-                if f.get("tipo") != "por_uso" or not f.get("valor"):
+                if f.get("tipo") == "por_tempo":
+                    valor = f.get("valor")
+                    if not valor:
+                        continue
+                    ultima = await db.fetch_one(
+                        "SELECT MAX(data) AS d FROM manut_registros WHERE ativo_id = ?",
+                        (ativo_id,),
+                    )
+                    ultima_data = ultima["d"] if ultima and ultima["d"] else None
+                    if not ultima_data:
+                        continue  # sem base de data → sem alerta
+                    try:
+                        dt_ultima = date.fromisoformat(ultima_data)
+                    except ValueError:
+                        continue
+                    dt_prox = dt_ultima + timedelta(days=int(valor))
+                    falta_dias = (dt_prox - date.today()).days
+                    if falta_dias <= int(valor) * 0.15:
+                        out.append({
+                            "ativo_id": ativo_id,
+                            "ativo_nome": ativo["nome"],
+                            "plano_id": p["id"],
+                            "plano_nome": p["nome"],
+                            "servico_id": it["servico_id"],
+                            "servico": it["nome"],
+                            "intervalo": int(valor),
+                            "unidade": "dias",
+                            "uso_atual": None,
+                            "proximo": dt_prox.isoformat(),
+                            "falta": falta_dias,
+                            "pct": None,
+                        })
+                    continue  # por_tempo never falls into por_uso path
+                elif f.get("tipo") != "por_uso" or not f.get("valor"):
                     continue
                 iv = float(f["valor"])             # coerce string to float defensively
                 if iv <= 0:
