@@ -15,7 +15,7 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 - [x] **Phase 2: Plano no Ativo** - Import dos checkboxes de plano por ativo com estado persistido por máquina (completed 2026-06-29)
 - [x] **Phase 3: Estoque Sobressalentes** - Import do estoque local dos técnicos separado do estoque central (completed 2026-06-29)
 - [x] **Phase 4: Equipe Tecnica** - Import do cadastro de equipe e configuração de capacidade (completed 2026-06-29)
-- [ ] **Phase 5: Cronograma Preventivo** - Import do cronograma calculado com packing diário por capacidade de equipe
+- [x] **Phase 5: Cronograma Preventivo** - Import do cronograma calculado com packing diário por capacidade de equipe (completed 2026-06-29)
 - [ ] **Phase 6: Residuais Funcionais** - Disparo por_tempo, departamento na OS, religar local_id, térmico real, role visualizador
 - [ ] **Phase 7: Auth Hardening** - Substituir djb2 por Argon2id com upgrade lazy; remover senha default; expandir pytest
 - [ ] **Phase 8: Limpeza Final** - Remover HTMLs legados de referência após verificação; checkpoint git
@@ -116,9 +116,10 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
   3. O cronograma respeita os dias úteis e turnos configurados na Fase 4 (Equipe Técnica) — alterar a config da equipe altera o cronograma no reload
   4. `pytest tests/test_manutencao.py::test_cronograma` verde; algoritmo de packing greedy produz resultado determinístico para um dataset fixo de ativos e config de equipe conhecida
 
-**Plans**: 2 plans
-- [ ] 05-01-PLAN.md — Endpoint computado GET /api/manutencao/cronograma (greedy packing + KPIs) + testes determinísticos
-- [ ] 05-02-PLAN.md — Aba "Cronograma" no frontend (vista dia-a-dia, badges, barras de capacidade, KPIs, alerta)
+**Plans**: 2/2 plans complete
+
+- [x] 05-01-PLAN.md — Endpoint computado GET /api/manutencao/cronograma (greedy packing + KPIs) + testes determinísticos
+- [x] 05-02-PLAN.md — Aba "Cronograma" no frontend (vista dia-a-dia, badges, barras de capacidade, KPIs, alerta)
 
 **UI hint**: yes
 
@@ -176,7 +177,7 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 | 2. Plano no Ativo | 2/2 | Complete    | 2026-06-29 |
 | 3. Estoque Sobressalentes | 2/2 | Complete    | 2026-06-29 |
 | 4. Equipe Tecnica | 2/2 | Complete    | 2026-06-29 |
-| 5. Cronograma Preventivo | 0/? | Not started | - |
+| 5. Cronograma Preventivo | 2/2 | Complete   | 2026-06-29 |
 | 6. Residuais Funcionais | 0/? | Not started | - |
 | 7. Auth Hardening | 0/? | Not started | - |
 | 8. Limpeza Final | 0/? | Not started | - |
