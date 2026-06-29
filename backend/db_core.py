@@ -32,6 +32,8 @@ class CoreDB:
                 ("criticidade",       "ALTER TABLE ativos ADD COLUMN criticidade TEXT DEFAULT 'operacional'"),
                 ("responsavel_pmoc",  "ALTER TABLE ativos ADD COLUMN responsavel_pmoc TEXT"),
                 ("janela_default",    "ALTER TABLE ativos ADD COLUMN janela_default TEXT"),
+                # RES-03 — local onde o ativo está instalado (backfill via tools/backfill_local_id.py)
+                ("local_id", "ALTER TABLE ativos ADD COLUMN local_id INTEGER REFERENCES locais(id)"),
             ]:
                 if col not in existing:
                     await db.execute(ddl)
@@ -64,6 +66,8 @@ class CoreDB:
                 ("subcategoria",            "ALTER TABLE ordens_servico ADD COLUMN subcategoria TEXT"),
                 ("servicos",                "ALTER TABLE ordens_servico ADD COLUMN servicos TEXT"),
                 ("veiculos",                "ALTER TABLE ordens_servico ADD COLUMN veiculos TEXT"),
+                # RES-02 — lotação/departamento da OS (opcional; clientes antigos não precisam enviar)
+                ("departamento",            "ALTER TABLE ordens_servico ADD COLUMN departamento TEXT"),
             ]:
                 if col not in os_existing:
                     await db.execute(ddl)

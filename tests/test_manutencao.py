@@ -1050,3 +1050,183 @@ def test_por_uso_nao_afetado_por_por_tempo(app_client):
     assert entry.get("pct") is not None, (
         f"por_uso entry must have pct set (por_tempo sets None); got {entry}"
     )
+
+
+# ──────────────────────────── Fase 06-02: RES-02 / RES-03 / RES-05 ──────────
+
+
+def test_departamento_persists_on_os(app_client):
+    """RES-02: POST /api/os com departamento → campo gravado; GET /api/os/{id} retorna."""
+    client, main = app_client
+
+    # POST sem auth (modulo_origem set) → 201 com departamento
+    r = client.post(
+        "/api/os",
+        json={
+            "titulo": "OS com departamento",
+            "tipo": "corretiva",
+            "modulo_origem": "teste",
+            "departamento": "CMASM-20",
+        },
+    )
+    assert r.status_code == 201, f"Expected 201, got {r.status_code}: {r.text}"
+    created = r.json()
+    os_id = created["id"]
+    assert created.get("departamento") == "CMASM-20", (
+        f"departamento should be 'CMASM-20' in create response; got {created.get('departamento')}"
+    )
+
+    # GET /api/os/{id} → round-trips departamento
+    r2 = client.get(f"/api/os/{os_id}")
+    assert r2.status_code == 200, f"GET /api/os/{os_id} expected 200; got {r2.status_code}"
+    got = r2.json()
+    assert got.get("departamento") == "CMASM-20", (
+        f"departamento round-trip FAILED: expected 'CMASM-20', got {got.get('departamento')}"
+    )
+
+
+def test_departamento_optional_no_break(app_client):
+    """RES-02: POST /api/os sem departamento → 201; departamento é null (sem contrato quebrado)."""
+    client, main = app_client
+
+    r = client.post(
+        "/api/os",
+        json={"titulo": "OS sem departamento", "modulo_origem": "teste"},
+    )
+    assert r.status_code == 201, f"Expected 201, got {r.status_code}: {r.text}"
+    body = r.json()
+    assert body.get("departamento") is None, (
+        f"departamento should be null when not sent; got {body.get('departamento')}"
+    )
+
+
+def test_ativos_expoe_local_id(app_client):
+    """RES-03: GET /api/ativos expõe campo local_id após migração aditiva."""
+    client, main = app_client
+
+    # Cria ativo via DB direto (sem local_id para verificar que o campo existe)
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO ativos (id, nome, tipo, categoria, uso_atual, unidade_uso, ativo) "
+        "VALUES ('res03-ativo', 'Ativo Teste RES-03', 'AC_SPLIT', 'refrigeracao', 0, 'h', 1)",
+    )
+
+    r = client.get("/api/ativos")
+    assert r.status_code == 200, f"Expected 200, got {r.status_code}"
+    rows = r.json()
+    # Pelo menos o ativo inserido deve estar na lista
+    found = [a for a in rows if a["id"] == "res03-ativo"]
+    assert len(found) == 1, "ativo res03-ativo não encontrado em GET /api/ativos"
+    ativo = found[0]
+    assert "local_id" in ativo, (
+        f"local_id deve estar presente no response; chaves retornadas: {list(ativo.keys())}"
+    )
+
+
+def test_visualizador_bloqueado_em_escrita(app_client):
+    """RES-05: usuário com role='visualizador' recebe 403 em rotas de escrita."""
+    client, main = app_client
+
+    # Cria usuário visualizador
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO usuarios (id, nome, mat, pw_hash, role, ativo) "
+        "VALUES (99, 'Viewer', '999999', 'hash', 'visualizador', 1)",
+    )
+    token_vis = "viewer-token-999"
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO sessoes (token, usuario_id, expira_em) "
+        "VALUES (?, 99, datetime('now', '+8 hours'))",
+        (token_vis,),
+    )
+    headers_vis = {"Authorization": f"Bearer {token_vis}"}
+
+    # POST /api/ativos → 403
+    r = client.post(
+        "/api/ativos",
+        json={"tipo": "AC_SPLIT", "categoria": "refrigeracao", "nome": "Bloqueado"},
+        headers=headers_vis,
+    )
+    assert r.status_code == 403, (
+        f"visualizador deve receber 403 em POST /api/ativos; got {r.status_code}: {r.text}"
+    )
+
+    # PUT /api/os/{id}/status → precisa de OS primeiro (via modulo_origem path)
+    r_os = client.post(
+        "/api/os",
+        json={"titulo": "OS para teste 403", "modulo_origem": "teste"},
+    )
+    assert r_os.status_code == 201
+    os_id = r_os.json()["id"]
+
+    r_status = client.put(
+        f"/api/os/{os_id}/status",
+        json={"para_status": "em_andamento"},
+        headers=headers_vis,
+    )
+    assert r_status.status_code == 403, (
+        f"visualizador deve receber 403 em PUT /api/os/{{id}}/status; got {r_status.status_code}"
+    )
+
+
+def test_visualizador_pode_ler(app_client):
+    """RES-05: usuário com role='visualizador' recebe 200 em GET /api/ativos (leitura livre)."""
+    client, main = app_client
+
+    # Cria usuário visualizador
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO usuarios (id, nome, mat, pw_hash, role, ativo) "
+        "VALUES (98, 'Viewer2', '999998', 'hash', 'visualizador', 1)",
+    )
+    token_vis = "viewer2-token-998"
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO sessoes (token, usuario_id, expira_em) "
+        "VALUES (?, 98, datetime('now', '+8 hours'))",
+        (token_vis,),
+    )
+    headers_vis = {"Authorization": f"Bearer {token_vis}"}
+
+    # GET /api/ativos → 200 (leitura livre, não requer role)
+    r = client.get("/api/ativos", headers=headers_vis)
+    assert r.status_code == 200, (
+        f"visualizador deve poder ler GET /api/ativos; got {r.status_code}: {r.text}"
+    )
+
+
+def test_os_modulo_origem_sem_token(app_client):
+    """RES-05: POST /api/os com modulo_origem funciona sem token (path de módulo externo)."""
+    client, main = app_client
+
+    # Sem Authorization header, mas com modulo_origem → 201
+    r = client.post(
+        "/api/os",
+        json={
+            "titulo": "OS de módulo externo",
+            "tipo": "corretiva",
+            "modulo_origem": "aguada-web",
+        },
+    )
+    assert r.status_code == 201, (
+        f"POST /api/os com modulo_origem deve funcionar sem token (contrato MODULOS_EXTERNOS.md); "
+        f"got {r.status_code}: {r.text}"
+    )
+    body = r.json()
+    assert body.get("modulo_origem") == "aguada-web"
+
+
+def test_operador_pode_escrever(app_client):
+    """RES-05: operador (role != visualizador) consegue fazer escrita normalmente."""
+    client, main = app_client
+    headers = _auth(main)  # seed user é admin
+
+    r = client.post(
+        "/api/ativos",
+        json={"tipo": "AC_SPLIT", "categoria": "refrigeracao", "nome": "Split Operador"},
+        headers=headers,
+    )
+    assert r.status_code == 201, (
+        f"operador/admin deve conseguir POST /api/ativos; got {r.status_code}: {r.text}"
+    )

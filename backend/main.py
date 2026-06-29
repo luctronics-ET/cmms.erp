@@ -909,6 +909,8 @@ class OSIn(BaseModel):
     data_prevista: Optional[str] = None
     custo_estimado: Optional[float] = None
     observacoes: Optional[str] = None
+    # RES-02 — lotação/departamento; opcional; GET auto-retorna via SELECT o.*
+    departamento: Optional[str] = None
 
 
 class OSStatusIn(BaseModel):
@@ -2051,11 +2053,13 @@ async def create_os(body: OSIn):
     await db.execute(
         """INSERT INTO ordens_servico
            (id, codigo, titulo, descricao, tipo, prioridade, modulo_origem,
-            solicitante_id, responsavel_id, local_id, data_prevista, custo_estimado, observacoes)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            solicitante_id, responsavel_id, local_id, data_prevista, custo_estimado, observacoes,
+            departamento)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (oid, codigo, body.titulo, body.descricao, body.tipo, body.prioridade,
          body.modulo_origem, body.solicitante_id, body.responsavel_id,
-         body.local_id, body.data_prevista, body.custo_estimado, body.observacoes),
+         body.local_id, body.data_prevista, body.custo_estimado, body.observacoes,
+         body.departamento),
     )
     await db.execute(
         "INSERT INTO os_historico (os_id, status_de, status_para, obs) VALUES (?,?,?,?)",
