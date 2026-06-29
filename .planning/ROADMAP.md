@@ -16,9 +16,10 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 - [x] **Phase 3: Estoque Sobressalentes** - Import do estoque local dos técnicos separado do estoque central (completed 2026-06-29)
 - [x] **Phase 4: Equipe Tecnica** - Import do cadastro de equipe e configuração de capacidade (completed 2026-06-29)
 - [x] **Phase 5: Cronograma Preventivo** - Import do cronograma calculado com packing diário por capacidade de equipe (completed 2026-06-29)
-- [ ] **Phase 6: Residuais Funcionais** - Disparo por_tempo, departamento na OS, religar local_id, térmico real, role visualizador
+- [x] **Phase 6: Residuais Funcionais** - Disparo por_tempo, departamento na OS, religar local_id, térmico real, role visualizador (completed 2026-06-29)
 - [ ] **Phase 7: Auth Hardening** - Substituir djb2 por Argon2id com upgrade lazy; remover senha default; expandir pytest
-- [ ] **Phase 8: Limpeza Final** - Remover HTMLs legados de referência após verificação; checkpoint git
+- [ ] **Phase 8: Módulo Ajuda & Documentação** - Ajuda contextual + repositório de documentos/formulários versionado por categoria + guias de normas
+- [ ] **Phase 9: Limpeza Final** - Remover HTMLs legados de referência após verificação; checkpoint git
 
 ## Phase Details
 
@@ -138,9 +139,10 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
   5. Rotas de escrita (`POST /api/os`, `POST /api/ativos`, `POST /api/estoque/{id}/movimentos`, etc.) retornam HTTP 403 para usuários com role `visualizador`; leitura (`GET`) continua funcionando
 
 **Plans**: 3 plans
-- [ ] 06-01-PLAN.md — Schema migration altura_m + por_tempo trigger in both vencimento paths + thermal NULL-safe (RES-01, RES-04)
-- [ ] 06-02-PLAN.md — departamento on OS + local_id migration/backfill + visualizador 403 guard with external-module path preserved (RES-02, RES-03, RES-05)
-- [ ] 06-03-PLAN.md — Frontend SR prefill (ativo+item) + refri171 local assignable via ficha (RES-02, RES-03)
+
+- [x] 06-01-PLAN.md — Schema migration altura_m + por_tempo trigger in both vencimento paths + thermal NULL-safe (RES-01, RES-04)
+- [x] 06-02-PLAN.md — departamento on OS + local_id migration/backfill + visualizador 403 guard with external-module path preserved (RES-02, RES-03, RES-05)
+- [x] 06-03-PLAN.md — Frontend SR prefill (ativo+item) + refri171 local assignable via ficha (RES-02, RES-03)
 
 ### Phase 7: Auth Hardening
 
@@ -197,7 +199,7 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 | 3. Estoque Sobressalentes | 2/2 | Complete    | 2026-06-29 |
 | 4. Equipe Tecnica | 2/2 | Complete    | 2026-06-29 |
 | 5. Cronograma Preventivo | 2/2 | Complete    | 2026-06-29 |
-| 6. Residuais Funcionais | 3/3 | Planned | - |
+| 6. Residuais Funcionais | 3/3 | Complete    | 2026-06-29 |
 | 7. Auth Hardening | 0/? | Not started | - |
 | 8. Módulo Ajuda & Documentação | 0/? | Not started | - |
 | 9. Limpeza Final | 0/? | Not started | - |
