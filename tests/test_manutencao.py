@@ -1234,3 +1234,150 @@ def test_operador_pode_escrever(app_client):
     assert r.status_code == 201, (
         f"operador/admin deve conseguir POST /api/ativos; got {r.status_code}: {r.text}"
     )
+
+
+# ──────────────────────────── Fase 01: Registrar Uso (IMP-01) ────────────────
+
+
+def _seed_uso_ativo(main, ativo_id: str = "uso-001", uso_inicial: float = 100.0) -> str:
+    """Seed an ativo for POST/GET /api/manutencao/uso tests."""
+    _exec(
+        main,
+        "INSERT OR IGNORE INTO ativos "
+        "(id, nome, tipo, categoria, uso_atual, unidade_uso, ativo) "
+        "VALUES (?, ?, 'AC_SPLIT', 'refrigeracao', ?, 'h', 1)",
+        (ativo_id, f"Ativo Uso {ativo_id}", uso_inicial),
+    )
+    return ativo_id
+
+
+def test_registrar_uso_post_atomico(app_client):
+    """POST /api/manutencao/uso — incremento atômico de uso_atual + audit row.
+
+    Covers (Phase 1 / IMP-01):
+      - 201 response with uso_atual, valor_anterior, delta, vencimentos_disparados
+      - ativos.uso_atual updated by delta (atomically)
+      - uso_registros audit row inserted with correct fields
+      - Auth: requires Bearer token (401 without)
+    """
+    client, main = app_client
+    headers = _auth(main)
+    ativo_id = _seed_uso_ativo(main, ativo_id="uso-001", uso_inicial=100.0)
+
+    # ── Auth: POST without token → 401 ───────────────────────────────────────
+    r_unauth = client.post(
+        "/api/manutencao/uso",
+        json={"ativo_id": ativo_id, "delta": 10.0},
+    )
+    assert r_unauth.status_code == 401, f"Expected 401 without token, got {r_unauth.status_code}"
+
+    # ── POST: increment uso_atual by delta ────────────────────────────────────
+    r = client.post(
+        "/api/manutencao/uso",
+        json={"ativo_id": ativo_id, "delta": 25.5, "observacao": "Operacao 1"},
+        headers=headers,
+    )
+    assert r.status_code == 201, f"Expected 201, got {r.status_code}: {r.text}"
+    body = r.json()
+
+    # Response fields
+    assert body["delta"] == 25.5
+    assert body["valor_anterior"] == 100.0
+    assert body["uso_atual"] == 125.5
+    assert "vencimentos_disparados" in body
+
+    # DB: uso_atual updated atomically
+    db_rows = _query(main, "SELECT uso_atual FROM ativos WHERE id = ?", (ativo_id,))
+    assert len(db_rows) == 1
+    assert db_rows[0]["uso_atual"] == 125.5, (
+        f"uso_atual not updated: expected 125.5, got {db_rows[0]['uso_atual']}"
+    )
+
+    # DB: audit row inserted in uso_registros
+    audit_rows = _query(
+        main,
+        "SELECT delta, valor_anterior, valor_novo, observacao FROM uso_registros WHERE ativo_id = ?",
+        (ativo_id,),
+    )
+    assert len(audit_rows) == 1, f"Expected 1 audit row, got {len(audit_rows)}"
+    row = audit_rows[0]
+    assert row["delta"] == 25.5
+    assert row["valor_anterior"] == 100.0
+    assert row["valor_novo"] == 125.5
+    assert row["observacao"] == "Operacao 1"
+
+    # ── Second POST: increments from the new value ────────────────────────────
+    r2 = client.post(
+        "/api/manutencao/uso",
+        json={"ativo_id": ativo_id, "delta": 10.0},
+        headers=headers,
+    )
+    assert r2.status_code == 201
+    body2 = r2.json()
+    assert body2["valor_anterior"] == 125.5
+    assert body2["uso_atual"] == 135.5
+
+    # ── 404: nonexistent ativo ────────────────────────────────────────────────
+    r_404 = client.post(
+        "/api/manutencao/uso",
+        json={"ativo_id": "nao-existe-999", "delta": 1.0},
+        headers=headers,
+    )
+    assert r_404.status_code == 404, f"Expected 404 for nonexistent ativo, got {r_404.status_code}"
+
+    # ── 422: delta <= 0 rejected by validator ─────────────────────────────────
+    r_neg = client.post(
+        "/api/manutencao/uso",
+        json={"ativo_id": ativo_id, "delta": -5.0},
+        headers=headers,
+    )
+    assert r_neg.status_code == 422, f"Expected 422 for delta<=0, got {r_neg.status_code}"
+
+
+def test_listar_uso_get(app_client):
+    """GET /api/manutencao/uso — retorna histórico ordenado mais recente primeiro.
+
+    Covers (Phase 1 / IMP-01):
+      - 200 response (list or dict with items)
+      - Records appear after POST /uso
+      - ativo_id filter: returns only records for that ativo
+      - Auth: requires Bearer token (401 without)
+    """
+    client, main = app_client
+    headers = _auth(main)
+    ativo_a = _seed_uso_ativo(main, ativo_id="uso-list-a", uso_inicial=200.0)
+    ativo_b = _seed_uso_ativo(main, ativo_id="uso-list-b", uso_inicial=300.0)
+
+    # ── Auth: GET without token → 401 ────────────────────────────────────────
+    r_unauth = client.get("/api/manutencao/uso")
+    assert r_unauth.status_code == 401, f"Expected 401 without token, got {r_unauth.status_code}"
+
+    # ── POST two records for ativo_a and one for ativo_b ─────────────────────
+    client.post("/api/manutencao/uso", json={"ativo_id": ativo_a, "delta": 5.0}, headers=headers)
+    client.post("/api/manutencao/uso", json={"ativo_id": ativo_a, "delta": 3.0}, headers=headers)
+    client.post("/api/manutencao/uso", json={"ativo_id": ativo_b, "delta": 7.0}, headers=headers)
+
+    # ── GET all: must include records for both ativos ─────────────────────────
+    r_all = client.get("/api/manutencao/uso", headers=headers)
+    assert r_all.status_code == 200, f"Expected 200, got {r_all.status_code}: {r_all.text}"
+    all_records = r_all.json()
+    assert isinstance(all_records, list), f"Expected list, got {type(all_records)}"
+    assert len(all_records) >= 3, f"Expected at least 3 records, got {len(all_records)}"
+
+    # ativo_nome should be present (JOIN with ativos)
+    first = all_records[0]
+    assert "ativo_nome" in first, f"ativo_nome not in response; keys: {list(first.keys())}"
+    assert "delta" in first, f"delta not in response; keys: {list(first.keys())}"
+
+    # ── GET with ativo_id filter: only ativo_a records ───────────────────────
+    r_filter = client.get(
+        f"/api/manutencao/uso?ativo_id={ativo_a}",
+        headers=headers,
+    )
+    assert r_filter.status_code == 200
+    filtered = r_filter.json()
+    assert len(filtered) == 2, f"Expected 2 records for {ativo_a}, got {len(filtered)}"
+    for rec in filtered:
+        assert rec["ativo_id"] == ativo_a, (
+            f"ativo_id filter leaked: expected {ativo_a}, got {rec['ativo_id']}"
+        )
