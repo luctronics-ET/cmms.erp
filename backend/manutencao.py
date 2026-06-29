@@ -1406,15 +1406,16 @@ def computar_cronograma(
     guard = 0
 
     for job in fila:
-        guard += 1
-        if guard > MAX_JOBS:
+        if guard >= MAX_JOBS:
             break
+        guard += 1
 
         job_min = job["duracao_min"]
 
         # Overflow only when current day already has at least 1 item (JS lines 2025-2027)
         if job_min > restante and len(dia_atual["itens"]) > 0:
             if len(dias) >= MAX_DAYS:
+                guard -= 1   # undo: job was not scheduled
                 break
             dia_atual, restante = novo_dia()
 
