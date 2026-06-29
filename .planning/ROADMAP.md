@@ -177,7 +177,11 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
   4. Documentos e guias organizados por categoria (mesmas categorias do PMOC: refrigeracao, predial, paiois, transportes, grama, eletrica, calibracao)
   5. `pytest tests/test_docs.py` verde: CRUD documento + nova versão (versão++, histórico preservado) + ajuda GET/PUT; migrações aditivas idempotentes
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+- [ ] 08-01-PLAN.md — Backend: schema_docs.sql (3 tabelas) + _SCHEMAS, backend/docs.py router (ajuda upsert + documentos CRUD + upload/download seguro com whitelist categoria/extensão, teto 25 MB, path server-controlled, versionamento atômico) + include_router em main.py
+- [ ] 08-02-PLAN.md — tests/test_docs.py: ajuda upsert, versão 1→2 com histórico, download de bytes, listagem por categoria, rejeições de extensão/tamanho/traversal (4xx), visualizador 403, idempotência de migração; sem regressão vs baseline
+- [ ] 08-03-PLAN.md — Frontend: aba "Documentos" (navegação categoria+tipo, +Novo, upload de versão, histórico, download, badges) + drawer de ajuda contextual "?" com markdown renderizado de forma segura + modo edição (gestor) + checkpoint human-verify
 
 ### Phase 9: Limpeza Final
 
