@@ -763,14 +763,6 @@ async def editar_sobressalente(
     if user.get("role") == "visualizador":
         raise HTTPException(403, "Visualizadores não podem editar peças")
 
-    db = _db()
-    row = await db.fetch_one(
-        "SELECT id FROM sobressalentes WHERE id = ? AND ativo = 1",
-        (item_id,),
-    )
-    if not row:
-        raise HTTPException(404, "Peça não encontrada")
-
     # Build SET clause from provided fields only (never qtd_atual)
     updates = {}
     if body.nome is not None:
@@ -794,12 +786,16 @@ async def editar_sobressalente(
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     values = list(updates.values()) + [item_id]
 
+    # Collapse existence check + UPDATE into a single connection (no TOCTOU gap — WR-02).
+    # WHERE includes ativo=1 so soft-deleted rows produce rowcount=0 → 404, not silent no-op.
     db_path = _db().db_path
     async with aiosqlite.connect(db_path) as conn:
-        await conn.execute(
-            f"UPDATE sobressalentes SET {set_clause} WHERE id = ?",  # noqa: S608 — set_clause is from hardcoded keys
+        cur = await conn.execute(
+            f"UPDATE sobressalentes SET {set_clause} WHERE id = ? AND ativo = 1",  # noqa: S608 — set_clause is from hardcoded keys
             values,
         )
+        if cur.rowcount == 0:
+            raise HTTPException(404, "Peça não encontrada")
         await conn.commit()
 
     return {"ok": True}
