@@ -40,6 +40,7 @@ class CoreDB:
                 ("neo", "ALTER TABLE locais ADD COLUMN neo TEXT"),
                 ("restricao", "ALTER TABLE locais ADD COLUMN restricao TEXT DEFAULT ''"),
                 ("estrutura_id", "ALTER TABLE locais ADD COLUMN estrutura_id TEXT REFERENCES estrutura(id)"),
+                ("altura_m", "ALTER TABLE locais ADD COLUMN altura_m REAL"),
             ]:
                 if col not in locais_existing:
                     await db.execute(ddl)
