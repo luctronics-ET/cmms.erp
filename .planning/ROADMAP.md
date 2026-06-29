@@ -157,7 +157,11 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
   3. `POST /api/auth/login` com as credenciais de conta de serviço dos módulos externos (xPredial, aguada-web, PMOC) continua retornando token válido sem nenhuma mudança nos módulos
   4. `pytest tests/test_manutencao.py` cobre todas as rotas novas de manutenção importadas (Fases 1–5) sem regredir os testes existentes; `pytest -x` verde na suíte completa
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+- [ ] 07-01-PLAN.md — SEC-01: argon2-cffi + dual-hash verify + lazy upgrade no login (prova de não-lockout via test_auth.py)
+- [ ] 07-02-PLAN.md — SEC-02: remover senha default `1234` do login + POST/PUT usuarios (hash NULL/vazio → 401)
+- [ ] 07-03-PLAN.md — QA-01: auditar/preencher cobertura das rotas das Fases 1–5 + gate de suíte completa sem regressão
 
 ### Phase 8: Módulo Ajuda & Documentação
 
