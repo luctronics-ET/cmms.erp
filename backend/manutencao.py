@@ -906,3 +906,333 @@ async def listar_movimentos(
         (item_id, limit),
     )
     return rows
+
+
+# ── Fase 04 — Equipe Técnica (IMP-04) ────────────────────────────────────────
+#
+# Endpoints:
+#   GET  /equipe/membros                  — lista roster (ativo=1 por default)
+#   POST /equipe/membros                  — cria membro (201)
+#   PUT  /equipe/membros/{id}             — edita / soft-delete (ativo=0); nunca hard-delete
+#   GET  /equipe/config                   — config singleton + capacidade derivada
+#   PUT  /equipe/config                   — salva config singleton + resposta com capacidade
+#
+# Mitigações STRIDE: T-04-01 (SQL parameterizado), T-04-02 (_require_auth + role check),
+# T-04-04 (validação de ConfigIn), T-04-05 (só soft-delete, nunca DELETE).
+# Capacidade: config-only (não multiplica por membros — legado cmasm13-govbr-v8_3.html).
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── Pydantic models ───────────────────────────────────────────────────────────
+
+class MembroIn(BaseModel):
+    """Payload para POST /equipe/membros."""
+
+    nome: str
+    posto_grad: Optional[str] = None
+    especialidade: Optional[str] = None
+    tem_login: Optional[int] = 0
+    usuario_mat: Optional[str] = None
+
+    @field_validator("nome")
+    @classmethod
+    def nome_nao_vazio(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("nome é obrigatório e não pode ser vazio")
+        return v.strip()
+
+
+class MembroUpdate(BaseModel):
+    """Payload para PUT /equipe/membros/{id} — todos os campos opcionais (partial update)."""
+
+    nome: Optional[str] = None
+    posto_grad: Optional[str] = None
+    especialidade: Optional[str] = None
+    tem_login: Optional[int] = None
+    usuario_mat: Optional[str] = None
+    ativo: Optional[int] = None          # 0 = soft-delete, 1 = reativar
+
+    @field_validator("nome")
+    @classmethod
+    def nome_nao_vazio(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not v.strip():
+            raise ValueError("nome não pode ser vazio")
+        return v.strip() if v else v
+
+
+class _TurnoItem(BaseModel):
+    """Item de turno dentro de ConfigIn.turnos."""
+
+    nome: str
+    horas: float
+
+    @field_validator("horas")
+    @classmethod
+    def horas_nao_negativo(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("horas de turno não pode ser negativo")
+        return v
+
+
+class ConfigIn(BaseModel):
+    """Payload para PUT /equipe/config."""
+
+    num_equipes: int
+    dias_semana: list[str]
+    turnos: list[_TurnoItem]
+
+    @field_validator("num_equipes")
+    @classmethod
+    def num_equipes_positivo(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("num_equipes deve ser >= 1")
+        return v
+
+    @field_validator("dias_semana")
+    @classmethod
+    def dias_nao_vazios(cls, v: list[str]) -> list[str]:
+        if not v:
+            raise ValueError("dias_semana não pode ser vazio")
+        return v
+
+    @field_validator("turnos")
+    @classmethod
+    def turnos_nao_vazios(cls, v: list[_TurnoItem]) -> list[_TurnoItem]:
+        if not v:
+            raise ValueError("turnos não pode ser vazio")
+        return v
+
+
+# ── Capacity helper ───────────────────────────────────────────────────────────
+
+# Default config values (mirrors equipe_config table defaults).
+_DEFAULT_CONFIG = {
+    "id": 1,
+    "num_equipes": 1,
+    "dias_semana": ["seg", "ter", "qua", "qui", "sex"],
+    "turnos": [{"nome": "Manhã", "horas": 2}, {"nome": "Tarde", "horas": 2}],
+}
+
+
+def _capacidade(config: dict) -> dict:
+    """Calcula capacidade da equipe a partir da config (config-only, não usa membros).
+
+    Fórmula exata do legado cmasm13-govbr-v8_3.html (linhas 889-903):
+      h_dia_equipe = Σ turnos[i].horas
+      h_dia_total  = h_dia_equipe × num_equipes
+      h_semana     = h_dia_total × len(dias_semana)
+      h_mes        = h_semana × 4.345
+      h_ano        = h_semana × 52
+
+    Parâmetros:
+      config — dict com num_equipes (int), dias_semana (list|str), turnos (list|str).
+               dias_semana e turnos são listas quando vindos de ConfigIn ou str JSON quando
+               lidos do banco.
+
+    Retorna dict com chaves: h_dia_equipe, h_dia_total, h_semana, h_mes, h_ano.
+    Resultados inteiros quando os inputs são inteiros (não forçamos round).
+    """
+    num_equipes = int(config.get("num_equipes", 1))
+
+    # dias_semana pode ser list (vindo de ConfigIn) ou str JSON (lido do banco)
+    dias_semana = config.get("dias_semana", [])
+    if isinstance(dias_semana, str):
+        dias_semana = json.loads(dias_semana)
+
+    # turnos pode ser list[dict] ou str JSON
+    turnos = config.get("turnos", [])
+    if isinstance(turnos, str):
+        turnos = json.loads(turnos)
+
+    h_dia_equipe = sum(float(t["horas"]) for t in turnos)
+    h_dia_total = h_dia_equipe * num_equipes
+    h_semana = h_dia_total * len(dias_semana)
+    h_mes = h_semana * 4.345
+    h_ano = h_semana * 52
+
+    return {
+        "h_dia_equipe": h_dia_equipe,
+        "h_dia_total": h_dia_total,
+        "h_semana": h_semana,
+        "h_mes": h_mes,
+        "h_ano": h_ano,
+    }
+
+
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@router.get("/equipe/membros")
+async def listar_membros(
+    incluir_inativos: int = Query(default=0, ge=0, le=1),
+    authorization: str | None = Header(None),
+):
+    """Lista membros do roster da equipe técnica.
+
+    Parâmetros:
+      incluir_inativos — 0 (default) retorna apenas ativo=1; 1 retorna todos.
+    Ordem: nome ASC.
+    Mitigações: T-04-01 (params), T-04-02 (_require_auth).
+    """
+    await _require_auth(authorization)
+    db = _db()
+    if incluir_inativos:
+        rows = await db.fetch_all(
+            "SELECT * FROM equipe_membros ORDER BY nome",
+        )
+    else:
+        rows = await db.fetch_all(
+            "SELECT * FROM equipe_membros WHERE ativo = 1 ORDER BY nome",
+        )
+    return [dict(r) for r in rows]
+
+
+@router.post("/equipe/membros", status_code=201)
+async def criar_membro(
+    body: MembroIn,
+    authorization: str | None = Header(None),
+):
+    """Cria um novo membro no roster da equipe técnica.
+
+    Requer token não-visualizador (403 para role=visualizador — T-04-02).
+    Mitigações: T-04-01 (SQL parameterizado), T-04-02 (role check).
+    """
+    user = await _require_auth(authorization)
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não podem criar membros")
+
+    db_path = _db().db_path
+    async with aiosqlite.connect(db_path) as conn:
+        conn.row_factory = aiosqlite.Row
+        cur = await conn.execute(
+            "INSERT INTO equipe_membros "
+            "(nome, posto_grad, especialidade, tem_login, usuario_mat) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (
+                body.nome,
+                body.posto_grad,
+                body.especialidade,
+                body.tem_login if body.tem_login is not None else 0,
+                body.usuario_mat,
+            ),
+        )
+        new_id = cur.lastrowid
+        await conn.commit()
+
+    return {"id": new_id}
+
+
+@router.put("/equipe/membros/{membro_id}")
+async def editar_membro(
+    membro_id: int,
+    body: MembroUpdate,
+    authorization: str | None = Header(None),
+):
+    """Edita campos de um membro ou soft-deleta (ativo=0).
+
+    Nunca apaga o row (T-04-05 — soft-delete only).
+    404 se id não encontrado. 403 para visualizador.
+    Mitigações: T-04-01 (SQL parameterizado), T-04-02 (role check), T-04-05 (sem DELETE).
+    """
+    user = await _require_auth(authorization)
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não podem editar membros")
+
+    # Build SET clause from provided fields only (partial update)
+    updates: dict = {}
+    if body.nome is not None:
+        updates["nome"] = body.nome
+    if body.posto_grad is not None:
+        updates["posto_grad"] = body.posto_grad
+    if body.especialidade is not None:
+        updates["especialidade"] = body.especialidade
+    if body.tem_login is not None:
+        updates["tem_login"] = body.tem_login
+    if body.usuario_mat is not None:
+        updates["usuario_mat"] = body.usuario_mat
+    if body.ativo is not None:
+        updates["ativo"] = body.ativo
+
+    if not updates:
+        return {"ok": True, "message": "Nenhum campo para atualizar"}
+
+    set_clause = ", ".join(f"{k} = ?" for k in updates)
+    values = list(updates.values()) + [membro_id]
+
+    db_path = _db().db_path
+    async with aiosqlite.connect(db_path) as conn:
+        cur = await conn.execute(
+            f"UPDATE equipe_membros SET {set_clause} WHERE id = ?",  # noqa: S608 — set_clause from hardcoded keys
+            values,
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(404, "Membro não encontrado")
+        await conn.commit()
+
+    return {"ok": True}
+
+
+@router.get("/equipe/config")
+async def get_config(authorization: str | None = Header(None)):
+    """Retorna a configuração singleton da equipe (id=1) + capacidade derivada.
+
+    Se a tabela estiver vazia (primeira vez), retorna os defaults do schema.
+    Nunca insere na leitura (GET é idempotente).
+    Mitigações: T-04-02 (_require_auth).
+
+    Resposta: {"config": {...}, "capacidade": {h_dia_equipe, h_dia_total, h_semana, h_mes, h_ano}}
+    """
+    await _require_auth(authorization)
+    db = _db()
+    row = await db.fetch_one("SELECT * FROM equipe_config WHERE id = 1")
+    if row:
+        config = dict(row)
+        # Deserialize JSON fields stored as TEXT
+        config["dias_semana"] = json.loads(config["dias_semana"])
+        config["turnos"] = json.loads(config["turnos"])
+    else:
+        # Return schema defaults without inserting (idempotent GET)
+        config = dict(_DEFAULT_CONFIG)
+
+    return {"config": config, "capacidade": _capacidade(config)}
+
+
+@router.put("/equipe/config")
+async def put_config(
+    body: ConfigIn,
+    authorization: str | None = Header(None),
+):
+    """Salva a configuração singleton (id=1) via UPSERT e retorna a capacidade recomputada.
+
+    Serializa dias_semana e turnos como JSON TEXT no banco.
+    Requer token não-visualizador (403).
+    Mitigações: T-04-01 (SQL parameterizado), T-04-02 (role check), T-04-04 (ConfigIn validators).
+
+    Resposta: {"config": {...saved...}, "capacidade": {h_dia_equipe, h_dia_total, h_semana, h_mes, h_ano}}
+    """
+    user = await _require_auth(authorization)
+    if user.get("role") == "visualizador":
+        raise HTTPException(403, "Visualizadores não podem alterar a configuração")
+
+    # Serialize lists to JSON TEXT for storage (T-04-01 — never string-interpolate)
+    dias_json = json.dumps([d for d in body.dias_semana], ensure_ascii=False)
+    turnos_json = json.dumps([{"nome": t.nome, "horas": t.horas} for t in body.turnos], ensure_ascii=False)
+
+    db_path = _db().db_path
+    async with aiosqlite.connect(db_path) as conn:
+        await conn.execute(
+            "INSERT OR REPLACE INTO equipe_config "
+            "(id, num_equipes, dias_semana, turnos, updated_at) "
+            "VALUES (1, ?, ?, ?, datetime('now'))",
+            (body.num_equipes, dias_json, turnos_json),
+        )
+        await conn.commit()
+
+    # Build the saved config dict (lists — not raw JSON strings) for the response + _capacidade
+    saved = {
+        "id": 1,
+        "num_equipes": body.num_equipes,
+        "dias_semana": body.dias_semana,
+        "turnos": [{"nome": t.nome, "horas": t.horas} for t in body.turnos],
+    }
+
+    return {"config": saved, "capacidade": _capacidade(saved)}
