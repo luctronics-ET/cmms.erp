@@ -631,8 +631,8 @@ class AjusteIn(BaseModel):
     operador NÃO vem do payload — é extraído do token (_require_auth) — T-03-02.
     """
 
+    tipo: str      # entrada | saida | ajuste — declarado antes de quantidade para info.data
     quantidade: float
-    tipo: str      # entrada | saida | ajuste
     motivo: Optional[str] = None
     obs: Optional[str] = None
 
@@ -641,6 +641,16 @@ class AjusteIn(BaseModel):
     def tipo_valido(cls, v: str) -> str:
         if v not in TIPOS_MOVIMENTO:
             raise ValueError(f"tipo deve ser um de {sorted(TIPOS_MOVIMENTO)}")
+        return v
+
+    @field_validator("quantidade")
+    @classmethod
+    def quantidade_positiva(cls, v: float, info) -> float:
+        # "ajuste" permite negativo (delta bidirecional).
+        # "entrada" e "saida" exigem quantidade > 0 — sinal é implícito pelo tipo.
+        tipo = (info.data or {}).get("tipo")
+        if tipo in ("entrada", "saida") and v <= 0:
+            raise ValueError("quantidade deve ser positiva (> 0) para entrada/saida")
         return v
 
 
