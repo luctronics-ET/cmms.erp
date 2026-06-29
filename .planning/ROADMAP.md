@@ -12,7 +12,7 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Registrar Uso** - Import da aba "Registrar Uso" com schema skeleton, endpoint atômico e testes de migração (completed 2026-06-28)
-- [ ] **Phase 2: Plano no Ativo** - Import dos checkboxes de plano por ativo com estado persistido por máquina
+- [x] **Phase 2: Plano no Ativo** - Import dos checkboxes de plano por ativo com estado persistido por máquina (completed 2026-06-29)
 - [ ] **Phase 3: Estoque Sobressalentes** - Import do estoque local dos técnicos separado do estoque central
 - [ ] **Phase 4: Equipe Tecnica** - Import do cadastro de equipe e configuração de capacidade
 - [ ] **Phase 5: Cronograma Preventivo** - Import do cronograma calculado com packing diário por capacidade de equipe
@@ -58,8 +58,8 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 
 **Plans**: 2 plans
 
-- [ ] 02-01-PLAN.md — Backend slice: schema (ativo_plano_estado + manut_registros) + GET /plano-ativo (status/falta/pct) + POST /registro (atomic upsert, anti-double-count) + tests
-- [ ] 02-02-PLAN.md — Frontend slice: API-back the Manutenção sub-tab (el()-safe checklist + status/progress) + async POST registro + human-verify checkpoint
+- [x] 02-01-PLAN.md — Backend slice: schema (ativo_plano_estado + manut_registros) + GET /plano-ativo (status/falta/pct) + POST /registro (atomic upsert, anti-double-count) + tests
+- [x] 02-02-PLAN.md — Frontend slice: API-back the Manutenção sub-tab (el()-safe checklist + status/progress) + async POST registro + human-verify checkpoint
 
 **UI hint**: yes
 
@@ -76,7 +76,11 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
   3. O estoque de sobressalentes não interfere com os dados do `estoque` central (sem mistura de tabelas; `GET /api/estoque` retorna os mesmos registros de antes)
   4. `pytest tests/test_manutencao.py::test_sobressalentes` verde; CRUD e ajuste passam com banco limpo
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+- [ ] 03-01-PLAN.md — Backend slice: schema (sobressalentes + sobressalentes_movimentos), 5 endpoints (list+badge+valor / create / edit / atomic ajuste+log / movimentos) + test_sobressalentes (CRUD, atomic, estoque isolation)
+- [ ] 03-02-PLAN.md — Frontend "Sobressalentes" tab: list with badges + total value, +Nova peça / Editar / Ajustar(modal motivo+obs), Bearer token, safe DOM via el()
+
 **UI hint**: yes
 
 ### Phase 4: Equipe Tecnica
@@ -162,8 +166,8 @@ Milestone de produção: importar cinco telas aprovadas do legado HTML ao `core.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Registrar Uso | 2/2 | Complete    | 2026-06-28 |
-| 2. Plano no Ativo | 0/2 | Not started | - |
-| 3. Estoque Sobressalentes | 0/? | Not started | - |
+| 2. Plano no Ativo | 2/2 | Complete    | 2026-06-29 |
+| 3. Estoque Sobressalentes | 0/2 | Planned | - |
 | 4. Equipe Tecnica | 0/? | Not started | - |
 | 5. Cronograma Preventivo | 0/? | Not started | - |
 | 6. Residuais Funcionais | 0/? | Not started | - |
