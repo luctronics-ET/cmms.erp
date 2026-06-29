@@ -24,6 +24,7 @@ from .catalogo import router as catalogo_router
 from .grama import router as grama_router, init_grama
 from .sync import router as sync_router
 from .manutencao import router as manutencao_router
+from .docs import router as docs_router
 
 # ── Config ────────────────────────────────────────────────────────────────────
 from tools.telegram_spike import _load_dotenv as _load_env  # noqa: E402
@@ -330,6 +331,7 @@ app.include_router(grama_router)
 app.include_router(sync_router)
 app.include_router(catalogo_router)
 app.include_router(manutencao_router)
+app.include_router(docs_router)
 
 # Serve xCore frontend files (HTMLs, JS, CSS, assets)
 _FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..")
