@@ -2424,6 +2424,231 @@
 
       await eqRender();
     },
+
+    // ── Cronograma Preventivo ───────────────────────────────────────────────
+    async cronograma(cont) {
+      state._scopeCats = null; // aba global — respeita chips
+      const { el } = window.engine.utils;
+
+      // ── criticidade → cor dark (CLAUDE.md design system) ─────────────────
+      const CRIT_COLOR_DARK = {
+        'CRÍTICA':  'var(--red)',
+        'ALTA':     'var(--amber)',
+        'MÉDIA':    'var(--acc)',
+        'BAIXA':    'var(--green)',
+      };
+
+      // ── helpers locais ────────────────────────────────────────────────────
+      function crToken() {
+        return localStorage.getItem('xcmasm_token') || '';
+      }
+
+      function crAuthHeaders() {
+        return { 'Authorization': 'Bearer ' + crToken() };
+      }
+
+      // Placeholder de carregamento
+      cont.replaceChildren(
+        el('div', { style: { padding: '32px', color: 'var(--ink-2)', textAlign: 'center' } },
+          'Calculando cronograma…'),
+      );
+
+      // ── fetch ─────────────────────────────────────────────────────────────
+      let dias = [], kpis = {};
+      try {
+        const r = await fetch(apiUrl('/api/manutencao/cronograma'), {
+          headers: crAuthHeaders(),
+        });
+        if (!r.ok) {
+          let detail = '';
+          try { const body = await r.json(); detail = body.detail || ''; } catch (_) { /* nop */ }
+          cont.replaceChildren(
+            el('div', {
+              style: {
+                background: 'var(--panel)', border: '1px solid var(--red)',
+                borderRadius: '8px', padding: '20px', color: 'var(--red)',
+              },
+            },
+              el('strong', {}, `Erro ${r.status}`),
+              detail ? el('span', {}, ' — ') : null,
+              detail ? el('span', {}, detail) : null,
+            ),
+          );
+          return;
+        }
+        const data = await r.json();
+        dias = data.dias || [];
+        kpis = data.kpis || {};
+      } catch (err) {
+        cont.replaceChildren(
+          el('div', {
+            style: {
+              background: 'var(--panel)', border: '1px solid var(--red)',
+              borderRadius: '8px', padding: '20px', color: 'var(--red)',
+            },
+          },
+            el('strong', {}, 'Falha ao buscar cronograma'),
+            el('span', {}, ': '),
+            el('span', {}, String(err.message || err)),
+          ),
+        );
+        return;
+      }
+
+      // ── KPI header ────────────────────────────────────────────────────────
+      const kpiDefs = [
+        { label: 'Total de OS',     value: kpis.total_os ?? '—' },
+        { label: 'Horas-pessoa',    value: kpis.horas_pessoa != null ? kpis.horas_pessoa + 'h' : '—' },
+        { label: 'Dias úteis',      value: kpis.dias_uteis ?? '—' },
+        { label: 'Conclusão',       value: kpis.data_conclusao ?? '—' },
+        { label: 'Utilização',      value: kpis.pct_utilizacao != null ? kpis.pct_utilizacao + '%' : '—' },
+      ];
+
+      const kpiGrid = el('div', {
+        style: {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))',
+          gap: '10px',
+          marginBottom: '16px',
+        },
+      },
+        ...kpiDefs.map(k => {
+          const card = el('div', {
+            style: {
+              background: 'var(--panel)', border: '1px solid var(--line)',
+              borderRadius: '8px', padding: '12px',
+            },
+          });
+          const lbl = el('span', { style: { display: 'block', fontSize: '11px', color: 'var(--ink-2)', marginBottom: '4px' } });
+          lbl.textContent = k.label;
+          const val = el('span', { style: { display: 'block', fontSize: '20px', fontWeight: '700', color: 'var(--ink)' } });
+          val.textContent = String(k.value);
+          card.append(lbl, val);
+          return card;
+        }),
+      );
+
+      // ── alerta de demanda > capacidade ────────────────────────────────────
+      const alertBanner = kpis.alerta
+        ? el('div', {
+            style: {
+              background: 'rgba(239,68,68,.15)',
+              border: '1px solid var(--red)',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              color: 'var(--red)',
+              marginBottom: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            },
+          },
+            el('span', {}, '⚠'),
+            el('span', {}, 'Demanda excede a capacidade da equipe no horizonte'),
+          )
+        : null;
+
+      // ── dias view ─────────────────────────────────────────────────────────
+      const daysContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } });
+
+      for (const dia of dias) {
+        const dispH = Number(dia.horas_disponiveis) || 0;
+        const usadoH = Number(dia.horas_usadas) || 0;
+        const barPct = dispH > 0 ? Math.min(100, (usadoH / dispH) * 100) : 0;
+        const barColor = barPct > 90 ? 'var(--red)' : barPct > 70 ? 'var(--amber)' : 'var(--acc)';
+
+        // Cabeçalho do dia
+        const headerLeft = el('span', { style: { fontWeight: '600', fontSize: '14px' } });
+        headerLeft.textContent = (dia.data || '') + ' · ' + (dia.dia_semana || '');
+
+        const headerRight = el('span', { style: { fontSize: '12px', color: 'var(--ink-2)' } });
+        headerRight.textContent = (dia.itens?.length || 0) + ' OS · ' + usadoH + 'h / ' + dispH + 'h';
+
+        const header = el('div', {
+          style: {
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: '8px',
+          },
+        }, headerLeft, headerRight);
+
+        // Barra de capacidade
+        const barTrack = el('div', {
+          style: {
+            background: 'var(--bg2)', borderRadius: '4px', height: '6px',
+            marginBottom: '10px', overflow: 'hidden',
+          },
+        });
+        const barFill = el('div', {
+          style: {
+            height: '100%', width: barPct + '%', background: barColor,
+            borderRadius: '4px', transition: 'width 0.3s',
+          },
+        });
+        barTrack.appendChild(barFill);
+
+        // Itens do dia
+        const itensContainer = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } });
+        for (const item of (dia.itens || [])) {
+          const badgeColor = CRIT_COLOR_DARK[item.criticidade] || 'var(--ink-2)';
+
+          const badge = el('span', {
+            style: {
+              display: 'inline-block', padding: '2px 7px', borderRadius: '4px',
+              fontSize: '10px', fontWeight: '700', letterSpacing: '0.04em',
+              background: badgeColor + '22',
+              border: '1px solid ' + badgeColor,
+              color: badgeColor,
+              flexShrink: '0',
+            },
+          });
+          badge.textContent = item.criticidade || '—';
+
+          const nome = el('span', { style: { fontSize: '13px', color: 'var(--ink)', flex: '1' } });
+          nome.textContent = item.nome || '';
+
+          const dur = el('span', { style: { fontSize: '12px', color: 'var(--ink-2)', flexShrink: '0' } });
+          if (item.duracao_h != null) {
+            dur.textContent = item.duracao_h + 'h';
+          } else if (item.duracao_min != null) {
+            dur.textContent = item.duracao_min + ' min';
+          }
+
+          const row = el('div', {
+            style: {
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '7px 10px', background: 'var(--bg2)',
+              borderRadius: '6px',
+            },
+          }, badge, nome, dur);
+
+          itensContainer.appendChild(row);
+        }
+
+        const dayCard = el('div', {
+          style: {
+            background: 'var(--panel)', border: '1px solid var(--line)',
+            borderRadius: '8px', padding: '14px',
+          },
+        }, header, barTrack, itensContainer);
+
+        daysContainer.appendChild(dayCard);
+      }
+
+      // Caso sem dados
+      if (dias.length === 0) {
+        daysContainer.appendChild(
+          el('div', { style: { padding: '24px', color: 'var(--ink-2)', textAlign: 'center' } },
+            'Nenhum ativo com manutenção preventiva pendente.'),
+        );
+      }
+
+      // ── montar conteúdo final ─────────────────────────────────────────────
+      const wrapper = el('div', { style: { maxWidth: '900px' } });
+      wrapper.append(kpiGrid);
+      if (alertBanner) wrapper.appendChild(alertBanner);
+      wrapper.appendChild(daysContainer);
+      cont.replaceChildren(wrapper);
+    },
   };
 
   const OS_STATUS_ORDEM = ['aberta', 'autorizada', 'iniciada', 'em_execucao', 'espera', 'pronto', 'concluida', 'cancelada'];
