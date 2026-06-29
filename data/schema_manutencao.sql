@@ -52,3 +52,42 @@ CREATE TABLE IF NOT EXISTS manut_registros (
   created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_mr_ativo ON manut_registros(ativo_id, created_at DESC);
+
+-- ============================================================
+-- Fase 03: Estoque de Sobressalentes — IMP-03 (CONTEXT.md Phase 3).
+-- Tabelas SEPARADAS de estoque/estoque_movimentos (SC: sem mistura).
+-- Aditivo: CREATE TABLE IF NOT EXISTS, nunca DROP/ALTER.
+-- ============================================================
+
+-- Peças do estoque local dos técnicos (SEPARADO do estoque central).
+-- categoria alinhada com refrigeração: consumivel | sobressalente | ferramenta.
+-- qtd_atual e qtd_minima como REAL para compatibilidade numérica com uso_atual.
+CREATE TABLE IF NOT EXISTS sobressalentes (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  codigo          TEXT UNIQUE,                                      -- código opcional (único se informado)
+  nome            TEXT    NOT NULL,                                  -- nome da peça (obrigatório)
+  categoria       TEXT    NOT NULL DEFAULT 'sobressalente',         -- consumivel | sobressalente | ferramenta
+  unidade         TEXT    NOT NULL DEFAULT 'un',                    -- un | kg | L | m | m2
+  qtd_atual       REAL    NOT NULL DEFAULT 0,                       -- estoque atual
+  qtd_minima      REAL    NOT NULL DEFAULT 0,                       -- limiar BAIXO/OK
+  preco_unitario  REAL             DEFAULT 0,                       -- para cálculo do valor estimado
+  obs             TEXT,                                             -- campo livre opcional
+  ativo           INTEGER          DEFAULT 1,                       -- soft-delete: 0 = inativo
+  criado_em       TEXT    NOT NULL DEFAULT (datetime('now'))        -- timestamp de criação
+);
+
+-- Histórico de movimentos de ajuste do estoque de sobressalentes.
+-- operador = snapshot do usuário do token (nunca do payload — T-03-02).
+CREATE TABLE IF NOT EXISTS sobressalentes_movimentos (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id     INTEGER NOT NULL REFERENCES sobressalentes(id),       -- FK para a peça
+  tipo        TEXT    NOT NULL,                                      -- entrada | saida | ajuste
+  quantidade  REAL    NOT NULL,                                      -- quantidade do movimento
+  motivo      TEXT,                                                  -- motivo do ajuste (livre)
+  obs         TEXT,                                                  -- campo livre opcional
+  operador    TEXT,                                                  -- snapshot do usuário do token
+  created_at  TEXT    NOT NULL DEFAULT (datetime('now'))            -- timestamp do movimento
+);
+
+-- Índice composto para histórico newest-first por item (ORDER BY created_at DESC).
+CREATE INDEX IF NOT EXISTS idx_sob_mov_item ON sobressalentes_movimentos(item_id, created_at DESC);
