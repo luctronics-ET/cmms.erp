@@ -16,6 +16,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError, InvalidHash
+
 from .db_core import CoreDB
 from .catalogo import router as catalogo_router
 from .grama import router as grama_router, init_grama
@@ -816,13 +819,20 @@ async def startup():
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 def _djb2(pw: str) -> str:
-    """Mesmo algoritmo do ERP_core (hashPw) para compatibilidade."""
+    """Mesmo algoritmo do ERP_core (hashPw) para compatibilidade.
+    LEGADO — use apenas como verificador de hashes antigos. Nunca gere novos hashes djb2.
+    """
     h = 0
     for ch in pw:
         h = ((h << 5) - h + ord(ch)) & 0xFFFFFFFF
         if h >= 0x80000000:
             h -= 0x100000000
     return format(h, "x") if h >= 0 else format(h & 0xFFFFFFFF, "x")
+
+
+# Instância singleton do PasswordHasher Argon2id (parâmetros default da lib são seguros).
+# Usada em todo o ciclo de vida do processo — thread-safe, sem estado mutável.
+_ph = PasswordHasher()
 
 
 async def _require_auth(authorization: str | None) -> dict:
