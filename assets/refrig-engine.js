@@ -1,7 +1,7 @@
 /**
  * refrig-engine.js — motor de cálculo de refrigeração.
  *
- * Porta verbatim os algoritmos do app de campo (cmasm13-govbr-v8_3):
+ * Porta verbatim os algoritmos do app de campo legado:
  * criticidade automática, intervalos PMOC, estimativa de gás/carga, potência,
  * homem-hora, demanda anual, capacidade de equipe, carga térmica (NBR/ASHRAE),
  * gap analysis. São a propriedade intelectual a preservar.

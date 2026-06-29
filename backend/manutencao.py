@@ -952,7 +952,7 @@ async def listar_movimentos(
 #
 # Mitigações STRIDE: T-04-01 (SQL parameterizado), T-04-02 (_require_auth + role check),
 # T-04-04 (validação de ConfigIn), T-04-05 (só soft-delete, nunca DELETE).
-# Capacidade: config-only (não multiplica por membros — legado cmasm13-govbr-v8_3.html).
+# Capacidade: config-only (não multiplica por membros — algoritmo do app de campo legado).
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -1057,7 +1057,7 @@ _DEFAULT_CONFIG = {
 def _capacidade(config: dict) -> dict:
     """Calcula capacidade da equipe a partir da config (config-only, não usa membros).
 
-    Fórmula exata do legado cmasm13-govbr-v8_3.html (linhas 889-903):
+    Fórmula exata do app de campo legado:
       h_dia_equipe = Σ turnos[i].horas
       h_dia_total  = h_dia_equipe × num_equipes
       h_semana     = h_dia_total × len(dias_semana)
@@ -1283,7 +1283,7 @@ async def put_config(
 
 
 # ── Cronograma Preventivo — scheduling helpers (IMP-05) ──────────────────────
-# Porta exata de pmocCronograma() — .docs_cmasm/referencias/cmasm13-govbr-v8_3.html
+# Porta exata de pmocCronograma() do app de campo legado
 # linhas 1983-2086.
 
 # Duration estimation constants (verbatim from legacy lines 911-917)

@@ -1362,7 +1362,7 @@
         }
       }
 
-      // Layout da seção Registrar Uso portado do legado (CMASM_Gestao_v2.html #m-uso)
+      // Layout da seção Registrar Uso portado do app de campo legado
       const cardStyle = {
         background: 'var(--panel)', border: '1px solid var(--line)',
         borderRadius: '8px', padding: '20px', marginBottom: '14px',
