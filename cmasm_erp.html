@@ -2901,7 +2901,7 @@ function novaOSComContexto(ctx){
 window.novaOSComContexto = novaOSComContexto;
 window.setOsPrefill = setOsPrefill;
 
-function doLogin(){
+async function doLogin(){
   const id = document.getElementById('lg-id').value.trim().toLowerCase();
   const pw = document.getElementById('lg-pw').value;
   if(!id){showLoginErr('Informe a identificação');return;}
@@ -2916,8 +2916,46 @@ function doLogin(){
   if(!u || u.pw !== hashPw(pw)){showLoginErr('Identificação ou senha incorreta');return;}
   SESSION = u;
   DB.set('session', u);
+  // Bridge: autentica também no backend (token p/ módulos Documentos, Manutenção…).
+  // Best-effort — se backend offline ou credencial divergente, o ERP segue offline-first.
+  await bridgeBackendLogin(u, pw);
   initApp();
 }
+
+// Obtém um token Bearer do backend usando as MESMAS credenciais do login do ERP
+// (o backend resolve por nome e aceita o hash legado djb2 de "1234").
+// Guarda em localStorage xcmasm_token/xcmasm_me — lidos por erp-docs.js, erp-manutencao.js etc.
+async function bridgeBackendLogin(u, pw){
+  const base = (window.XCMASM_API_BASE || 'http://localhost:8010').replace(/\/$/, '');
+  const tentativas = [u.nome, u.nip].filter(Boolean);
+  for(const mat of tentativas){
+    try{
+      const r = await fetch(base + '/api/auth/login', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ mat: String(mat), senha: pw }),
+      });
+      if(!r.ok) continue;
+      const d = await r.json();
+      if(d && d.token){
+        localStorage.setItem('xcmasm_token', d.token);
+        localStorage.setItem('xcmasm_me', JSON.stringify(d.usuario || { nome:u.nome, role:u.role }));
+        return true;
+      }
+    }catch(e){ /* backend offline — ignora, segue offline-first */ }
+  }
+  console.warn('[erp] login backend indisponível — módulos de servidor (Documentos) ficam somente-leitura');
+  return false;
+}
+
+// Reconexão ao servidor sem logout (usada pelo banner do módulo Documentos quando o
+// token expira ou a sessão foi criada antes da ponte). Recebe a senha e re-bridgeia.
+window.xcmasmReconnect = async function(pw){
+  if(!SESSION || SESSION._visitante) return false;
+  return await bridgeBackendLogin(SESSION, pw);
+};
+window.xcmasmCurrentUser = function(){
+  return SESSION ? { nome: SESSION.nome, role: SESSION.role, visitante: !!SESSION._visitante } : null;
+};
 
 function showLoginErr(msg){document.getElementById('lg-err').textContent=msg;}
 
@@ -2939,6 +2977,7 @@ function togglePw(id,btn){const el=document.getElementById(id);el.type=el.type==
 
 function doLogout(){
   SESSION=null;DB.del('session');
+  localStorage.removeItem('xcmasm_token');localStorage.removeItem('xcmasm_me');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('lg-id').value='';

@@ -199,22 +199,145 @@
     return sel;
   }
 
+  // Extensões aceitas no upload/import (espelha ALLOWED_EXTS do backend).
+  const ACCEPT_EXTS = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.png,.jpg,.jpeg,.txt,.md,.csv';
+
   // ── Estado da página Documentos ────────────────────────────────────────────
   const docsState = {
-    categoria: '',
+    pastas: [],      // lista plana {id, nome, parent_id, caminho}
+    pastaId: null,   // pasta selecionada (null = todas)
     tipo: '',
+    q: '',
     docs: [],
-    view: 'list', // 'list' | 'novo' | 'historico'
-    selectedDoc: null,
   };
 
   let docsRoot = null;
+  let listPaneEl = null;  // painel direito (lista de documentos)
 
-  // ── Documentos: carregar e renderizar lista ────────────────────────────────
+  // ── Pastas: carregar + montar árvore ───────────────────────────────────────
+  async function loadPastas() {
+    try {
+      const r = await authFetch('/api/docs/pastas');
+      docsState.pastas = r.ok ? await r.json() : [];
+    } catch (_) {
+      docsState.pastas = [];
+    }
+  }
+
+  function buildPastaTree(flat) {
+    const byId = {}, roots = [];
+    flat.forEach(p => { byId[p.id] = Object.assign({ children: [] }, p); });
+    flat.forEach(p => {
+      if (p.parent_id != null && byId[p.parent_id]) byId[p.parent_id].children.push(byId[p.id]);
+      else roots.push(byId[p.id]);
+    });
+    return roots;
+  }
+
+  async function criarPasta(parentId) {
+    const nome = prompt('Nome da nova pasta:');
+    if (!nome || !nome.trim()) return;
+    try {
+      const r = await authFetch('/api/docs/pastas', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nome.trim(), parent_id: parentId != null ? parentId : null }),
+      });
+      if (!r.ok) { const e = await r.json().catch(() => ({ detail: 'Erro ' + r.status })); throw new Error(e.detail || r.status); }
+      await loadPastas();
+      render();
+    } catch (e) {
+      if (docsRoot) showMsg(docsRoot, 'Erro ao criar pasta: ' + e.message, true);
+    }
+  }
+
+  async function removerPasta(id) {
+    if (!confirm('Remover esta pasta? (precisa estar vazia)')) return;
+    try {
+      const r = await authFetch('/api/docs/pastas/' + id, { method: 'DELETE' });
+      if (!r.ok) { const e = await r.json().catch(() => ({ detail: 'Erro ' + r.status })); throw new Error(e.detail || r.status); }
+      if (docsState.pastaId === id) docsState.pastaId = null;
+      await loadPastas();
+      render();
+    } catch (e) {
+      if (docsRoot) showMsg(docsRoot, 'Erro ao remover pasta: ' + e.message, true);
+    }
+  }
+
+  function selectFolder(id) {
+    docsState.pastaId = id;
+    render();        // atualiza destaque da árvore
+    loadDocs();      // recarrega painel direito
+  }
+
+  // Import direto: para cada arquivo escolhido, cria o documento (título = nome do
+  // arquivo) na pasta atual e sobe o arquivo como versão 1 — tudo numa ação.
+  async function importarArquivos(files) {
+    const arr = Array.from(files || []);
+    if (!arr.length) return;
+    const pid = docsState.pastaId;
+    let ok = 0; const erros = [];
+    if (docsRoot) showMsg(docsRoot, 'Importando ' + arr.length + ' arquivo(s)…', false);
+    for (const f of arr) {
+      try {
+        const titulo = f.name.replace(/\.[^.]+$/, '') || f.name;
+        const r = await authFetch('/api/docs/documentos', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ titulo, tipo: 'modelo', pasta_id: pid != null ? pid : null }),
+        });
+        if (!r.ok) { const e = await r.json().catch(() => ({ detail: 'Erro ' + r.status })); throw new Error(e.detail || r.status); }
+        const doc = await r.json();
+        const fd = new FormData(); fd.append('file', f);
+        const up = await fetch(apiBase() + '/api/docs/documentos/' + doc.id + '/versoes', {
+          method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }, body: fd,
+        });
+        if (!up.ok) { const e = await up.json().catch(() => ({ detail: 'Erro ' + up.status })); throw new Error(e.detail || up.status); }
+        ok++;
+      } catch (e) {
+        erros.push(f.name + ': ' + e.message);
+      }
+    }
+    await loadPastas();
+    render();
+    loadDocs();
+    if (docsRoot) {
+      const msg = ok + ' arquivo(s) importado(s)' + (erros.length ? ' · ' + erros.length + ' com erro (' + erros[0] + ')' : '');
+      showMsg(docsRoot, msg, erros.length > 0);
+    }
+  }
+
+  function renderTreeNode(node, depth, container) {
+    const sel = docsState.pastaId === node.id;
+    const row = el('div', { style: {
+      display: 'flex', alignItems: 'center', gap: '2px',
+      padding: '4px 6px', paddingLeft: (6 + depth * 14) + 'px',
+      borderRadius: '4px', cursor: 'pointer', fontSize: '13px',
+      background: sel ? 'var(--bg3, rgba(0,180,216,.12))' : 'transparent',
+      color: sel ? 'var(--acc)' : 'var(--text1)',
+    } });
+    const label = el('span', { style: { flex: '1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } });
+    label.textContent = '📁 ' + node.nome;
+    label.addEventListener('click', () => selectFolder(node.id));
+    row.appendChild(label);
+    if (canWrite()) {
+      const add = el('span', { title: 'Nova subpasta', style: { cursor: 'pointer', opacity: '.55', padding: '0 4px' } });
+      add.textContent = '＋';
+      add.addEventListener('click', (e) => { e.stopPropagation(); criarPasta(node.id); });
+      row.appendChild(add);
+      const del = el('span', { title: 'Remover pasta', style: { cursor: 'pointer', opacity: '.55', padding: '0 4px' } });
+      del.textContent = '🗑';
+      del.addEventListener('click', (e) => { e.stopPropagation(); removerPasta(node.id); });
+      row.appendChild(del);
+    }
+    container.appendChild(row);
+    node.children.forEach(c => renderTreeNode(c, depth + 1, container));
+  }
+
+  // ── Documentos: carregar lista (painel direito) ────────────────────────────
   async function loadDocs() {
     const params = new URLSearchParams();
-    if (docsState.categoria) params.set('categoria', docsState.categoria);
-    if (docsState.tipo)      params.set('tipo',      docsState.tipo);
+    if (docsState.pastaId != null) params.set('pasta_id', docsState.pastaId);
+    if (docsState.tipo)            params.set('tipo', docsState.tipo);
+    if (docsState.q)               params.set('q', docsState.q);
     const url = '/api/docs/documentos' + (params.toString() ? '?' + params : '');
     try {
       const r = await authFetch(url);
@@ -224,52 +347,118 @@
       docsState.docs = [];
       if (docsRoot) showMsg(docsRoot, 'Erro ao carregar documentos: ' + e.message, true);
     }
-    renderDocsList();
+    renderList();
   }
 
-  function renderDocsList() {
+  // ── Shell de dois painéis (árvore | lista) ─────────────────────────────────
+  function render() {
     if (!docsRoot) return;
     docsRoot.innerHTML = '';
 
+    // Sem token de servidor → módulo de documentos não funciona (precisa de backend).
+    if (!getToken()) {
+      const warn = el('div', { style: { padding: '14px 16px', marginBottom: '14px', borderRadius: '6px', background: 'rgba(245,158,11,.12)', border: '1px solid var(--amber, #f59e0b)', color: 'var(--text1)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' } });
+      const txt = el('span', { style: { flex: '1', minWidth: '220px' } });
+      txt.textContent = 'Sessão do servidor indisponível. Clique em "Reconectar" para ativar o repositório de documentos.';
+      warn.appendChild(txt);
+      const cur = (typeof window.xcmasmCurrentUser === 'function') ? window.xcmasmCurrentUser() : null;
+      const btnReconn = el('button', { class: 'btn btn-primary btn-sm' });
+      btnReconn.textContent = 'Reconectar ao servidor';
+      btnReconn.addEventListener('click', async () => {
+        if (!cur || cur.visitante) { showMsg(docsRoot, 'Faça login no ERP (não como visitante) para usar o servidor.', true); return; }
+        const pw = prompt('Senha de ' + cur.nome + ' para conectar ao servidor:');
+        if (pw == null) return;
+        btnReconn.disabled = true; btnReconn.textContent = 'Conectando…';
+        const ok = (typeof window.xcmasmReconnect === 'function') ? await window.xcmasmReconnect(pw) : false;
+        if (ok) { mount(); }
+        else {
+          btnReconn.disabled = false; btnReconn.textContent = 'Reconectar ao servidor';
+          showMsg(docsRoot, 'Não foi possível conectar (senha incorreta ou backend offline).', true);
+        }
+      });
+      warn.appendChild(btnReconn);
+      docsRoot.appendChild(warn);
+    }
+
     // Cabeçalho
-    const hdr = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' } });
+    const hdr = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' } });
     const title = el('h2', { style: { margin: '0', color: 'var(--text1)' } });
     title.textContent = 'Repositório de Documentos';
     hdr.appendChild(title);
-
     if (canWrite()) {
-      const btnNovo = el('button', {
-        class: 'btn btn-primary btn-sm',
-        onclick: () => renderNovoDocForm(),
-      });
-      btnNovo.textContent = '+ Novo documento';
-      hdr.appendChild(btnNovo);
+      const acts = el('div', { style: { display: 'flex', gap: '8px' } });
+
+      // Import direto — INPUT FILE VISÍVEL (botão nativo do navegador). Sem JS .click(),
+      // sem display:none: o controle nativo SEMPRE abre o diálogo em qualquer navegador.
+      const impWrap = el('div', { style: { display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(0,180,216,.12)', border: '1px solid var(--acc, #00b4d8)', borderRadius: '6px', padding: '4px 8px' } });
+      const impLbl = el('span', { style: { color: 'var(--acc, #00b4d8)', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap' } });
+      impLbl.textContent = '⬆ Importar:';
+      const inputImport = el('input', { type: 'file', multiple: '', title: 'Selecionar arquivo(s) para importar', style: { color: 'var(--text1)', fontSize: '12px', maxWidth: '210px' } });
+      inputImport.accept = ACCEPT_EXTS;
+      // copia os File ANTES de limpar value (FileList é vivo — limpar esvazia a referência)
+      inputImport.addEventListener('change', () => { const fs = Array.from(inputImport.files); inputImport.value = ''; importarArquivos(fs); });
+      impWrap.appendChild(impLbl);
+      impWrap.appendChild(inputImport);
+      acts.appendChild(impWrap);
+
+      const btnNovo = el('button', { class: 'btn btn-secondary btn-sm', onclick: () => renderNovoDocForm() });
+      btnNovo.textContent = '+ Documento';
+      acts.appendChild(btnNovo);
+      const btnPasta = el('button', { class: 'btn btn-secondary btn-sm', onclick: () => criarPasta(docsState.pastaId) });
+      btnPasta.textContent = '+ Pasta';
+      acts.appendChild(btnPasta);
+      hdr.appendChild(acts);
     }
     docsRoot.appendChild(hdr);
 
-    // Filtros
-    const filtros = el('div', { style: { display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' } });
-    const labelCat = el('label', { style: { color: 'var(--text2)', fontSize: '13px' } });
-    labelCat.textContent = 'Categoria:';
-    filtros.appendChild(labelCat);
-    filtros.appendChild(buildSelect(CATEGORIAS, docsState.categoria, val => {
-      docsState.categoria = val;
-      loadDocs();
-    }));
-    const labelTipo = el('label', { style: { color: 'var(--text2)', fontSize: '13px', marginLeft: '8px' } });
-    labelTipo.textContent = 'Tipo:';
-    filtros.appendChild(labelTipo);
-    filtros.appendChild(buildSelect(TIPOS, docsState.tipo, val => {
-      docsState.tipo = val;
-      loadDocs();
-    }));
-    docsRoot.appendChild(filtros);
+    // Toolbar: busca + tipo
+    const tb = el('div', { style: { display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' } });
+    const search = el('input', {
+      type: 'search', placeholder: '🔍  Buscar por título ou descrição…',
+      style: { flex: '1', minWidth: '220px', background: 'var(--bg2)', color: 'var(--text1)', border: '1px solid var(--border)', borderRadius: '4px', padding: '7px 10px' },
+    });
+    search.value = docsState.q;
+    search.addEventListener('input', () => { docsState.q = search.value.trim(); loadDocs(); });
+    tb.appendChild(search);
+    tb.appendChild(buildSelect(TIPOS, docsState.tipo, val => { docsState.tipo = val; loadDocs(); }));
+    docsRoot.appendChild(tb);
 
-    // Lista
+    // Layout dois painéis
+    const grid = el('div', { style: { display: 'flex', gap: '16px', alignItems: 'flex-start' } });
+
+    // Painel esquerdo: árvore de pastas
+    const aside = el('div', { style: { flex: '0 0 240px', maxWidth: '240px', borderRight: '1px solid var(--border)', paddingRight: '12px' } });
+    const rootRow = el('div', { style: {
+      padding: '4px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+      background: docsState.pastaId == null ? 'var(--bg3, rgba(0,180,216,.12))' : 'transparent',
+      color: docsState.pastaId == null ? 'var(--acc)' : 'var(--text1)',
+    } });
+    rootRow.textContent = '🗂  Todos os documentos';
+    rootRow.addEventListener('click', () => selectFolder(null));
+    aside.appendChild(rootRow);
+    const treeBox = el('div', { style: { marginTop: '4px' } });
+    buildPastaTree(docsState.pastas).forEach(n => renderTreeNode(n, 0, treeBox));
+    aside.appendChild(treeBox);
+    grid.appendChild(aside);
+
+    // Painel direito: lista de documentos
+    listPaneEl = el('div', { style: { flex: '1', minWidth: '0' } });
+    grid.appendChild(listPaneEl);
+    docsRoot.appendChild(grid);
+
+    renderList();
+  }
+
+  function renderList() {
+    if (!listPaneEl) return;
+    listPaneEl.innerHTML = '';
+
     if (!docsState.docs.length) {
       const empty = el('p', { style: { color: 'var(--text2)', padding: '24px 0' } });
-      empty.textContent = 'Nenhum documento encontrado.';
-      docsRoot.appendChild(empty);
+      empty.textContent = docsState.q
+        ? 'Nenhum documento corresponde à busca.'
+        : 'Nenhum documento nesta pasta.';
+      listPaneEl.appendChild(empty);
       return;
     }
 
@@ -301,49 +490,37 @@
       row.appendChild(tdTipo);
 
       const tdVersao = el('td', { style: { padding: '10px 10px', color: 'var(--text2)', fontFamily: 'var(--mono)', fontSize: '13px' } });
-      const versaoNum = doc.ultima_versao != null ? 'v' + doc.ultima_versao : '—';
-      tdVersao.textContent = versaoNum;
-      if (doc.ultima_versao != null && doc.ultima_versao_nome) {
-        tdVersao.title = doc.ultima_versao_nome;
-      }
+      tdVersao.textContent = doc.ultima_versao != null && doc.ultima_versao > 0 ? 'v' + doc.ultima_versao : '—';
+      if (doc.ultimo_arquivo_nome) tdVersao.title = doc.ultimo_arquivo_nome;
       row.appendChild(tdVersao);
 
       const tdAcoes = el('td', { style: { padding: '10px 10px' } });
       const acoes = el('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
 
-      // Botão histórico
-      const btnHist = el('button', {
-        class: 'btn btn-ghost btn-sm',
-        onclick: () => renderHistorico(doc),
-      });
+      const btnHist = el('button', { class: 'btn btn-ghost btn-sm', onclick: () => renderHistorico(doc) });
       btnHist.textContent = 'Histórico';
       acoes.appendChild(btnHist);
 
-      // Upload de versão (apenas quem pode escrever)
       if (canWrite()) {
-        const inputFile = el('input', { type: 'file', style: { display: 'none' } });
-        inputFile.accept = '.pdf,.docx,.xlsx,.odt,.ods,.png,.jpg,.jpeg,.txt,.csv';
+        // input visualmente oculto (NÃO display:none — alguns navegadores não disparam
+        // o diálogo via label se for display:none). O clique no <label> abre nativamente.
+        const inputFile = el('input', { type: 'file', style: { position: 'absolute', width: '1px', height: '1px', padding: '0', margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: '0' } });
+        inputFile.accept = ACCEPT_EXTS;
         inputFile.addEventListener('change', () => {
-          if (inputFile.files && inputFile.files[0]) {
-            uploadVersao(doc.id, inputFile.files[0], row);
-          }
+          if (inputFile.files && inputFile.files[0]) uploadVersao(doc.id, inputFile.files[0], row);
         });
-        const btnUpload = el('button', {
-          class: 'btn btn-secondary btn-sm',
-          onclick: () => inputFile.click(),
-        });
-        btnUpload.textContent = 'Upload de versão';
-        acoes.appendChild(inputFile);
-        acoes.appendChild(btnUpload);
+        const lblUpload = el('label', { class: 'btn btn-secondary btn-sm', style: { cursor: 'pointer' } });
+        lblUpload.textContent = 'Importar versão';
+        lblUpload.appendChild(inputFile);
+        acoes.appendChild(lblUpload);
       }
 
-      // Botão baixar última versão
-      if (doc.ultima_versao != null) {
+      if (doc.ultima_versao != null && doc.ultima_versao > 0) {
         const btnBaixar = el('button', {
           class: 'btn btn-ghost btn-sm',
-          onclick: () => downloadVersao(doc.id, doc.ultima_versao, doc.ultima_versao_nome || ('doc_' + doc.id + '_v' + doc.ultima_versao)),
+          onclick: () => downloadVersao(doc.id, doc.ultima_versao, doc.ultimo_arquivo_nome || ('doc_' + doc.id + '_v' + doc.ultima_versao)),
         });
-        btnBaixar.textContent = 'Baixar';
+        btnBaixar.textContent = 'Exportar';
         acoes.appendChild(btnBaixar);
       }
 
@@ -352,7 +529,7 @@
       tbody.appendChild(row);
     }
     table.appendChild(tbody);
-    docsRoot.appendChild(table);
+    listPaneEl.appendChild(table);
   }
 
   // ── Upload de versão ───────────────────────────────────────────────────────
@@ -409,7 +586,7 @@
     if (!docsRoot) return;
     docsRoot.innerHTML = '';
 
-    const btnVoltar = el('button', { class: 'btn btn-ghost btn-sm', onclick: () => { docsState.view = 'list'; loadDocs(); } });
+    const btnVoltar = el('button', { class: 'btn btn-ghost btn-sm', onclick: () => { render(); loadDocs(); } });
     btnVoltar.textContent = '← Voltar';
     docsRoot.appendChild(btnVoltar);
 
@@ -507,7 +684,7 @@
     if (!docsRoot) return;
     docsRoot.innerHTML = '';
 
-    const btnVoltar = el('button', { class: 'btn btn-ghost btn-sm', onclick: () => loadDocs() });
+    const btnVoltar = el('button', { class: 'btn btn-ghost btn-sm', onclick: () => { render(); loadDocs(); } });
     btnVoltar.textContent = '← Voltar';
     docsRoot.appendChild(btnVoltar);
 
@@ -550,14 +727,40 @@
     form.appendChild(lblTipo);
     form.appendChild(selTipo);
 
+    // Pasta (árvore) — opções a partir do caminho materializado
+    const lblPasta = el('label', { style: { color: 'var(--text2)', fontSize: '13px' } });
+    lblPasta.textContent = 'Pasta';
+    const pastaOpts = [{ value: '', label: '(Sem pasta)' }].concat(
+      docsState.pastas.map(p => ({ value: String(p.id), label: p.caminho }))
+    );
+    const selPasta = buildSelect(pastaOpts, docsState.pastaId != null ? String(docsState.pastaId) : '', () => {});
+    form.appendChild(lblPasta);
+    form.appendChild(selPasta);
+
+    // Arquivo — importa direto como versão 1 ao criar (PDF, DOC, XLS, PPT…)
+    const lblFile = el('label', { style: { color: 'var(--text2)', fontSize: '13px' } });
+    lblFile.textContent = 'Arquivo (PDF, DOC, XLS, PPT…)';
+    const inputFile = el('input', {
+      type: 'file',
+      style: { width: '100%', background: 'var(--bg2)', color: 'var(--text1)', border: '1px solid var(--border)', borderRadius: '4px', padding: '7px 10px', boxSizing: 'border-box' },
+    });
+    inputFile.accept = ACCEPT_EXTS;
+    // Se o título estiver vazio, pré-preenche com o nome do arquivo (sem extensão)
+    inputFile.addEventListener('change', () => {
+      const f = inputFile.files && inputFile.files[0];
+      if (f && !inputTitulo.value.trim()) inputTitulo.value = f.name.replace(/\.[^.]+$/, '');
+    });
+    form.appendChild(lblFile);
+    form.appendChild(inputFile);
+
     // Botões
     const rowBtns = el('div', { style: { display: 'flex', gap: '8px', marginTop: '4px' } });
 
-    const btnCancelar = el('button', { class: 'btn btn-ghost', type: 'button', onclick: () => loadDocs() });
+    const btnCancelar = el('button', { class: 'btn btn-ghost', type: 'button', onclick: () => { render(); loadDocs(); } });
     btnCancelar.textContent = 'Cancelar';
 
     const btnSalvar = el('button', { class: 'btn btn-primary', type: 'submit' });
-    btnSalvar.textContent = 'Criar documento';
+    btnSalvar.textContent = 'Criar e importar';
 
     rowBtns.appendChild(btnCancelar);
     rowBtns.appendChild(btnSalvar);
@@ -565,7 +768,9 @@
 
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const tituloVal = inputTitulo.value.trim();
+      const file = inputFile.files && inputFile.files[0];
+      if (!file) { showMsg(form, 'Selecione um arquivo para importar.', true); inputFile.focus(); return; }
+      const tituloVal = inputTitulo.value.trim() || file.name.replace(/\.[^.]+$/, '');
       if (!tituloVal) { inputTitulo.focus(); return; }
       btnSalvar.disabled = true;
       btnSalvar.textContent = 'Salvando…';
@@ -578,18 +783,36 @@
             descricao: inputDesc.value.trim() || null,
             categoria: selCat.value || 'geral',
             tipo: selTipo.value || 'modelo',
+            pasta_id: selPasta.value ? Number(selPasta.value) : null,
           }),
         });
         if (!r.ok) {
           const err = await r.json().catch(() => ({ detail: 'Erro ' + r.status }));
           throw new Error(err.detail || 'HTTP ' + r.status);
         }
-        docsState.categoria = selCat.value || '';
-        docsState.tipo = selTipo.value || '';
+        const created = await r.json();
+        // Importa o arquivo escolhido como versão 1 (mesma ação de "criar e importar")
+        if (file) {
+          btnSalvar.textContent = 'Importando arquivo…';
+          const fd = new FormData();
+          fd.append('file', file);
+          const up = await fetch(apiBase() + '/api/docs/documentos/' + created.id + '/versoes', {
+            method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }, body: fd,
+          });
+          if (!up.ok) {
+            const e = await up.json().catch(() => ({ detail: 'Erro ' + up.status }));
+            throw new Error('Documento criado, mas falha ao importar o arquivo: ' + (e.detail || up.status));
+          }
+        }
+        // Mostra a pasta onde o documento foi criado
+        docsState.pastaId = selPasta.value ? Number(selPasta.value) : null;
+        docsState.tipo = '';
+        docsState.q = '';
+        render();
         loadDocs();
       } catch (e) {
         btnSalvar.disabled = false;
-        btnSalvar.textContent = 'Criar documento';
+        btnSalvar.textContent = 'Criar e importar';
         showMsg(form, 'Erro: ' + e.message, true);
       }
     });
@@ -603,7 +826,7 @@
     // Fallback: page-documentos se docs-root não existir
     docsRoot = document.getElementById('docs-root') || document.getElementById('page-documentos');
     if (!docsRoot) return;
-    loadDocs();
+    loadPastas().then(() => { render(); loadDocs(); });
   }
 
   // ── DRAWER DE AJUDA (DOC-01) ──────────────────────────────────────────────

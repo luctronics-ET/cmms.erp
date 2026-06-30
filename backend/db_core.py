@@ -81,6 +81,13 @@ class CoreDB:
             ]:
                 if col not in grama_existing:
                     await db.execute(ddl)
+            # Docs — vincular documento a uma pasta da árvore (docs_pastas já criada acima)
+            ddoc_existing = {row[1] async for row in await db.execute("PRAGMA table_info(docs_documentos)")}
+            for col, ddl in [
+                ("pasta_id", "ALTER TABLE docs_documentos ADD COLUMN pasta_id INTEGER REFERENCES docs_pastas(id)"),
+            ]:
+                if col not in ddoc_existing:
+                    await db.execute(ddl)
             await db.commit()
 
     async def fetch_one(self, sql: str, params=()) -> dict | None:

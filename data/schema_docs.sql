@@ -60,3 +60,25 @@ CREATE TABLE IF NOT EXISTS docs_versoes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_dv_doc ON docs_versoes(documento_id, versao DESC);
+
+-- ─── Pastas / Árvore de Documentos ───────────────────────────────────────────
+-- Estrutura hierárquica de pastas. caminho (materialized path) = UNIQUE para
+-- idempotência do seed e exibição; parent_id para navegação da árvore.
+-- pasta_id em docs_documentos é adicionado via migração aditiva (db_core.py).
+CREATE TABLE IF NOT EXISTS docs_pastas (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome        TEXT    NOT NULL,
+  parent_id   INTEGER REFERENCES docs_pastas(id),
+  caminho     TEXT    NOT NULL UNIQUE,            -- ex: "Organização/Ordens Internas"
+  ativo       INTEGER NOT NULL DEFAULT 1,
+  criado_em   TEXT    NOT NULL DEFAULT (datetime('now')),
+  criado_por  TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_dpasta_parent ON docs_pastas(parent_id, ativo);
+
+-- Pastas raiz padrão (idempotente via UNIQUE(caminho)).
+INSERT OR IGNORE INTO docs_pastas (nome, parent_id, caminho) VALUES
+  ('Organização',     NULL, 'Organização'),
+  ('Ordens Internas', NULL, 'Ordens Internas'),
+  ('Normas Técnicas', NULL, 'Normas Técnicas');

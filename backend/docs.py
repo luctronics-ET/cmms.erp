@@ -62,8 +62,11 @@ ALLOWED_EXTS: frozenset[str] = frozenset({
     ".docx",
     ".xls",
     ".xlsx",
+    ".ppt",
+    ".pptx",
     ".odt",
     ".ods",
+    ".odp",
     ".txt",
     ".md",
     ".csv",
@@ -156,10 +159,16 @@ class AjudaIn(BaseModel):
 
 
 class DocumentoIn(BaseModel):
-    categoria: str
+    categoria: str = "geral"
     tipo: str = "modelo"
     titulo: str
     descricao: Optional[str] = None
+    pasta_id: Optional[int] = None
+
+
+class PastaIn(BaseModel):
+    nome: str
+    parent_id: Optional[int] = None
 
 
 # ── Ajuda endpoints (DOC-01) ──────────────────────────────────────────────────
@@ -210,17 +219,83 @@ async def upsert_ajuda(
     )
 
 
+# ── Pastas endpoints (árvore de documentos) ──────────────────────────────────
+
+@router.get("/pastas")
+async def list_pastas(authorization: str | None = Header(None)):
+    """Lista plana de pastas ativas; o cliente monta a árvore por parent_id."""
+    await _require_auth(authorization)
+    return await _db().fetch_all(
+        "SELECT id, nome, parent_id, caminho FROM docs_pastas WHERE ativo = 1 ORDER BY caminho"
+    )
+
+
+@router.post("/pastas", status_code=201)
+async def create_pasta(body: PastaIn, authorization: str | None = Header(None)):
+    """Cria uma pasta. caminho = caminho_do_pai + '/' + nome (ou nome se raiz).
+    '/' no nome é rejeitado para preservar a integridade do caminho materializado.
+    """
+    user = await _require_auth(authorization)
+    _require_escrita(user)
+    nome = (body.nome or "").strip()
+    if not nome or "/" in nome:
+        raise HTTPException(400, "Nome de pasta inválido (vazio ou com '/').")
+    caminho = nome
+    if body.parent_id is not None:
+        parent = await _db().fetch_one(
+            "SELECT caminho FROM docs_pastas WHERE id = ? AND ativo = 1", (body.parent_id,)
+        )
+        if not parent:
+            raise HTTPException(404, "Pasta pai não encontrada")
+        caminho = parent["caminho"] + "/" + nome
+    if await _db().fetch_one("SELECT id FROM docs_pastas WHERE caminho = ?", (caminho,)):
+        raise HTTPException(409, f"Pasta já existe: {caminho!r}")
+    now = datetime.utcnow().isoformat()
+    pid = await _db().execute(
+        "INSERT INTO docs_pastas (nome, parent_id, caminho, criado_em, criado_por) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (nome, body.parent_id, caminho, now, user["nome"]),
+    )
+    return await _db().fetch_one(
+        "SELECT id, nome, parent_id, caminho FROM docs_pastas WHERE id = ?", (pid,)
+    )
+
+
+@router.delete("/pastas/{pasta_id}")
+async def delete_pasta(pasta_id: int, authorization: str | None = Header(None)):
+    """Remove uma pasta. Só permitido se estiver vazia (sem subpastas e sem documentos)."""
+    user = await _require_auth(authorization)
+    _require_escrita(user)
+    if not await _db().fetch_one(
+        "SELECT id FROM docs_pastas WHERE id = ? AND ativo = 1", (pasta_id,)
+    ):
+        raise HTTPException(404, "Pasta não encontrada")
+    if await _db().fetch_one(
+        "SELECT id FROM docs_pastas WHERE parent_id = ? AND ativo = 1 LIMIT 1", (pasta_id,)
+    ):
+        raise HTTPException(409, "Pasta tem subpastas — remova-as primeiro.")
+    if await _db().fetch_one(
+        "SELECT id FROM docs_documentos WHERE pasta_id = ? AND ativo = 1 LIMIT 1", (pasta_id,)
+    ):
+        raise HTTPException(409, "Pasta contém documentos — mova ou remova-os primeiro.")
+    # hard delete: pasta garantidamente vazia → evita colisão com UNIQUE(caminho) ao recriar
+    await _db().execute("DELETE FROM docs_pastas WHERE id = ?", (pasta_id,))
+    return {"ok": True, "id": pasta_id}
+
+
 # ── Documentos endpoints (DOC-02, DOC-03) ────────────────────────────────────
 
 @router.get("/documentos")
 async def list_documentos(
     categoria: Optional[str] = Query(None),
     tipo: Optional[str] = Query(None),
+    pasta_id: Optional[int] = Query(None),
+    q: Optional[str] = Query(None),
     authorization: str | None = Header(None),
 ):
     """Lista documentos ativos com sua última versão.
-    Filtra por categoria e/ou tipo (modelo|formulario|guia|norma).
-    Suporta DOC-03: tipo=norma ou tipo=guia para navegação de normas técnicas.
+    Filtra por categoria, tipo (modelo|formulario|guia|norma), pasta e/ou busca textual.
+    q faz LIKE em título e descrição (busca simples server-side).
     """
     await _require_auth(authorization)
     conditions = ["d.ativo = 1"]
@@ -231,6 +306,13 @@ async def list_documentos(
     if tipo:
         conditions.append("d.tipo = ?")
         params.append(tipo)
+    if pasta_id is not None:
+        conditions.append("d.pasta_id = ?")
+        params.append(pasta_id)
+    if q and q.strip():
+        like = f"%{q.strip()}%"
+        conditions.append("(d.titulo LIKE ? OR d.descricao LIKE ?)")
+        params.extend([like, like])
     where = " AND ".join(conditions)
     sql = f"""
         SELECT d.*,
@@ -263,11 +345,15 @@ async def create_documento(
     user = await _require_auth(authorization)
     _require_escrita(user)
     _validate_cat(body.categoria)  # T-08-01: whitelist antes de usar categoria
+    if body.pasta_id is not None and not await _db().fetch_one(
+        "SELECT id FROM docs_pastas WHERE id = ? AND ativo = 1", (body.pasta_id,)
+    ):
+        raise HTTPException(404, "Pasta não encontrada")
     now = datetime.utcnow().isoformat()
     doc_id = await _db().execute(
-        "INSERT INTO docs_documentos (categoria, tipo, titulo, descricao, criado_em, criado_por) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (body.categoria, body.tipo, body.titulo, body.descricao, now, user["nome"]),
+        "INSERT INTO docs_documentos (categoria, tipo, titulo, descricao, pasta_id, criado_em, criado_por) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (body.categoria, body.tipo, body.titulo, body.descricao, body.pasta_id, now, user["nome"]),
     )
     return await _db().fetch_one(
         "SELECT * FROM docs_documentos WHERE id = ?", (doc_id,)
