@@ -232,17 +232,38 @@ def test_manifest_excludes_local_scope_servicos(app_client):
 
 
 def test_manifest_includes_planos_for_module_ativos(app_client):
+    """Manifest planos_manutencao is derived from catalogo_planos+itens (not the retired table).
+
+    The manifest key `planos_manutencao` is kept for PMOC app compatibility, but is now
+    populated from catalogo_planos / catalogo_plano_itens (see backend/sync.py).
+    Each item in planos_manutencao has synthetic id `{plano_id}::{tipo_codigo}::{servico_id}`.
+    """
     client, main = app_client
-    _exec(main, "INSERT INTO ativos (id, tipo, categoria, nome, ativo) VALUES (?, ?, ?, ?, 1)",
-          ("a-clim-2", "AC_SPLIT", "climatizacao", "AC 2"))
+    # seed service
     _exec(main,
         "INSERT INTO catalogo_servicos (id, codigo, nome, escopo, versao) "
         "VALUES (?, ?, ?, 'central', 1)",
-        ("s-clim", "LIMP", "Limp"))
+        ("s-clim-manifest", "LIMP_MAN", "Limp Manifest"))
+    # seed catalogo_plano (categoria=climatizacao so pmoc_refrigeracao picks it up)
     _exec(main,
-        "INSERT INTO planos_manutencao (id, servico_id, ativo_id, frequencia) "
+        "INSERT INTO catalogo_planos (id, codigo, nome, categoria, tipo_codigo, frequencia, ativo) "
+        "VALUES (?, ?, ?, ?, ?, ?, 1)",
+        ("plan-manifest-1", "PLAN_MAN_1", "Plano Manifest 1",
+         "climatizacao", "AC_SPLIT", '{"tipo":"periodica","valor":"P1M"}'))
+    # seed plano item linking plano → service
+    _exec(main,
+        "INSERT INTO catalogo_plano_itens (plano_id, servico_id, seq, classe) "
         "VALUES (?, ?, ?, ?)",
-        ("p1", "s-clim", "a-clim-2", '{"tipo":"periodica","valor":"P1M"}'))
+        ("plan-manifest-1", "s-clim-manifest", 1, "prev"))
     r = client.get("/api/sync/manifest", params={"modulo": "pmoc_refrigeracao"})
-    plano_ids = {p["id"] for p in r.json()["planos_manutencao"]}
-    assert "p1" in plano_ids
+    assert r.status_code == 200
+    planos = r.json()["planos_manutencao"]
+    # synthetic id format: "{plano_id}::{tipo_codigo}::{servico_id}"
+    plano_ids = {p["id"] for p in planos}
+    expected_id = "plan-manifest-1::AC_SPLIT::s-clim-manifest"
+    assert expected_id in plano_ids, f"expected '{expected_id}' in {plano_ids}"
+    # verify shape: each entry has the fields the PMOC app consumes
+    entry = next(p for p in planos if p["id"] == expected_id)
+    assert entry["servico_id"] == "s-clim-manifest"
+    assert entry["tipo_codigo"] == "AC_SPLIT"
+    assert entry["intervalo"] == "P1M"
