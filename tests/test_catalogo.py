@@ -190,7 +190,15 @@ def test_servico_aplicavel_a_parsed_as_dict(app_client):
     assert r.json()["aplicavel_a"] == {"categorias": ["climatizacao"]}
 
 
-# ──────────────────────────── Planos ─────────────────────────────────────────
+# ──────────────────────────── Planos (deprecação) ────────────────────────────
+#
+# /api/catalogo/planos foi APOSENTADO (ver backend/catalogo.py ~318-347).
+# Substituído por /api/catalogo/planos-catalogo (modelo catalogo_planos).
+# Os testes abaixo documentam o CONTRATO DE DEPRECAÇÃO: GET retorna []
+# e qualquer escrita (POST/PUT/PATCH arquivar) retorna 410 Gone.
+#
+# Para cobertura real de planos, ver testes de /planos-catalogo (a adicionar).
+#
 
 
 def _seed_servico(client, main, codigo="SV001") -> str:
@@ -199,148 +207,59 @@ def _seed_servico(client, main, codigo="SV001") -> str:
     return r.json()["id"]
 
 
-def _plano_payload(servico_id: str, **kwargs) -> dict:
-    base = {
-        "servico_id": servico_id,
-        "tipo_codigo": "climatizacao",
-        "frequencia": {"tipo": "periodica", "valor": "P1M"},
-        "criado_por_modulo": "pmoc_refrigeracao",
-    }
-    base.update(kwargs)
-    return base
-
-
-def test_list_planos_baseline_seeded(app_client):
-    # startup semeia planos de manutenção; endpoint responde lista
+def test_planos_deprecated_list_returns_empty(app_client):
+    """GET /api/catalogo/planos retorna [] (endpoint aposentado, não 404)."""
     client, _ = app_client
     r = client.get("/api/catalogo/planos")
     assert r.status_code == 200
-    assert isinstance(r.json(), list)
+    assert r.json() == []
 
 
-def test_create_plano_requires_auth(app_client):
-    client, main = app_client
-    sid = _seed_servico(client, main)
-    r = client.post("/api/catalogo/planos", json=_plano_payload(sid))
-    assert r.status_code == 401
+def test_planos_deprecated_get_by_id_returns_410(app_client):
+    """GET /api/catalogo/planos/{id} retorna 410 Gone."""
+    client, _ = app_client
+    r = client.get("/api/catalogo/planos/qualquer-id")
+    assert r.status_code == 410
 
 
-def test_create_plano_success_with_tipo_codigo(app_client):
-    client, main = app_client
-    headers = _auth(main)
-    sid = _seed_servico(client, main)
-    r = client.post("/api/catalogo/planos", json=_plano_payload(sid), headers=headers)
-    assert r.status_code == 201
-    data = r.json()
-    assert data["tipo_codigo"] == "climatizacao"
-    assert data["ativo_id"] is None
-
-
-def test_create_plano_success_with_ativo_id(app_client):
+def test_planos_deprecated_post_returns_410(app_client):
+    """POST /api/catalogo/planos retorna 410 Gone (sem exigir auth primeiro)."""
     client, main = app_client
     headers = _auth(main)
-    # Insere ativo direto no DB
-    _exec(
-        main,
-        "INSERT INTO ativos (id, nome, categoria, tipo) VALUES ('ativo-1', 'Ar-cond Central', 'climatizacao', 'split')",
-    )
-    sid = _seed_servico(client, main)
-    r = client.post(
-        "/api/catalogo/planos",
-        json=_plano_payload(sid, ativo_id="ativo-1", tipo_codigo=None),
-        headers=headers,
-    )
-    assert r.status_code == 201
-    assert r.json()["ativo_id"] == "ativo-1"
+    r = client.post("/api/catalogo/planos", json={"qualquer": "dado"}, headers=headers)
+    assert r.status_code == 410
 
 
-def test_create_plano_xor_constraint_neither(app_client):
+def test_planos_deprecated_put_returns_410(app_client):
+    """PUT /api/catalogo/planos/{id} retorna 410 Gone."""
     client, main = app_client
     headers = _auth(main)
-    sid = _seed_servico(client, main)
-    payload = _plano_payload(sid)
-    del payload["tipo_codigo"]  # sem ativo_id nem tipo_codigo
-    r = client.post("/api/catalogo/planos", json=payload, headers=headers)
-    assert r.status_code == 422
+    r = client.put("/api/catalogo/planos/qualquer-id", json={"qualquer": "dado"}, headers=headers)
+    assert r.status_code == 410
 
 
-def test_create_plano_xor_constraint_both(app_client):
+def test_planos_deprecated_arquivar_returns_410(app_client):
+    """PATCH /api/catalogo/planos/{id}/arquivar retorna 410 Gone."""
     client, main = app_client
     headers = _auth(main)
-    _exec(
-        main,
-        "INSERT INTO ativos (id, nome, categoria, tipo) VALUES ('ativo-2', 'Bomba', 'hidraulica', 'bomba')",
-    )
-    sid = _seed_servico(client, main)
-    r = client.post(
-        "/api/catalogo/planos",
-        json=_plano_payload(sid, ativo_id="ativo-2"),  # tem tipo_codigo E ativo_id
-        headers=headers,
-    )
-    assert r.status_code == 422
+    r = client.patch("/api/catalogo/planos/qualquer-id/arquivar", headers=headers)
+    assert r.status_code == 410
 
 
-def test_create_plano_invalid_servico_fk(app_client):
-    client, main = app_client
-    headers = _auth(main)
-    r = client.post(
-        "/api/catalogo/planos",
-        json=_plano_payload("naoexiste-id"),
-        headers=headers,
-    )
-    assert r.status_code == 404
-
-
-def test_create_plano_invalid_ativo_fk(app_client):
-    client, main = app_client
-    headers = _auth(main)
-    sid = _seed_servico(client, main)
-    r = client.post(
-        "/api/catalogo/planos",
-        json=_plano_payload(sid, ativo_id="naoexiste", tipo_codigo=None),
-        headers=headers,
-    )
-    assert r.status_code == 404
-
-
-def test_update_plano(app_client):
-    client, main = app_client
-    headers = _auth(main)
-    sid = _seed_servico(client, main)
-    r1 = client.post("/api/catalogo/planos", json=_plano_payload(sid), headers=headers)
-    pid = r1.json()["id"]
-    updated = _plano_payload(sid, obs="revisado")
-    r2 = client.put(f"/api/catalogo/planos/{pid}", json=updated, headers=headers)
-    assert r2.status_code == 200
-    assert r2.json()["obs"] == "revisado"
-
-
-def test_arquivar_plano(app_client):
-    client, main = app_client
-    headers = _auth(main)
-    sid = _seed_servico(client, main)
-    r1 = client.post("/api/catalogo/planos", json=_plano_payload(sid), headers=headers)
-    pid = r1.json()["id"]
-    r = client.patch(f"/api/catalogo/planos/{pid}/arquivar", headers=headers)
+def test_planos_deprecated_list_ignores_filters(app_client):
+    """GET /api/catalogo/planos com filtros ainda retorna [] (não 422)."""
+    client, _ = app_client
+    r = client.get("/api/catalogo/planos", params={"tipo_codigo": "climatizacao"})
     assert r.status_code == 200
-    # Não aparece no listing padrão
-    r_list = client.get("/api/catalogo/planos")
-    assert all(p["id"] != pid for p in r_list.json())
+    assert r.json() == []
 
 
-def test_list_planos_filter_by_tipo_codigo(app_client):
-    client, main = app_client
-    headers = _auth(main)
-    sid = _seed_servico(client, main)
-    client.post("/api/catalogo/planos", json=_plano_payload(sid, tipo_codigo="climatizacao"), headers=headers)
-    # Segundo serviço + plano diferente
-    sid2 = _seed_servico(client, main, codigo="SV002")
-    client.post("/api/catalogo/planos", json=_plano_payload(sid2, tipo_codigo="predial"), headers=headers)
-
-    r = client.get("/api/catalogo/planos", params={"tipo_codigo": "predial"})
-    data = r.json()
-    assert len(data) == 1
-    assert data[0]["tipo_codigo"] == "predial"
+def test_planos_catalogo_list_smoke(app_client):
+    """Smoke: GET /api/catalogo/planos-catalogo existe e retorna lista (pode ser vazia)."""
+    client, _ = app_client
+    r = client.get("/api/catalogo/planos-catalogo")
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
 
 
 # ──────────────────────────── Qualificações ──────────────────────────────────
