@@ -4771,7 +4771,18 @@ function _nextId(prefix, items, archived=[]){
   return `${prefix}-${padZero(max+1,4)}`;
 }
 
-function canAutorizarOS(){ return SESSION&&SESSION.role==='admin'; }
+function canAutorizarOS(o){
+  if(!SESSION||SESSION._visitante)return false;
+  // chefe de departamento (admin/gestor) sempre pode autorizar
+  if(SESSION.role==='admin'||SESSION.role==='gestor')return true;
+  // ou o próprio solicitante / executor da OS
+  if(o){
+    const me=SESSION.nome;
+    if(o.solicitante===me||o.criadoPor===me)return true;
+    if(o.executor===me||o.responsavel===me)return true;
+  }
+  return false;
+}
 function canExecutarOS(o){
   if(!SESSION)return false;
   return SESSION.role==='admin' || !o.executor || o.executor===SESSION.nome;
@@ -4888,9 +4899,9 @@ function gerarOSdaPS(id){ verOS(id); }
 
 function autorizarOS(id,aprovada){
   if(soLeitura())return;
-  if(!canAutorizarOS()){toast('Somente admin pode autorizar OS','warning');return;}
   const data=getOS();const idx=data.findIndex(o=>o.id===id);if(idx<0)return;
-  if(data[idx].status!=='pendente_autorizacao'){toast('OS já tratada','warning');return;}
+  if(!canAutorizarOS(data[idx])){toast('Autorização: somente solicitante, executor ou chefe de departamento','warning');return;}
+  if(data[idx].status!=='pendente_autorizacao'&&data[idx].status!=='pendente'){toast('OS já tratada','warning');return;}
   data[idx].status=aprovada?'autorizada':'reprovada';
   data[idx].autorizadoPor=SESSION.nome;
   data[idx].dataAutorizacao=new Date().toISOString();
@@ -5027,7 +5038,7 @@ function renderOS(){
           <div class="flex gap-8">
             <button class="btn-act" title="Ver e editar OS" aria-label="Ver e editar OS" onclick="verOS('${o.id}')">👁</button>
             ${o.status!=='cancelada'&&o.status!=='reprovada'?`<button class="btn-act" title="Abrir Solicitação de Recurso" aria-label="Abrir Solicitação de Recurso" onclick="abrirNovaSR('${o.id}')">SR</button>`:''}
-            ${canAutorizarOS()&&o.status==='pendente_autorizacao'?`<button class="btn-act" title="Autorizar OS" aria-label="Autorizar OS" onclick="autorizarOS('${o.id}',true)">✓</button><button class="btn-act" title="Reprovar OS" aria-label="Reprovar OS" onclick="autorizarOS('${o.id}',false)">✕</button>`:''}
+            ${canAutorizarOS(o)&&(o.status==='pendente_autorizacao'||o.status==='pendente')?`<button class="btn-act" title="Autorizar OS" aria-label="Autorizar OS" onclick="autorizarOS('${o.id}',true)">✓</button><button class="btn-act" title="Reprovar OS" aria-label="Reprovar OS" onclick="autorizarOS('${o.id}',false)">✕</button>`:''}
             ${o.status==='autorizada'&&canExecutarOS(o)?`<button class="btn-act" title="${bloqueada?'Requisitos pendentes — resolva antes de iniciar':'Iniciar execução'}" aria-label="Iniciar execução" onclick="avancarOS('${o.id}','em_andamento')" ${bloqueada?'style="opacity:.5"':''}>▶</button>`:''}
             ${o.status==='em_andamento'&&canExecutarOS(o)?`<button class="btn-act" title="Concluir OS" aria-label="Concluir OS" onclick="avancarOS('${o.id}','concluida')">✔</button>`:''}
             ${o.status==='concluida'&&canArquivarOS(o)?`<button class="btn-act" title="Arquivar OS" aria-label="Arquivar OS" onclick="arquivarOS('${o.id}')">🗄</button>`:''}
@@ -5148,7 +5159,7 @@ function verOS(id){
   ${podeEditar?`<button class="btn btn-secondary" onclick="salvarOSModal('${o.id}')">Salvar Dados</button>`:''}
   ${o.status!=='cancelada'&&o.status!=='reprovada'?`<button class="btn btn-secondary" onclick="closeModal(document.getElementById('modal-ver-os'));abrirNovaSR('${o.id}')">+ SR</button>`:''}
   ${srsMateriaisPendentes.length>0?`<button class="btn btn-secondary" onclick="closeModal(document.getElementById('modal-ver-os'));abrirSRDaOS('${o.id}')">Atender SR Materiais</button>`:''}
-  ${canAutorizarOS()&&o.status==='pendente_autorizacao'?`<button class="btn btn-danger" onclick="autorizarOS('${o.id}',false);closeModal(document.getElementById('modal-ver-os'))">Reprovar</button><button class="btn btn-primary" onclick="autorizarOS('${o.id}',true);closeModal(document.getElementById('modal-ver-os'))">Autorizar</button>`:''}
+  ${canAutorizarOS(o)&&(o.status==='pendente_autorizacao'||o.status==='pendente')?`<button class="btn btn-danger" onclick="autorizarOS('${o.id}',false);closeModal(document.getElementById('modal-ver-os'))">Reprovar</button><button class="btn btn-primary" onclick="autorizarOS('${o.id}',true);closeModal(document.getElementById('modal-ver-os'))">Autorizar</button>`:''}
   ${o.status==='autorizada'&&canExecutarOS(o)?`<button class="btn btn-primary" onclick="avancarOS('${o.id}','em_andamento');closeModal(document.getElementById('modal-ver-os'))">Iniciar execução</button>`:''}
   ${o.status==='em_andamento'&&canExecutarOS(o)?`<button class="btn btn-primary" onclick="avancarOS('${o.id}','concluida');closeModal(document.getElementById('modal-ver-os'))">Concluir OS</button>`:''}
   ${btnAvalAut}${btnAvalSol}
@@ -5270,7 +5281,15 @@ function renderArquivoServicos(){
 function renderKanban(){
   const allItems=getOS();
   const cols={pendente_autorizacao:[],autorizada:[],em_andamento:[],concluida:[]};
-  allItems.forEach(item=>{ if(cols[item.status]) cols[item.status].push(item); });
+  // normaliza status p/ a coluna do board — sem isto, 'pendente'/'aberta'/'aguardando' sumiam
+  const _kbCol=st=>{
+    if(st==='pendente'||st==='aberta'||st==='pendente_autorizacao')return 'pendente_autorizacao';
+    if(st==='autorizada'||st==='aguardando')return 'autorizada';
+    if(st==='em_andamento')return 'em_andamento';
+    if(st==='concluida'||st==='concluido')return 'concluida';
+    return null; // cancelada/reprovada/rejeitada/arquivada — fora do board
+  };
+  allItems.forEach(item=>{ const c=_kbCol(item.status); if(c) cols[c].push(item); });
   Object.entries(cols).forEach(([col,items])=>{
     const el=document.getElementById('kb-'+col);
     const cnt=document.getElementById('kb-count-'+col);
