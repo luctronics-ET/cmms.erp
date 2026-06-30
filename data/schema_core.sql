@@ -85,6 +85,10 @@ CREATE TABLE IF NOT EXISTS ordens_servico (
   tipo           TEXT NOT NULL DEFAULT 'corretiva',   -- corretiva | preventiva | preditiva | inspecao
   status         TEXT NOT NULL DEFAULT 'aberta',      -- aberta | em_andamento | aguardando | concluida | cancelada
   prioridade     TEXT NOT NULL DEFAULT 'media',       -- critica | alta | media | baixa
+  categoria      TEXT,                                -- taxonomia de serviço (TRANSPORTE|MANUTENCAO|CONTROLE VEGETAL|CONTROLE BIOLOGICO)
+  subcategoria   TEXT,                                -- subcategoria da taxonomia
+  servicos       TEXT,                                -- JSON: [{nome, catalogo_id, origem}] passos da OS
+  veiculos       TEXT,                                -- JSON: [{ativo_id, nome}] viaturas/embarcações
   modulo_origem  TEXT,                                -- xPredial | xGrama | xHVAC | xEletrica | xPaiol | manual
   solicitante_id INTEGER REFERENCES usuarios(id),
   responsavel_id INTEGER REFERENCES usuarios(id),
@@ -375,3 +379,95 @@ CREATE INDEX IF NOT EXISTS idx_colab_tickets_email     ON colab_tickets(requeste
 CREATE INDEX IF NOT EXISTS idx_colab_tickets_status    ON colab_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_colab_timeoff_email     ON colab_timeoff(employee_email);
 CREATE INDEX IF NOT EXISTS idx_colab_timeoff_status    ON colab_timeoff(status);
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- PMOC Transportes (frota_terrestre=viaturas/km + frota_naval=embarcações/h)
+-- Mesmo molde de pmoc_refrigeracao: ficha de detalhe 1:1 com ativos.
+-- ════════════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS pmoc_transportes (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  ativo_id            TEXT REFERENCES ativos(id),
+  local_id            INTEGER REFERENCES locais(id),
+  -- Estado
+  estado_operacional  TEXT DEFAULT 'OP',    -- OP | INOP
+  est_idade           TEXT,                 -- NOVA | SEMI | VELHA
+  criticidade         TEXT DEFAULT 'MÉDIA', -- CRÍTICA | ALTA | MÉDIA | BAIXA
+  obs                 TEXT,
+  -- Documentação (viatura) / registro (embarcação)
+  renavam             TEXT,
+  licenciamento_ate   TEXT,                 -- vencimento licenciamento (vtr)
+  seguro_ate          TEXT,
+  registro_naval      TEXT,                 -- TIE / Cap. Portos (emb)
+  -- Propulsão
+  combustivel         TEXT,                 -- diesel | gasolina | flex
+  tanque_l            REAL,
+  -- Manutenção mecânica
+  oleo_ultima_uso     REAL,                 -- uso_atual (km/h) na última troca de óleo
+  pneus_estado        TEXT,                 -- BOM | REGULAR | RUIM (vtr)
+  bateria_estado      TEXT,
+  casco_estado        TEXT,                 -- (emb)
+  motor_obs           TEXT,
+  data_aquisicao      TEXT,
+  ultima_manutencao   TEXT,
+  -- Metadados
+  criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_pmoc_transp_ativo  ON pmoc_transportes(ativo_id);
+CREATE INDEX IF NOT EXISTS idx_pmoc_transp_estado ON pmoc_transportes(estado_operacional);
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- PMOC Corte (maquinas_corte: roçadeiras, cortadores, motosserras, trator) por hora
+-- ════════════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS pmoc_corte (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  ativo_id            TEXT REFERENCES ativos(id),
+  local_id            INTEGER REFERENCES locais(id),
+  -- Estado
+  estado_operacional  TEXT DEFAULT 'OP',    -- OP | INOP
+  est_idade           TEXT,                 -- NOVA | SEMI | VELHA
+  criticidade         TEXT DEFAULT 'MÉDIA',
+  obs                 TEXT,
+  -- Motor
+  motor_tempos        TEXT,                 -- 2T | 4T | diesel
+  combustivel         TEXT,                 -- gasolina | mistura_2t | diesel
+  oleo_tipo           TEXT,                 -- SAE30 | 10W-30 | 15W-40
+  oleo_ultima_uso     REAL,                 -- horas na última troca de óleo
+  -- Corte
+  ferramenta_corte    TEXT,                 -- nylon | lamina | corrente | deck
+  -- Manutenção
+  data_aquisicao      TEXT,
+  ultima_manutencao   TEXT,
+  -- Metadados
+  criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_pmoc_corte_ativo  ON pmoc_corte(ativo_id);
+CREATE INDEX IF NOT EXISTS idx_pmoc_corte_estado ON pmoc_corte(estado_operacional);
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- PMOC Fonoclama (sistema de aviso sonoro: amplificadores, consoles, cornetas,
+-- linhas 70V, sirenes). Legado migrado de xFonoclama/fonoclama.html.
+-- ════════════════════════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS pmoc_fonoclama (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  ativo_id            TEXT REFERENCES ativos(id),
+  local_id            INTEGER REFERENCES locais(id),
+  -- Estado
+  estado_operacional  TEXT DEFAULT 'OP',    -- OP | INOP
+  est_idade           TEXT,
+  criticidade         TEXT DEFAULT 'ALTA',  -- aviso sonoro tende a ser crítico
+  obs                 TEXT,
+  -- Áudio / elétrico
+  potencia_w          REAL,
+  impedancia          TEXT,                 -- 8Ω | 70V | 100V
+  tensao_linha        TEXT,
+  -- Manutenção
+  data_instalacao     TEXT,
+  ultima_manutencao   TEXT,
+  -- Metadados
+  criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
+  atualizado_em       DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_pmoc_fono_ativo  ON pmoc_fonoclama(ativo_id);
+CREATE INDEX IF NOT EXISTS idx_pmoc_fono_estado ON pmoc_fonoclama(estado_operacional);

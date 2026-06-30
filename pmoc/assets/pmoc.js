@@ -25,7 +25,7 @@ const CATEGORIAS = {
       { k: 'criticidade', label: 'Crit.', detalhe: true },
       { k: 'status', label: 'Status', isStatus: true },
     ],
-    modulo_sync: 'refrigeracao',
+    modulo_sync: 'pmoc_refrigeracao',
   },
   maq_corte: {
     label: 'Máq. de corte', emoji: '🔧', cor: '#f59e0b',
@@ -38,7 +38,7 @@ const CATEGORIAS = {
       { k: 'uso_atual', label: 'Uso', mono: true, suffix: ' h' },
       { k: 'status', label: 'Status', isStatus: true },
     ],
-    modulo_sync: 'maq_corte',
+    modulo_sync: 'pmoc_grama',
   },
   viaturas: {
     label: 'Viaturas', emoji: '🚗', cor: '#22c55e',
@@ -52,7 +52,7 @@ const CATEGORIAS = {
       { k: 'uso_atual', label: 'Uso', mono: true, useUnidade: true },
       { k: 'status', label: 'Status', isStatus: true },
     ],
-    modulo_sync: 'viaturas',
+    modulo_sync: 'pmoc_transportes',
   },
   embarcacoes: {
     label: 'Embarcações', emoji: '⛵', cor: '#3b82f6',
@@ -66,9 +66,28 @@ const CATEGORIAS = {
       { k: 'uso_atual', label: 'Uso', mono: true, suffix: ' h' },
       { k: 'status', label: 'Status', isStatus: true },
     ],
-    modulo_sync: 'embarcacoes',
+    modulo_sync: 'pmoc_transportes',
   },
 };
+
+// Taxonomia canônica de serviços (espelha a do ERP). Default por categoria do PMOC.
+const SERVICO_TAXONOMIA = {
+  'TRANSPORTE':         ['FAINA ARMAMENTO TERRESTRE','FAINA ARMAMENTO MARITIMA','TRANSPORTE MATERIAL','TRANSPORTE PESSOAL','MANOBRA DE PESO','RECEBIMENTO MATERIAL','LIXO'],
+  'MANUTENCAO':         ['EDIFICACAO','HIDRAULICA','ELETRICA','ELETRONICA','INFORMATICA','REFRIGERACAO','CARPINTARIA','PINTURA INDUSTRIAL'],
+  'CONTROLE VEGETAL':   [],
+  'CONTROLE BIOLOGICO': [],
+};
+const TAXON_DEFAULT = {
+  refrigeracao: ['MANUTENCAO','REFRIGERACAO'], maq_corte: ['CONTROLE VEGETAL',''],
+  viaturas: ['TRANSPORTE',''], embarcacoes: ['TRANSPORTE',''],
+};
+function _fillSubcat(catVal, subVal) {
+  const sub = el('#m-subcat'); if (!sub) return;
+  const subs = SERVICO_TAXONOMIA[catVal] || [];
+  sub.innerHTML = '<option value="">—</option>' +
+    subs.map(s => `<option value="${s}"${s === subVal ? ' selected' : ''}>${s}</option>`).join('');
+  sub.disabled = !subs.length;
+}
 
 const STORES = [
   'ativos', 'locais', 'catalogo_servicos', 'planos_manutencao',
@@ -155,6 +174,7 @@ const state = {
   refrigDetalhe: {},
   locais: [],
   planos: [],
+  catalogo: [],
   user: null,
   token: null,
   pendentes: 0,
@@ -285,6 +305,7 @@ async function loadAll() {
   state.ativos = await idb.getAll('ativos');
   state.locais = await idb.getAll('locais');
   state.planos = await idb.getAll('planos_manutencao');
+  state.catalogo = await idb.getAll('catalogo_servicos');
   const det = await idb.getAll('refrigeracao_detalhe');
   state.refrigDetalhe = {};
   // tenta casar pelo nome do ativo com ambiente do CSV (matching imperfeito; melhor que nada)
@@ -372,6 +393,7 @@ async function selectCategoria(key) {
 
 function renderUI() {
   const cat = CATEGORIAS[state.categoria];
+  renderCatNav();   // atualiza contadores das categorias (após sync/pull)
   el('#cat-title').textContent = `${cat.emoji} ${cat.label}`;
   renderThead();
   populateFiltroLocal();
@@ -532,6 +554,9 @@ async function renderTabHist(a) {
     <div class="os-item">
       <div class="head"><span>${fmtDate(o.criada_em)}</span><span class="badge b-${o.status}">${o.status}</span></div>
       <div class="title">${o.titulo}</div>
+      ${o.categoria ? `<div style="font-size:11px;color:var(--acc,#00b4d8);margin-top:2px">${o.categoria}${o.subcategoria ? ' · ' + o.subcategoria : ''}</div>` : ''}
+      ${(o.servicos || []).length ? `<small style="color:var(--text-dim)">Serviços: ${o.servicos.map(s => s.nome).join(', ')}</small>` : ''}
+      ${(o.veiculos || []).length ? `<small style="color:var(--text-dim);display:block">Veículos: ${o.veiculos.map(v => v.nome).join(', ')}</small>` : ''}
     </div>`).join('');
 }
 
@@ -600,9 +625,52 @@ function openModal(kind) {
           <option value="alta">Alta</option>
           <option value="urgente">Urgente</option>
         </select>
+      </label>
+      <label class="f-block">
+        <span>Categoria</span>
+        <select id="m-cat">${Object.keys(SERVICO_TAXONOMIA).map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+      </label>
+      <label class="f-block">
+        <span>Subcategoria</span>
+        <select id="m-subcat"></select>
+      </label>
+      <label class="f-block">
+        <span>Serviços (um ou vários)</span>
+        <div style="display:flex;gap:6px">
+          <select id="m-svc-sel" style="flex:1"><option value="">— catálogo —</option>${(state.catalogo || []).map(s => `<option value="${s.id}">${s.nome || s.titulo || s.id}</option>`).join('')}</select>
+          <button type="button" class="btn" id="m-svc-add">+</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <input id="m-svc-livre" type="text" placeholder="serviço livre..." style="flex:1">
+          <button type="button" class="btn" id="m-svc-add-livre">+</button>
+        </div>
+        <div id="m-svc-list" style="margin-top:6px"></div>
+      </label>
+      <label class="f-block">
+        <span>Viaturas / Embarcações</span>
+        <div id="m-veic-list" style="display:grid;gap:4px"></div>
       </label>`;
     foot.innerHTML = `<button class="btn" onclick="closeModal()">Cancelar</button>
                      <button class="btn btn-acc" id="m-save">Criar</button>`;
+    const def = TAXON_DEFAULT[state.categoria] || ['', ''];
+    if (def[0]) el('#m-cat').value = def[0];
+    _fillSubcat(el('#m-cat').value, def[1]);
+    el('#m-cat').onchange = () => _fillSubcat(el('#m-cat').value, '');
+    _osServicos = [];
+    _renderOsServicos();
+    _renderOsVeiculos();
+    el('#m-svc-add').onclick = () => {
+      const sel = el('#m-svc-sel'); const id = sel.value; if (!id) return;
+      const svc = (state.catalogo || []).find(s => s.id === id); if (!svc) return;
+      if (_osServicos.some(s => s.catalogo_id === id)) { toast('Já adicionado', 'err'); return; }
+      _osServicos.push({ nome: svc.nome || svc.titulo || id, catalogo_id: id, origem: 'catalogo' });
+      sel.value = ''; _renderOsServicos();
+    };
+    el('#m-svc-add-livre').onclick = () => {
+      const inp = el('#m-svc-livre'); const nome = inp.value.trim(); if (!nome) return;
+      _osServicos.push({ nome, catalogo_id: '', origem: 'livre' });
+      inp.value = ''; _renderOsServicos();
+    };
     el('#m-save').onclick = () => salvarOS(a);
   }
   m.classList.remove('hidden');
@@ -631,17 +699,51 @@ async function salvarLeitura(a) {
   toast(`Leitura registrada: +${delta} ${a.unidade_uso || ''}`);
 }
 
+// ─────────── OS: serviços + veículos (multi) ───────────
+let _osServicos = [];
+
+function _renderOsServicos() {
+  const box = el('#m-svc-list'); if (!box) return;
+  box.innerHTML = _osServicos.length
+    ? _osServicos.map((s, i) => `<div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border:1px solid var(--border,#234);border-radius:6px;margin-bottom:4px"><span style="flex:1;font-size:12px">${i + 1}. ${(s.nome || '').replace(/</g, '&lt;')}</span><small style="color:var(--text-dim)">${s.origem}</small><button type="button" class="btn" onclick="removeOsServico(${i})">✕</button></div>`).join('')
+    : '<small style="color:var(--text-dim)">Nenhum serviço.</small>';
+}
+function removeOsServico(i) { _osServicos.splice(i, 1); _renderOsServicos(); }
+window.removeOsServico = removeOsServico;
+
+function _renderOsVeiculos() {
+  const box = el('#m-veic-list'); if (!box) return;
+  const veics = (state.ativos || []).filter(a => a.categoria === 'viaturas' || a.categoria === 'embarcacoes');
+  box.innerHTML = veics.length
+    ? veics.map(a => `<label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" class="m-veic-ck" value="${a.id}" data-nome="${(a.nome || '').replace(/"/g, '&quot;')}"> ${a.nome || a.id}</label>`).join('')
+    : '<small style="color:var(--text-dim)">Nenhuma viatura/embarcação.</small>';
+}
+function _coletarOsVeiculos() {
+  return els('#m-veic-list .m-veic-ck').filter(c => c.checked).map(c => ({ ativo_id: c.value, nome: c.dataset.nome || c.value }));
+}
+
 async function salvarOS(a) {
-  const titulo = el('#m-titulo').value.trim();
+  let titulo = el('#m-titulo').value.trim();
+  if (!titulo && _osServicos.length) titulo = _osServicos[0].nome;
   if (!titulo) { toast('Título obrigatório', 'err'); return; }
   const tipo = el('#m-tipo').value;
   const prioridade = el('#m-prio').value;
+  const categoria = el('#m-cat')?.value || '';
+  const subcategoria = el('#m-subcat')?.value || '';
+  const servicos = _osServicos.slice();
+  const veiculos = _coletarOsVeiculos();
+  const servico_id = (servicos.find(s => s.origem === 'catalogo') || {}).catalogo_id || '';
   const os_id = uuid();
   const os = {
     id: os_id,
     titulo,
     tipo,
     prioridade,
+    categoria,
+    subcategoria,
+    servicos,
+    veiculos,
+    servico_id,
     status: 'aberta',
     ativo_id: a.id,
     modulo_origem: `pmoc:${state.categoria}`,

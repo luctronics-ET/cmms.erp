@@ -71,7 +71,12 @@
   .tblx-pop .tblx-acts{display:flex;gap:6px;margin-top:8px;border-top:1px solid var(--border,#1c3350);padding-top:8px}
   .tblx-pop .tblx-acts button{flex:1;padding:5px;border-radius:7px;border:1px solid var(--border,#1c3350);
     background:var(--bg3,#0a1828);color:var(--text2,#9fb3cc);cursor:pointer;font-size:11px}
-  .tblx-pop .tblx-acts button:hover{border-color:var(--acc,#00b4d8);color:var(--acc,#00b4d8)}`;
+  .tblx-pop .tblx-acts button:hover{border-color:var(--acc,#00b4d8);color:var(--acc,#00b4d8)}
+  .tblx-exportbar{display:flex;gap:6px;justify-content:flex-end;margin:0 0 6px}
+  .tblx-expbtn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:7px;
+    border:1px solid var(--border,#1c3350);background:var(--bg3,#0a1828);color:var(--text2,#9fb3cc);
+    cursor:pointer;font-size:11px;font-family:inherit}
+  .tblx-expbtn:hover{border-color:var(--acc,#00b4d8);color:var(--acc,#00b4d8)}`;
 
   function injectCSS() {
     if (document.getElementById('tblx-css')) return;
@@ -201,6 +206,92 @@
     search.focus();
   }
 
+  // ── export (Excel/CSV + PDF) — zero dependência ─────────────────────────
+  function csvEscape(s) {
+    s = String(s == null ? '' : s);
+    return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function downloadBlob(content, mime, filename) {
+    const b = new Blob([content], { type: mime });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = u; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(u), 1000);
+  }
+  function slug(s) { return String(s || 'tabela').toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '') || 'tabela'; }
+
+  // Excel via CSV (BOM UTF-8 + separador ';' que o Excel pt-BR entende)
+  function exportExcel(title, headers, rows) {
+    const sep = ';';
+    const lines = [headers.map(csvEscape).join(sep), ...rows.map(r => r.map(csvEscape).join(sep))];
+    downloadBlob('﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8', slug(title) + '.csv');
+  }
+  // PDF via iframe oculto + window.print (Salvar como PDF) — sem popup, sem bloqueador
+  function exportPDF(title, headers, rows) {
+    const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const thead = '<tr>' + headers.map(h => '<th>' + esc(h) + '</th>').join('') + '</tr>';
+    const tbody = rows.map(r => '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>').join('');
+    const html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + esc(title) + '</title>'
+      + '<style>body{font-family:Arial,Helvetica,sans-serif;margin:18px;color:#111}'
+      + 'h1{font-size:15px;margin:0 0 4px}.meta{font-size:10px;color:#666;margin-bottom:12px}'
+      + 'table{border-collapse:collapse;width:100%;font-size:10px}'
+      + 'th,td{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}'
+      + 'th{background:#e9eef5}tr:nth-child(even) td{background:#f6f8fb}</style></head><body>'
+      + '<h1>' + esc(title) + '</h1><div class="meta">' + rows.length + ' registro(s) · cmasm.erp</div>'
+      + '<table><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table></body></html>';
+    const ifr = document.createElement('iframe');
+    ifr.setAttribute('aria-hidden', 'true');
+    ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(ifr);
+    const doc = ifr.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    // document.write nem sempre dispara onload; aciona print após pequeno delay
+    setTimeout(() => {
+      try { ifr.contentWindow.focus(); ifr.contentWindow.print(); }
+      catch (e) { alert('Falha ao gerar PDF: ' + e.message); }
+      setTimeout(() => ifr.remove(), 1500);
+    }, 300);
+  }
+
+  // extrai cabeçalhos + linhas VISÍVEIS (respeita filtros) de uma <table.tbl>,
+  // pulando colunas de ação
+  function tableData(table) {
+    const ths = Array.from((table.tHead && table.tHead.rows[0] && table.tHead.rows[0].cells) || []);
+    const keep = ths
+      .map((th, i) => ({ i, label: (th.querySelector('.tblx-lbl') || th).textContent.replace(/[↕▲▼▾]/g, '').trim() }))
+      .filter(c => !SKIP_FILTER_HEADERS.has(c.label.toLowerCase()));
+    const headers = keep.map(c => c.label);
+    const rows = bodyRows(table)
+      .filter(r => r.style.display !== 'none')
+      .map(r => keep.map(c => cellText(r, c.i)));
+    return { headers, rows };
+  }
+
+  function addExportBar(table) {
+    if (table.__tblxBar || !table.parentNode) return;
+    const bar = document.createElement('div');
+    bar.className = 'tblx-exportbar';
+    const title = () => {
+      const h = document.querySelector('.page.active h1');
+      return (h && h.textContent.trim()) || 'Tabela';
+    };
+    const mk = (txt, fn) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'tblx-expbtn'; b.textContent = txt; b.onclick = fn;
+      return b;
+    };
+    bar.append(
+      mk('⬇ Excel', () => { const d = tableData(table); exportExcel(title(), d.headers, d.rows); }),
+      mk('⬇ PDF', () => { const d = tableData(table); exportPDF(title(), d.headers, d.rows); }),
+    );
+    table.parentNode.insertBefore(bar, table);
+    table.__tblxBar = bar;
+  }
+
+  // exposto p/ outros componentes (ex.: engine.table do pmoc-engine.js)
+  window.tblExport = { excel: exportExcel, pdf: exportPDF };
+
   // ── enhance de uma tabela ───────────────────────────────────────────────
   function enhance(table) {
     if (table.__tblxDone) { refresh(table); return; }
@@ -241,6 +332,8 @@
         th.appendChild(funnel);
       }
     });
+
+    addExportBar(table);
 
     // re-aplica sort/filtro quando o tbody é repovoado
     const tb = table.tBodies[0];

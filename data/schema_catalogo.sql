@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS catalogo_servicos (
   tempo_estimado_min  INTEGER,
   servico_pai_id      TEXT REFERENCES catalogo_servicos(id),
   aplicavel_a         TEXT,                          -- JSON {"categorias":[...],"tipos":[...]}
+  categoria           TEXT,                          -- taxonomia de serviço (TRANSPORTE|MANUTENCAO|CONTROLE VEGETAL|CONTROLE BIOLOGICO)
+  subcategoria        TEXT,                          -- subcategoria da taxonomia (ex.: REFRIGERACAO, LIXO)
   criado_por_modulo   TEXT NOT NULL DEFAULT 'manutencao',
   criado_por          INTEGER REFERENCES usuarios(id),
   criado_em           DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -215,7 +217,7 @@ INSERT OR IGNORE INTO modulos_registrados (nome, descricao, categorias_atend) VA
   ('pmoc_eletrica',     'Elétrica e geradores',                   '["eletrica"]'),
   ('pmoc_predial',      'Locais e inspeção predial',              '["predial"]'),
   ('pmoc_paiois',       'Paiois e inventário militar',            '["paiois_item"]'),
-  ('pmoc_transportes',  'Viaturas e embarcações',                 '["frota_terrestre","frota_naval"]'),
+  ('pmoc_transportes',  'Viaturas e embarcações',                 '["viaturas","embarcacoes"]'),
   ('pmoc_grama',        'Controle vegetal / máquinas de corte',   '["maquinas_corte"]'),
   ('pmoc_calibracao',   'Instrumentos calibrados',                '["instrumentos"]');
 
@@ -244,6 +246,8 @@ CREATE TABLE IF NOT EXISTS catalogo_planos (
   inverter      INTEGER NOT NULL DEFAULT 0,
   altura_max_m  REAL,                          -- 3 | 10 (condição de execução)
   fonte         TEXT,
+  frequencia    TEXT,                          -- JSON: disparo default do pacote {tipo:por_uso|por_tempo,valor,unidade}
+  aplicavel_tipos TEXT,                        -- JSON list de tipo_codigo que usam este plano (reuso por nome)
   ativo         INTEGER NOT NULL DEFAULT 1,
   criado_em     DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -253,6 +257,7 @@ CREATE TABLE IF NOT EXISTS catalogo_plano_itens (
   servico_id  TEXT NOT NULL REFERENCES catalogo_servicos(id),
   seq         INTEGER NOT NULL DEFAULT 0,
   classe      TEXT NOT NULL DEFAULT 'prev',    -- prev (preventivo) | corr (corretivo sob demanda)
+  frequencia  TEXT,                            -- JSON: override do disparo por serviço (null = usa default do plano)
   item_arp    INTEGER,                         -- nº original do item na ATA2
   valor_unit  REAL,
   qtd_ata     REAL,

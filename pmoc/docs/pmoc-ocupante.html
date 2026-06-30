@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Autoavaliação do Ambiente — CMASM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap"/>
+<style>
+/* ═══════════════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════════════ */
+:root {
+  --azul:    #1351b4;
+  --azul-esc:#0c326f;
+  --verde:   #168821;
+  --amarelo: #ffcd07;
+  --laranja: #fa7d1e;
+  --vermelho:#e52207;
+  --cinza-1: #f8f8f8;
+  --cinza-5: #cccccc;
+  --cinza-7: #666666;
+  --preto:   #1a1a1a;
+  --fonte:   'Raleway', sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESET GERAL
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--fonte);
+  font-size: 13px;
+  color: var(--preto);
+  background: #dde3f0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOOLBAR TELA
+═══════════════════════════════════════════════════════ */
+.toolbar {
+  width: 148mm;
+  margin: 8mm auto 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.toolbar button {
+  background: var(--azul);
+  color: #fff;
+  border: none;
+  padding: 5px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--fonte);
+}
+.toolbar button:hover { background: var(--azul-esc); }
+.toolbar span { font-size: 11px; color: #555; }
+
+/* ═══════════════════════════════════════════════════════
+   FICHA A5 PORTRAIT
+═══════════════════════════════════════════════════════ */
+.ficha {
+  width: 148mm;
+  min-height: 210mm;
+  margin: 5mm auto 10mm;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0,0,0,.18);
+  padding: 6mm 7mm 5mm;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+}
+
+/* ─── CABEÇALHO ─────────────────────────────────────── */
+.cab {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  border-bottom: 2px solid var(--azul-esc);
+  padding-bottom: 2.5mm;
+  gap: 3mm;
+}
+.cab-info h1 {
+  font-size: 9pt;
+  font-weight: 700;
+  color: var(--azul-esc);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  line-height: 1.2;
+}
+.cab-info p {
+  font-size: 6.5pt;
+  color: var(--cinza-7);
+  margin-top: 1mm;
+}
+.cab-qr {
+  width: 18mm;
+  height: 18mm;
+  border: 1px solid var(--cinza-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.cab-qr svg { width: 14mm; height: 14mm; }
+.cab-qr span { font-size: 4pt; color: #999; margin-top: .5mm; text-align: center; }
+
+/* ─── ID DO AMBIENTE ─────────────────────────────────── */
+.id-bloco {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2mm;
+}
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: .5mm;
+}
+.campo label {
+  font-size: 5.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--azul-esc);
+  letter-spacing: .2px;
+}
+.campo .linha {
+  border-bottom: 1px solid var(--azul);
+  height: 4.5mm;
+}
+.campo-full { grid-column: 1 / -1; }
+
+/* ─── INSTRUÇÃO DO OCUPANTE ──────────────────────────── */
+.instrucao {
+  background: #eef2fb;
+  border-left: 3px solid var(--azul);
+  padding: 2mm 2.5mm;
+  font-size: 6.5pt;
+  color: #333;
+  line-height: 1.45;
+}
+.instrucao strong { color: var(--azul-esc); }
+
+/* ─── LEGENDA DE RESPOSTA ────────────────────────────── */
+.legenda {
+  display: flex;
+  gap: 3mm;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 6pt;
+}
+.legenda strong { font-size: 6.5pt; color: var(--cinza-7); }
+.leg-item { display: flex; align-items: center; gap: 1mm; }
+.bol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 5mm;
+  height: 5mm;
+  border-radius: 50%;
+  border: 1.2px solid currentColor;
+  font-size: 5pt;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.bol-ok  { color: var(--verde);    background: #e8f5e9; }
+.bol-at  { color: var(--laranja);  background: #fff3e0; }
+.bol-urg { color: var(--vermelho); background: #fdecea; }
+.bol-na  { color: var(--cinza-7);  background: #f4f4f4; }
+
+/* ─── TABELA DE AVALIAÇÃO ────────────────────────────── */
+.tabela-wrap { flex: 1; }
+table.av {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 6.5pt;
+}
+table.av th {
+  background: var(--azul-esc);
+  color: #fff;
+  font-size: 6pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .2px;
+  padding: 1.5mm 1.5mm;
+  text-align: center;
+  border: .5px solid #0a2958;
+}
+table.av th.th-item { text-align: left; }
+table.av td {
+  border: .5px solid var(--cinza-5);
+  padding: 1mm 1.5mm;
+  vertical-align: middle;
+  text-align: center;
+}
+/* separadores de categoria */
+table.av tr.sep td {
+  background: #eef2fb;
+  font-size: 6pt;
+  font-weight: 700;
+  color: var(--azul-esc);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  text-align: left;
+  padding: .8mm 1.5mm;
+  border-top: 1px solid var(--azul);
+}
+table.av .td-item {
+  text-align: left;
+  font-size: 6.5pt;
+  line-height: 1.3;
+  white-space: normal;
+  width: 55mm;
+}
+/* colunas de resposta — círculos para marcar */
+.resp-col { width: 8mm; }
+.circulo {
+  display: inline-block;
+  width: 5mm;
+  height: 5mm;
+  border-radius: 50%;
+  border: 1px solid var(--cinza-5);
+}
+
+/* zebra suave */
+table.av tbody tr:not(.sep):nth-child(even) td { background: #fafbff; }
+
+/* coluna obs — mais larga */
+.td-obs { width: 28mm; text-align: left !important; }
+
+/* ─── CAMPO DE EMERGÊNCIA ────────────────────────────── */
+.emergencia {
+  border: 1.5px solid var(--vermelho);
+  border-radius: 3px;
+  padding: 2mm 2.5mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+}
+.emergencia-titulo {
+  font-size: 6.5pt;
+  font-weight: 700;
+  color: var(--vermelho);
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+.emergencia-linha {
+  border-bottom: .5px solid var(--cinza-5);
+  height: 4mm;
+  width: 100%;
+}
+
+/* ─── ASSINATURAS ────────────────────────────────────── */
+.assinaturas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3mm;
+}
+.ass-bloco {
+  border: .5px solid var(--cinza-5);
+  border-radius: 2px;
+  padding: 1.5mm 2mm;
+}
+.ass-bloco label {
+  font-size: 5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--azul-esc);
+  display: block;
+  margin-bottom: .5mm;
+}
+.ass-linha {
+  border-bottom: .5px solid #aaa;
+  height: 5.5mm;
+  width: 100%;
+  display: block;
+  margin-bottom: .5mm;
+}
+.ass-sub { font-size: 4.5pt; color: var(--cinza-7); }
+
+/* ─── RODAPÉ ─────────────────────────────────────────── */
+.rodape {
+  display: flex;
+  justify-content: space-between;
+  font-size: 4.5pt;
+  color: #aaa;
+  border-top: .5px solid var(--cinza-5);
+  padding-top: 1mm;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRINT
+═══════════════════════════════════════════════════════ */
+@media print {
+  body { background: #fff; }
+  .toolbar { display: none !important; }
+  .ficha {
+    margin: 0;
+    box-shadow: none;
+    width: 148mm;
+    min-height: 210mm;
+    page-break-after: always;
+  }
+}
+@page { size: A5 portrait; margin: 5mm; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="window.print()">🖨️ Imprimir / PDF</button>
+  <span>Ficha do Ocupante — A5 Portrait — CMASM/DME</span>
+</div>
+
+<!-- ════════════════════════════ FICHA ═══════════════════════════ -->
+<div class="ficha">
+
+  <!-- CABEÇALHO -->
+  <div class="cab">
+    <div class="cab-info">
+      <h1>Autoavaliação do Ambiente<br>Plano de Manutenção e Controle — PMOC</h1>
+      <p>CMASM · Divisão de Manutenção Especializada (DME) · UASG 744030<br>
+      Preenchimento mensal pelo responsável ou ocupante do ambiente</p>
+    </div>
+    <div class="cab-qr">
+      <!-- QR placeholder — substituir por QR real por ambiente -->
+      <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2"  y="2"  width="22" height="22" rx="2" fill="none" stroke="#000" stroke-width="2.5"/>
+        <rect x="7"  y="7"  width="12" height="12" fill="#000"/>
+        <rect x="56" y="2"  width="22" height="22" rx="2" fill="none" stroke="#000" stroke-width="2.5"/>
+        <rect x="61" y="7"  width="12" height="12" fill="#000"/>
+        <rect x="2"  y="56" width="22" height="22" rx="2" fill="none" stroke="#000" stroke-width="2.5"/>
+        <rect x="7"  y="61" width="12" height="12" fill="#000"/>
+        <rect x="30" y="4"  width="4" height="4" fill="#000"/>
+        <rect x="38" y="4"  width="4" height="4" fill="#000"/>
+        <rect x="46" y="4"  width="4" height="4" fill="#000"/>
+        <rect x="30" y="12" width="4" height="4" fill="#000"/>
+        <rect x="46" y="12" width="4" height="4" fill="#000"/>
+        <rect x="30" y="20" width="4" height="4" fill="#000"/>
+        <rect x="38" y="20" width="4" height="4" fill="#000"/>
+        <rect x="30" y="30" width="4" height="4" fill="#000"/>
+        <rect x="38" y="30" width="4" height="4" fill="#000"/>
+        <rect x="46" y="30" width="4" height="4" fill="#000"/>
+        <rect x="54" y="30" width="4" height="4" fill="#000"/>
+        <rect x="62" y="30" width="4" height="4" fill="#000"/>
+        <rect x="70" y="30" width="4" height="4" fill="#000"/>
+        <rect x="30" y="38" width="4" height="4" fill="#000"/>
+        <rect x="54" y="38" width="4" height="4" fill="#000"/>
+        <rect x="62" y="38" width="4" height="4" fill="#000"/>
+        <rect x="30" y="46" width="4" height="4" fill="#000"/>
+        <rect x="38" y="46" width="4" height="4" fill="#000"/>
+        <rect x="54" y="46" width="4" height="4" fill="#000"/>
+        <rect x="70" y="46" width="4" height="4" fill="#000"/>
+        <rect x="30" y="54" width="4" height="4" fill="#000"/>
+        <rect x="46" y="54" width="4" height="4" fill="#000"/>
+        <rect x="62" y="54" width="4" height="4" fill="#000"/>
+        <rect x="38" y="62" width="4" height="4" fill="#000"/>
+        <rect x="54" y="62" width="4" height="4" fill="#000"/>
+        <rect x="70" y="62" width="4" height="4" fill="#000"/>
+        <rect x="30" y="70" width="4" height="4" fill="#000"/>
+        <rect x="46" y="70" width="4" height="4" fill="#000"/>
+        <rect x="62" y="70" width="4" height="4" fill="#000"/>
+      </svg>
+      <span>ID do ambiente</span>
+    </div>
+  </div>
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="id-bloco">
+    <div class="campo campo-full">
+      <label>Ambiente / Sala</label>
+      <div class="linha"></div>
+    </div>
+    <div class="campo">
+      <label>Mês / Ano</label>
+      <div class="linha"></div>
+    </div>
+    <div class="campo">
+      <label>N.º de ocupantes habituais</label>
+      <div class="linha"></div>
+    </div>
+  </div>
+
+  <!-- INSTRUÇÃO -->
+  <div class="instrucao">
+    <strong>Como preencher:</strong> Para cada item, marque um círculo com caneta —
+    <strong style="color:var(--verde)">OK</strong> (tudo certo),
+    <strong style="color:var(--laranja)">AT</strong> (atenção, comunicar à DME),
+    <strong style="color:var(--vermelho)">URG</strong> (urgente, acionar DME imediatamente) ou
+    <strong style="color:var(--cinza-7)">N/A</strong> (não existe neste ambiente).
+    Use o campo Obs para detalhar problemas. Assine ao final.
+  </div>
+
+  <!-- LEGENDA -->
+  <div class="legenda">
+    <strong>Legenda:</strong>
+    <div class="leg-item"><span class="bol bol-ok">OK</span><span>Conforme</span></div>
+    <div class="leg-item"><span class="bol bol-at">AT</span><span>Atenção</span></div>
+    <div class="leg-item"><span class="bol bol-urg">URG</span><span>Urgente</span></div>
+    <div class="leg-item"><span class="bol bol-na">N/A</span><span>Não se aplica</span></div>
+  </div>
+
+  <!-- TABELA DE AVALIAÇÃO -->
+  <div class="tabela-wrap">
+    <table class="av">
+      <thead>
+        <tr>
+          <th class="th-item">Item avaliado</th>
+          <th class="resp-col">OK</th>
+          <th class="resp-col">AT</th>
+          <th class="resp-col">URG</th>
+          <th class="resp-col">N/A</th>
+          <th class="td-obs">Observação / descrição do problema</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- CONFORTO TÉRMICO -->
+        <tr class="sep"><td colspan="6">❄ Conforto térmico (NR-17 · Portaria 3523/GM)</td></tr>
+        <tr>
+          <td class="td-item">Temperatura agradável durante o expediente</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+        <tr>
+          <td class="td-item">Ar-condicionado funcionando (sem barulho, sem goteira)</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+        <tr>
+          <td class="td-item">Filtros limpos, sem odor de mofo ou poeira</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+
+        <!-- ILUMINAÇÃO -->
+        <tr class="sep"><td colspan="6">💡 Iluminação (NR-17 · NBR ISO/CIE 8995-1)</td></tr>
+        <tr>
+          <td class="td-item">Iluminação suficiente para as tarefas realizadas</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+        <tr>
+          <td class="td-item">Lâmpadas funcionando, sem cintilação ou queimadas</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+
+        <!-- RUÍDO -->
+        <tr class="sep"><td colspan="6">🔊 Ruído e acústica (NR-17 · NBR 10152)</td></tr>
+        <tr>
+          <td class="td-item">Nível de ruído adequado ao trabalho (sem perturbação)</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+        <tr>
+          <td class="td-item">Alto-falante / Fonoclama funcionando corretamente</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+
+        <!-- MOBILIÁRIO -->
+        <tr class="sep"><td colspan="6">🪑 Mobiliário e ergonomia (NR-17 · NBR 13962)</td></tr>
+        <tr>
+          <td class="td-item">Cadeiras em bom estado (rodízios, gás, apoios)</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+        <tr>
+          <td class="td-item">Mesas e armários sem avarias ou risco de queda</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+
+        <!-- LIMPEZA E HIGIENE -->
+        <tr class="sep"><td colspan="6">🧹 Limpeza e higiene (NBR 5674)</td></tr>
+        <tr>
+          <td class="td-item">Piso, paredes e forro limpos, sem acúmulo de sujeira</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+        <tr>
+          <td class="td-item">Janelas, persianas e esquadrias em bom estado</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+
+        <!-- EDIFICAÇÃO -->
+        <tr class="sep"><td colspan="6">🏛 Edificação (NBR 5674 · NBR 16280)</td></tr>
+        <tr>
+          <td class="td-item">Piso sem trincas, desníveis ou risco de queda</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+        <tr>
+          <td class="td-item">Paredes/forro sem fissuras, manchas de infiltração ou goteiras</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+        <tr>
+          <td class="td-item">Tomadas, interruptores e pontos elétricos sem avarias visíveis</td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td><span class="circulo"></span></td>
+          <td class="td-obs"></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CAMPO DE EMERGÊNCIA / CHAMADO URGENTE -->
+  <div class="emergencia">
+    <div class="emergencia-titulo">⚠ Problema urgente / Chamado imediato — descreva aqui e acione a DME</div>
+    <div class="emergencia-linha"></div>
+    <div class="emergencia-linha"></div>
+  </div>
+
+  <!-- ASSINATURAS -->
+  <div class="assinaturas">
+    <div class="ass-bloco">
+      <label>Ocupante / Responsável pelo ambiente</label>
+      <span class="ass-linha"></span>
+      <span class="ass-sub">Nome / Posto &nbsp;·&nbsp; Data: ___/___/______</span>
+    </div>
+    <div class="ass-bloco">
+      <label>Ciência DME / Supervisor</label>
+      <span class="ass-linha"></span>
+      <span class="ass-sub">Nome / Posto &nbsp;·&nbsp; Data: ___/___/______</span>
+    </div>
+  </div>
+
+  <!-- RODAPÉ -->
+  <div class="rodape">
+    <span>CMASM · DME · Ficha PMOC-OCP v1.0 · Base: Portaria 3523/GM · NR-17 · NBR 5674/2012</span>
+    <span>Mês: __________ / ________</span>
+  </div>
+
+</div><!-- /ficha -->
+
+</body>
+</html>

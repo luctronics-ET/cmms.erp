@@ -185,13 +185,21 @@ async def _inserir_os(
     if status not in OS_STATUS_VALIDOS:
         return f"status inválido: {status}"
     snapshot_json = json.dumps(snapshot) if snapshot is not None else None
+    def _list_json(key):
+        v = payload.get(key)
+        if v is None:
+            return None
+        return v if isinstance(v, str) else json.dumps(v)
+    servicos_json = _list_json("servicos")
+    veiculos_json = _list_json("veiculos")
     await conn.execute(
         "INSERT INTO ordens_servico (id, codigo, titulo, descricao, tipo, status, "
-        "prioridade, modulo_origem, solicitante_id, responsavel_id, local_id, ativo_id, "
+        "prioridade, categoria, subcategoria, servicos, veiculos, modulo_origem, solicitante_id, responsavel_id, local_id, ativo_id, "
         "servico_id, servico_versao_snapshot, servico_snapshot, "
         "data_prevista, observacoes) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (os_id, codigo, titulo, payload.get("descricao"), tipo, status, prioridade,
+         payload.get("categoria"), payload.get("subcategoria"), servicos_json, veiculos_json,
          modulo, payload.get("solicitante_id"), payload.get("responsavel_id"),
          payload.get("local_id"), ativo_id,
          servico_id, payload.get("servico_versao_snapshot"), snapshot_json,
@@ -503,24 +511,43 @@ async def manifest(
             s["aplicavel_a"] = aplic
             catalogo_servicos.append(s)
 
+    # planos_manutencao APOSENTADO — derivado de catalogo_planos + itens.
+    # Mantém a chave/shape ({tipo_codigo, intervalo, servico_id}) que o app PMOC já consome.
     planos: list[dict] = []
-    if ativos:
-        ativo_ids = [a["id"] for a in ativos]
-        ph = ",".join("?" for _ in ativo_ids)
-        planos = await db.fetch_all(
-            f"SELECT * FROM planos_manutencao WHERE ativo=1 AND ativo_id IN ({ph})",
-            tuple(ativo_ids),
+    srv_ids = {s["id"] for s in catalogo_servicos}
+    cat_planos = await db.fetch_all(
+        "SELECT id, categoria, tipo_codigo, aplicavel_tipos, frequencia FROM catalogo_planos WHERE ativo = 1"
+    )
+    for p in cat_planos:
+        if categorias and p["categoria"] not in categorias:
+            continue
+        tipos = []
+        try:
+            tipos = json.loads(p["aplicavel_tipos"] or "[]")
+        except Exception:
+            tipos = []
+        if p["tipo_codigo"] and p["tipo_codigo"] not in tipos:
+            tipos.append(p["tipo_codigo"])
+        itens = await db.fetch_all(
+            "SELECT servico_id, frequencia FROM catalogo_plano_itens WHERE plano_id = ?", (p["id"],)
         )
-    if catalogo_servicos:
-        srv_ids = [s["id"] for s in catalogo_servicos]
-        ph = ",".join("?" for _ in srv_ids)
-        planos_tipo = await db.fetch_all(
-            f"SELECT * FROM planos_manutencao WHERE ativo=1 AND tipo_codigo IS NOT NULL "
-            f"AND servico_id IN ({ph})",
-            tuple(srv_ids),
-        )
-        existing = {p["id"] for p in planos}
-        planos.extend(p for p in planos_tipo if p["id"] not in existing)
+        for it in itens:
+            if srv_ids and it["servico_id"] not in srv_ids:
+                continue
+            raw = it["frequencia"] or p["frequencia"]
+            intervalo = None
+            try:
+                f = json.loads(raw) if raw else None
+                intervalo = f.get("valor") if f else None
+            except Exception:
+                pass
+            for t in (tipos or [None]):
+                planos.append({
+                    "id": f"{p['id']}::{t}::{it['servico_id']}",
+                    "plano_id": p["id"], "servico_id": it["servico_id"],
+                    "tipo_codigo": t, "ativo_id": None,
+                    "intervalo": intervalo, "frequencia": raw, "ativo": 1,
+                })
 
     qualificacoes = await db.fetch_all(
         "SELECT codigo, nome, descricao, requer_validade FROM qualificacoes_catalogo WHERE ativo=1"

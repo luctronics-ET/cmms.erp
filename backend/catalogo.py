@@ -59,6 +59,8 @@ class ServicoIn(BaseModel):
     tempo_estimado_min: Optional[int] = None
     servico_pai_id: Optional[str] = None
     aplicavel_a: Optional[dict[str, Any]] = None  # {"categorias": [...], "tipos": [...]}
+    categoria: Optional[str] = None        # taxonomia de serviço (TRANSPORTE|MANUTENCAO|CONTROLE VEGETAL|CONTROLE BIOLOGICO)
+    subcategoria: Optional[str] = None     # subcategoria (ex.: REFRIGERACAO, LIXO)
     criado_por_modulo: str = "manutencao"
 
     @field_validator("escopo")
@@ -219,11 +221,11 @@ async def create_servico(body: ServicoIn, authorization: str | None = Header(Non
     aplic_json = json.dumps(body.aplicavel_a) if body.aplicavel_a is not None else None
     await db.execute(
         "INSERT INTO catalogo_servicos (id, codigo, nome, descricao, escopo, versao, "
-        "pop_doc_id, tempo_estimado_min, servico_pai_id, aplicavel_a, criado_por_modulo) "
-        "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)",
+        "pop_doc_id, tempo_estimado_min, servico_pai_id, aplicavel_a, categoria, subcategoria, criado_por_modulo) "
+        "VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)",
         (sid, body.codigo, body.nome, body.descricao, body.escopo,
          body.pop_doc_id, body.tempo_estimado_min, body.servico_pai_id,
-         aplic_json, body.criado_por_modulo),
+         aplic_json, body.categoria, body.subcategoria, body.criado_por_modulo),
     )
     return await get_servico(sid)
 
@@ -241,11 +243,11 @@ async def update_servico(sid: str, body: ServicoIn, authorization: str | None = 
     aplic_json = json.dumps(body.aplicavel_a) if body.aplicavel_a is not None else None
     await db.execute(
         "INSERT INTO catalogo_servicos (id, codigo, nome, descricao, escopo, versao, "
-        "pop_doc_id, tempo_estimado_min, servico_pai_id, aplicavel_a, criado_por_modulo) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "pop_doc_id, tempo_estimado_min, servico_pai_id, aplicavel_a, categoria, subcategoria, criado_por_modulo) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (new_id, old["codigo"], body.nome, body.descricao, body.escopo, next_versao,
          body.pop_doc_id, body.tempo_estimado_min, body.servico_pai_id,
-         aplic_json, body.criado_por_modulo),
+         aplic_json, body.categoria, body.subcategoria, body.criado_por_modulo),
     )
     return await get_servico(new_id)
 
@@ -313,132 +315,36 @@ async def arquivar_servico(sid: str, authorization: str | None = Header(None)):
     return {"ok": True}
 
 
-# ── Planos de Manutenção ──────────────────────────────────────────────────────
-
-async def _get_plano(pid: str) -> dict:
-    row = await _db().fetch_one("SELECT * FROM planos_manutencao WHERE id = ?", (pid,))
-    if not row:
-        raise HTTPException(404, "Plano não encontrado")
-    for col in ("frequencia", "janela_permitida"):
-        try:
-            row[col] = json.loads(row[col] or "null")
-        except (ValueError, TypeError):
-            row[col] = None
-    return row
+# ── Planos de Manutenção (planos_manutencao) — APOSENTADO ──────────────────────
+# Substituído por catalogo_planos (/planos-catalogo). Mantidos como stubs para não
+# quebrar clientes antigos: GET retorna vazio; escrita responde 410 Gone.
+_DEPRECATED = "planos_manutencao foi aposentado; use /api/catalogo/planos-catalogo"
 
 
 @router.get("/planos")
-async def list_planos(
-    ativo_id: str | None = None,
-    servico_id: str | None = None,
-    tipo_codigo: str | None = None,
-    ativo: int = 1,
-):
-    db = _db()
-    clauses = ["p.ativo = ?"]
-    params: list[Any] = [ativo]
-    if ativo_id:
-        clauses.append("p.ativo_id = ?")
-        params.append(ativo_id)
-    if servico_id:
-        clauses.append("p.servico_id = ?")
-        params.append(servico_id)
-    if tipo_codigo:
-        clauses.append("p.tipo_codigo = ?")
-        params.append(tipo_codigo)
-    where = "WHERE " + " AND ".join(clauses)
-    rows = await db.fetch_all(
-        f"""SELECT p.*, s.codigo AS servico_codigo, s.nome AS servico_nome,
-                   a.nome AS ativo_nome, a.categoria AS ativo_categoria
-            FROM planos_manutencao p
-            LEFT JOIN catalogo_servicos s ON s.id = p.servico_id
-            LEFT JOIN ativos a ON a.id = p.ativo_id
-            {where}
-            ORDER BY p.proxima_execucao""",
-        tuple(params),
-    )
-    for row in rows:
-        for col in ("frequencia", "janela_permitida"):
-            try:
-                row[col] = json.loads(row[col] or "null")
-            except (ValueError, TypeError):
-                row[col] = None
-    return rows
+async def list_planos(ativo_id: str | None = None, servico_id: str | None = None,
+                      tipo_codigo: str | None = None, ativo: int = 1):
+    return []
 
 
 @router.get("/planos/{pid}")
 async def get_plano(pid: str):
-    return await _get_plano(pid)
+    raise HTTPException(410, _DEPRECATED)
 
 
-@router.post("/planos", status_code=201)
-async def create_plano(body: PlanoIn, authorization: str | None = Header(None)):
-    await _require_auth(authorization)
-    db = _db()
-    if not body.ativo_id and not body.tipo_codigo:
-        raise HTTPException(422, "Plano exige 'ativo_id' ou 'tipo_codigo' (apenas um)")
-    if body.ativo_id and body.tipo_codigo:
-        raise HTTPException(422, "Plano não pode ter ambos 'ativo_id' e 'tipo_codigo'")
-    # Validate FK
-    svc = await db.fetch_one("SELECT id FROM catalogo_servicos WHERE id = ?", (body.servico_id,))
-    if not svc:
-        raise HTTPException(404, f"Serviço '{body.servico_id}' não encontrado")
-    if body.ativo_id:
-        ativo = await db.fetch_one("SELECT id FROM ativos WHERE id = ?", (body.ativo_id,))
-        if not ativo:
-            raise HTTPException(404, f"Ativo '{body.ativo_id}' não encontrado")
-    pid = _new_uuid()
-    freq_json = json.dumps(body.frequencia)
-    janela_json = json.dumps(body.janela_permitida) if body.janela_permitida is not None else None
-    await db.execute(
-        "INSERT INTO planos_manutencao (id, servico_id, servico_versao_pin, ativo_id, tipo_codigo, "
-        "frequencia, criticidade_override, janela_permitida, proxima_execucao, ultima_execucao, "
-        "responsavel_pmoc, obs, criado_por_modulo) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (pid, body.servico_id, body.servico_versao_pin, body.ativo_id, body.tipo_codigo,
-         freq_json, body.criticidade_override, janela_json,
-         body.proxima_execucao, body.ultima_execucao,
-         body.responsavel_pmoc, body.obs, body.criado_por_modulo),
-    )
-    return await _get_plano(pid)
+@router.post("/planos", status_code=410)
+async def create_plano(body: dict, authorization: str | None = Header(None)):
+    raise HTTPException(410, _DEPRECATED)
 
 
 @router.put("/planos/{pid}")
-async def update_plano(pid: str, body: PlanoIn, authorization: str | None = Header(None)):
-    await _require_auth(authorization)
-    db = _db()
-    row = await db.fetch_one("SELECT id FROM planos_manutencao WHERE id = ?", (pid,))
-    if not row:
-        raise HTTPException(404, "Plano não encontrado")
-    if not body.ativo_id and not body.tipo_codigo:
-        raise HTTPException(422, "Plano exige 'ativo_id' ou 'tipo_codigo' (apenas um)")
-    if body.ativo_id and body.tipo_codigo:
-        raise HTTPException(422, "Plano não pode ter ambos 'ativo_id' e 'tipo_codigo'")
-    freq_json = json.dumps(body.frequencia)
-    janela_json = json.dumps(body.janela_permitida) if body.janela_permitida is not None else None
-    await db.execute(
-        "UPDATE planos_manutencao SET servico_id=?, servico_versao_pin=?, ativo_id=?, tipo_codigo=?, "
-        "frequencia=?, criticidade_override=?, janela_permitida=?, proxima_execucao=?, "
-        "ultima_execucao=?, responsavel_pmoc=?, obs=?, atualizado_em=? WHERE id=?",
-        (body.servico_id, body.servico_versao_pin, body.ativo_id, body.tipo_codigo,
-         freq_json, body.criticidade_override, janela_json,
-         body.proxima_execucao, body.ultima_execucao,
-         body.responsavel_pmoc, body.obs, _utc_now(), pid),
-    )
-    return await _get_plano(pid)
+async def update_plano(pid: str, body: dict, authorization: str | None = Header(None)):
+    raise HTTPException(410, _DEPRECATED)
 
 
 @router.patch("/planos/{pid}/arquivar")
 async def arquivar_plano(pid: str, authorization: str | None = Header(None)):
-    await _require_auth(authorization)
-    row = await _db().fetch_one("SELECT id FROM planos_manutencao WHERE id = ?", (pid,))
-    if not row:
-        raise HTTPException(404, "Plano não encontrado")
-    await _db().execute(
-        "UPDATE planos_manutencao SET ativo = 0, atualizado_em = ? WHERE id = ?",
-        (_utc_now(), pid),
-    )
-    return {"ok": True}
+    raise HTTPException(410, _DEPRECATED)
 
 
 # ── Qualificações ─────────────────────────────────────────────────────────────
@@ -632,3 +538,130 @@ async def get_plano_climatizacao(pid: str):
         (pid,),
     )
     return plano
+
+
+# ── Planos nomeados (modelo unificado, qualquer categoria) ──────────────────────
+# catalogo_planos = plano nomeado (pacote de serviços + disparo + tipos aplicáveis).
+# Disparo por serviço (catalogo_plano_itens.frequencia) com default no plano.
+@router.get("/planos-catalogo")
+async def list_planos_catalogo(
+    categoria: str | None = Query(None),
+    tipo: str | None = Query(None, description="tipo_codigo aplicável"),
+):
+    where, params = ["p.ativo = 1"], []
+    if categoria:
+        where.append("p.categoria = ?"); params.append(categoria)
+    if tipo:
+        # casa tipo_codigo legado OU presença na lista aplicavel_tipos (JSON)
+        where.append("(p.tipo_codigo = ? OR p.aplicavel_tipos LIKE ?)")
+        params.extend([tipo, f'%"{tipo}"%'])
+    rows = await _db().fetch_all(
+        "SELECT p.*, "
+        " (SELECT COUNT(*) FROM catalogo_plano_itens i WHERE i.plano_id = p.id) AS n_servicos, "
+        " (SELECT COUNT(*) FROM catalogo_plano_itens i WHERE i.plano_id = p.id AND i.classe='prev') AS n_preventivos "
+        f"FROM catalogo_planos p WHERE {' AND '.join(where)} ORDER BY p.categoria, p.codigo",
+        tuple(params),
+    )
+    return rows
+
+
+@router.get("/planos-catalogo/{pid}")
+async def get_plano_catalogo(pid: str):
+    plano = await _db().fetch_one("SELECT * FROM catalogo_planos WHERE id = ?", (pid,))
+    if not plano:
+        raise HTTPException(404, "Plano não encontrado")
+    itens = await _db().fetch_all(
+        "SELECT i.seq, i.classe, i.frequencia, i.item_arp, i.valor_unit, i.qtd_cmasm, "
+        "       s.id AS servico_id, s.codigo, s.nome, s.tempo_estimado_min "
+        "FROM catalogo_plano_itens i JOIN catalogo_servicos s ON s.id = i.servico_id "
+        "WHERE i.plano_id = ? ORDER BY i.seq",
+        (pid,),
+    )
+    # materiais por serviço do item (display)
+    for it in itens:
+        it["materiais"] = await _db().fetch_all(
+            "SELECT m.material_id, m.nome_livre, m.qtd, m.unidade, e.nome AS material_nome "
+            "FROM catalogo_servico_materiais m LEFT JOIN estoque e ON e.id = m.material_id "
+            "WHERE m.servico_id = ?",
+            (it["servico_id"],),
+        )
+        if not it.get("frequencia"):
+            it["frequencia"] = plano.get("frequencia")  # fallback ao default do plano
+    plano["itens"] = itens
+    return plano
+
+
+# ── CRUD do plano nomeado ───────────────────────────────────────────────────────
+class PlanoCatalogoIn(BaseModel):
+    nome: str
+    categoria: str = "climatizacao"
+    codigo: Optional[str] = None
+    aplicavel_tipos: list[str] = []
+    frequencia: Optional[dict] = None    # {tipo:por_uso|por_tempo, valor, unidade}
+
+
+class PlanoItemIn(BaseModel):
+    servico_id: str
+    frequencia: Optional[dict] = None
+    classe: str = "prev"
+    seq: int = 0
+
+
+@router.post("/planos-catalogo", status_code=201)
+async def create_plano_catalogo(body: PlanoCatalogoIn):
+    pid = "plano-" + _uuid_mod.uuid4().hex[:10]
+    codigo = body.codigo or pid[-6:].upper()
+    await _db().execute(
+        "INSERT INTO catalogo_planos (id, codigo, nome, categoria, aplicavel_tipos, frequencia, fonte, ativo) "
+        "VALUES (?,?,?,?,?,?, 'manual', 1)",
+        (pid, codigo, body.nome, body.categoria,
+         json.dumps(body.aplicavel_tipos),
+         json.dumps(body.frequencia) if body.frequencia else None),
+    )
+    return await _db().fetch_one("SELECT * FROM catalogo_planos WHERE id = ?", (pid,))
+
+
+@router.put("/planos-catalogo/{pid}")
+async def update_plano_catalogo(pid: str, body: PlanoCatalogoIn):
+    row = await _db().fetch_one("SELECT id FROM catalogo_planos WHERE id = ?", (pid,))
+    if not row:
+        raise HTTPException(404, "Plano não encontrado")
+    await _db().execute(
+        "UPDATE catalogo_planos SET nome=?, categoria=?, codigo=COALESCE(?,codigo), aplicavel_tipos=?, frequencia=? WHERE id=?",
+        (body.nome, body.categoria, body.codigo,
+         json.dumps(body.aplicavel_tipos),
+         json.dumps(body.frequencia) if body.frequencia else None, pid),
+    )
+    return await _db().fetch_one("SELECT * FROM catalogo_planos WHERE id = ?", (pid,))
+
+
+@router.delete("/planos-catalogo/{pid}")
+async def delete_plano_catalogo(pid: str):
+    row = await _db().fetch_one("SELECT id FROM catalogo_planos WHERE id = ?", (pid,))
+    if not row:
+        raise HTTPException(404, "Plano não encontrado")
+    await _db().execute("UPDATE catalogo_planos SET ativo = 0 WHERE id = ?", (pid,))  # soft delete
+    return {"ok": True}
+
+
+@router.post("/planos-catalogo/{pid}/itens", status_code=201)
+async def add_plano_item(pid: str, body: PlanoItemIn):
+    plano = await _db().fetch_one("SELECT id FROM catalogo_planos WHERE id = ?", (pid,))
+    if not plano:
+        raise HTTPException(404, "Plano não encontrado")
+    svc = await _db().fetch_one("SELECT id FROM catalogo_servicos WHERE id = ?", (body.servico_id,))
+    if not svc:
+        raise HTTPException(400, "Serviço inexistente")
+    await _db().execute(
+        "INSERT OR IGNORE INTO catalogo_plano_itens (plano_id, servico_id, seq, classe, frequencia) VALUES (?,?,?,?,?)",
+        (pid, body.servico_id, body.seq, body.classe,
+         json.dumps(body.frequencia) if body.frequencia else None),
+    )
+    return {"ok": True}
+
+
+@router.delete("/planos-catalogo/{pid}/itens/{servico_id}")
+async def del_plano_item(pid: str, servico_id: str):
+    await _db().execute(
+        "DELETE FROM catalogo_plano_itens WHERE plano_id = ? AND servico_id = ?", (pid, servico_id))
+    return {"ok": True}

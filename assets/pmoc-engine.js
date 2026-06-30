@@ -254,6 +254,22 @@
         }),
       );
 
+      // Export Excel/PDF das linhas filtradas (zero dep — via window.tblExport de tbl-enhance.js)
+      const _expCols = state.cols.filter(c => c.label);
+      const _expText = (c, r) => {
+        let v = c.format ? c.format(r[c.key], r) : r[c.key];
+        if (v instanceof Node) return v.textContent || '';
+        return v == null ? '' : String(v);
+      };
+      const _expData = () => ({ headers: _expCols.map(c => c.label), rows: filtered().map(r => _expCols.map(c => _expText(c, r))) });
+      const _expName = opts.exportName || (document.getElementById('topbar-module') || {}).textContent || 'tabela';
+      toolbar.append(
+        el('button', { class: 'pe-btn', title: 'Exportar Excel (CSV)',
+          onclick: () => { const d = _expData(); window.tblExport ? window.tblExport.excel(_expName, d.headers, d.rows) : alert('Export indisponível'); } }, '⬇ Excel'),
+        el('button', { class: 'pe-btn', title: 'Exportar PDF',
+          onclick: () => { const d = _expData(); window.tblExport ? window.tblExport.pdf(_expName, d.headers, d.rows) : alert('Export indisponível'); } }, '⬇ PDF'),
+      );
+
       const thead = el('thead', {}, el('tr', {},
         ...state.cols.map(c => el('th', {
           onclick: c.sort !== false ? () => {
