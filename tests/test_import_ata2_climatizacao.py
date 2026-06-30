@@ -1,9 +1,20 @@
-"""ATA2 climatização: parse do HTML + modelo serviço-reusável / plano-conjunto."""
+"""ATA2 climatização: helpers de parsing + modelo serviço-reusável / plano-conjunto.
+
+A fonte HTML (.docs_cmasm/ata2_carioca_solution.html) foi removida do repo após a
+importação ser concluída — os dados já estão no DB de produção (catalogo_planos /
+catalogo_plano_itens).  O teste test_parse_ata2_estrutura é ignorado quando o arquivo
+fonte não existe.  Os dois primeiros testes (slug/variante) usam apenas funções puras e
+continuam rodando sempre.
+"""
 import os
 import sys
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from tools.import_ata2_climatizacao import slug, variante, parse_ata2  # noqa: E402
+from tools.import_ata2_climatizacao import slug, variante, HTML  # noqa: E402
+
+_HTML_AVAILABLE = os.path.isfile(HTML)
 
 
 def test_slug_sem_acento():
@@ -19,7 +30,9 @@ def test_variante():
     assert v2 == {"btu": 24000, "inverter": 0, "altura_max_m": 3.0}
 
 
+@pytest.mark.skipif(not _HTML_AVAILABLE, reason="fonte HTML retirada do repo; ATA2 já importada para o DB")
 def test_parse_ata2_estrutura():
+    from tools.import_ata2_climatizacao import parse_ata2  # noqa: E402
     grupos = parse_ata2()
     assert len(grupos) == 12                       # 18/22/24k × padrão/inverter × 3/10m
     descs = {it["desc"] for g in grupos for it in g["itens"]}
