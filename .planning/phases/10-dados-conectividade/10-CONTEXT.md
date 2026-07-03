@@ -15,14 +15,15 @@ Ligar as FKs mortas e unificar cadastros duplicados/órfãos do núcleo para que
 ## Implementation Decisions
 
 ### CON-04 — Unificação grama_maquinas ↔ ativos
-- **D-01:** **Aposentar `grama_maquinas`.** `backend/grama.py` passa a ler `ativos` (categoria maquinas_corte) diretamente; `ativos.uso_atual` vira fonte única de horas. A tabela `grama_maquinas` (12 rows) fica como legado (nunca DROP), sem novos writes.
-- **D-02:** Antes de aposentar, o planner/researcher DEVE mapear as dependências internas de grama sobre `grama_maquinas` — `grama_operacoes`, kanban, calendário e status (`grama.py:600`) referenciam a máquina; cada uma precisa repontar para `ativos.id` (backfill por modelo/série para casar os 12 `gmaq-*` aos 28 ativos maquinas_corte). Isso é o maior risco da fase — tratar como item de pesquisa.
+- **D-01:** **Aposentar `grama_maquinas` como cadastro-mestre, mantê-la como satélite.** `backend/grama.py` passa a ler `ativos` (maquinas_corte) para identidade + `uso_atual` (fonte única de horas; repontar o write em `grama.py:744-751 update_operacao_status` de `grama_maquinas.horas_uso` → `ativos.uso_atual`). Campos sem equivalente em `ativos` (fabricante, número_série, combustível) **permanecem** em `grama_maquinas`, ligados por nova coluna aditiva `ativos.grama_maquina_id`. Nunca DROP.
+- **D-02:** **Matching grama↔ativos: histórico arquival, sem pareamento forçado** (RESEARCH: tabelas satélite grama têm 0 rows em produção — sem histórico a migrar). Só **MS650** e **SOL** linkam 1:1 (match exato). Grupos ambíguos (FS220 5↔10, GAR 3↔8, TS114 1↔4; `numero_serie` NULL em 12/12) **não** recebem pareamento ordinal — `uso_atual` começa em 0 e o histórico de `grama_maquinas` fica arquival. Soprador BR600 não tem tipo em `ativos` — fica só satélite.
 
 ### CON-02 — Lotação na OS
 - **D-03:** Nova coluna aditiva `os.lotacao_id → estrutura(id)`. Preenchida **auto + override**: default derivado da unidade do cargo do solicitante (`cargos.usuario_id` → `cargos.unidade_id`), com seletor opcional no form da OS para corrigir/escolher outra lotação. `os.departamento` (TEXT) permanece só como rótulo denormalizado — não é removido.
 
 ### CON-01 — Backfill locais.estrutura_id
 - **D-04:** Backfill idempotente mapeia `locais.codigo → estrutura.id`. Locais sem match ficam com `estrutura_id` NULL (**pular + listar**) — não falha, não cria nós sintéticos. Os órfãos entram no relatório de integridade (CON-06). Após o backfill, as consultas de organização (`main.py:1967-1988`) passam a resolver por `estrutura_id`; o fallback `COALESCE(estrutura_id, codigo)` só sobrevive enquanto houver órfãos.
+- **D-04b:** **Escopo CON-01 = mecanismo + relatório, aceitando 0/163 hoje** (RESEARCH: `locais.codigo` está em `REFRI-<AREA>-<NOME>` e `estrutura.id` em `CMASM-XX.Y` → 0 casam atualmente). A fase entrega backfill idempotente correto + cutover do join + os 163 sem match visíveis no relatório de integridade. O critério de sucesso é **"mecanismo funciona e é idempotente"**, NÃO "N/163 populados". A correção de dados (mapear REFRI-→CMASM-XX.Y) fica em Future Requirements — não é desta fase.
 
 ### CON-06 — Relatório de integridade
 - **D-05:** **Endpoint vivo + UI admin.** `GET /api/admin/integridade` (auth, role admin) retorna as inconsistências de conectividade (FK esperada não populada, `loc` sem `local_id`, órfãos do CON-01, `ativo_id`/`servico_id` de OS não resolvidos). Painel na aba admin existente do `cmasm_erp.html` consome e exibe. Auditoria contínua, não script pontual.
