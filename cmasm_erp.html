@@ -1536,6 +1536,17 @@ table{border-collapse:collapse;width:100%}
         </div>
       </div>
     </div>
+    <!-- CON-06 (D-05) — auditoria contínua de conectividade -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="card-header">
+        <span class="card-title">Integridade de Dados</span>
+        <button class="btn btn-secondary btn-sm" onclick="loadIntegridade()">↻ Atualizar</button>
+      </div>
+      <div class="card-body">
+        <p class="text-sm text-muted mb-12" id="integridade-meta">Carregando…</p>
+        <div id="integridade-lista" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -6905,6 +6916,50 @@ function renderAdminDB(){
   const os=getOS().length;const frota=getFrota().length;const calib=getCalib().length;
   const ativos=getAtivos().length;
   stats.textContent=`TMFT: ${tmft} · Usuários: ${users} · PS: ${ps} · OS: ${os} · Frota: ${frota} · Ativos: ${ativos} · Calibração: ${calib}`;
+  loadIntegridade();
+}
+
+// CON-06 (D-05) — auditoria contínua de conectividade: consome GET /api/admin/integridade
+// e renderiza um card por categoria com badge de contagem, expansível para ver os itens.
+async function loadIntegridade(){
+  const meta=document.getElementById('integridade-meta');
+  const lista=document.getElementById('integridade-lista');
+  if(!meta||!lista)return;
+  if(!SESSION||SESSION.role!=='admin'||SESSION._visitante){
+    meta.textContent='Acesso restrito a administradores.';
+    lista.innerHTML='';
+    return;
+  }
+  meta.textContent='Carregando…';
+  lista.innerHTML='';
+  const base=(window.XCMASM_API_BASE||'http://localhost:8010').replace(/\/$/, '');
+  const token=localStorage.getItem('xcmasm_token')||'';
+  try{
+    const r=await fetch(base+'/api/admin/integridade', { headers:{ 'Authorization':'Bearer '+token } });
+    if(r.status===401){ meta.textContent='Sessão expirada — reconecte ao servidor para ver a integridade.'; return; }
+    if(r.status===403){ meta.textContent='Acesso restrito a administradores.'; return; }
+    if(!r.ok){ meta.textContent='Falha ao carregar relatório (HTTP '+r.status+').'; return; }
+    const d=await r.json();
+    meta.textContent='Gerado em '+new Date(d.gerado_em).toLocaleString('pt-BR');
+    lista.innerHTML=(d.categorias||[]).map((c,i)=>{
+      const cls=c.total>0?(c.total>50?'badge-danger':'badge-warn'):'badge-ok';
+      const itensHtml=(c.itens||[]).slice(0,200).map(it=>{
+        const label=[it.codigo,it.nome||it.titulo,it.loc?`(loc: ${it.loc})`:''].filter(Boolean).join(' — ');
+        return `<div class="text-sm text-muted" style="padding:2px 0 2px 12px;border-left:2px solid var(--border2)">${label||it.id}</div>`;
+      }).join('') || '<div class="text-sm text-muted" style="padding:2px 0 2px 12px">Nenhum item.</div>';
+      return `
+        <div class="integridade-item" style="border:1px solid var(--border2);border-radius:8px;padding:8px 12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="const b=document.getElementById('integridade-detalhe-${i}');b.style.display=b.style.display==='none'?'block':'none';">
+            <span>${c.titulo}</span>
+            <span class="badge ${cls}">${c.total}</span>
+          </div>
+          <div id="integridade-detalhe-${i}" style="display:none;margin-top:8px">${itensHtml}</div>
+        </div>`;
+    }).join('');
+  }catch(e){
+    meta.textContent='Backend indisponível — não foi possível carregar a integridade.';
+    console.warn('[erp] loadIntegridade falhou', e);
+  }
 }
 
 function salvarCfg(){toast('Configurações salvas');}
