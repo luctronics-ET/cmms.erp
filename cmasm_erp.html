@@ -2444,6 +2444,8 @@ table{border-collapse:collapse;width:100%}
           </select>
         </div>
         <div class="form-group"><label>Responsável</label><select id="os-manut-resp"><option value="">— Selecionar —</option></select></div>
+        <!-- CON-02 (D-03) — override opcional de lotacao_id; vazio => auto-fill pelo cargo do solicitante -->
+        <div class="form-group"><label>Lotação <span class="text-muted" style="font-weight:400">opcional</span></label><select id="os-manut-lotacao"><option value="">— Auto (unidade do solicitante) —</option></select></div>
         <div class="form-group form-full"><label>Descrição do Serviço</label><textarea id="os-manut-desc" rows="3" placeholder="Descreva o serviço a executar..."></textarea></div>
         <div class="form-group"><label>Data de Abertura</label><input type="date" id="os-manut-abertura"></div>
         <div class="form-group"><label>Previsão de Conclusão</label><input type="date" id="os-manut-prazo"></div>
@@ -4262,6 +4264,16 @@ function populateExecutorOrgSelect(selectId, selected='CMASM-10'){
   sel.value=selected;
 }
 
+// CON-02 (D-03) — seletor opcional de lotação (estrutura) para o form de OS.
+// Reaproveita ESTRUTURA_ORG/orgExecutorOptions (mesma fonte da tela de organização);
+// opção vazia = "auto" => backend deriva do cargo do solicitante.
+function populateLotacaoSelect(selectId, selected=''){
+  const sel=document.getElementById(selectId);
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Auto (unidade do solicitante) —</option>'+orgExecutorOptions(selected);
+  sel.value=selected;
+}
+
 function refreshSidebarTooltips(){
   document.querySelectorAll('.sidebar .ni').forEach(el=>{
     if(!el.title||!el.title.trim())el.title=el.textContent.replace(/\s+/g,' ').trim();
@@ -4317,6 +4329,10 @@ function _persistManutOSInBackend(localId){
           prioridade: _mapServicoPrioridadeToBackend(row.prioridade),
           modulo_origem: 'manutencao',
           observacoes: `OS local: ${row.id}`,
+          // CON-02 (D-03): solicitante_id habilita o auto-fill server-side de lotacao_id;
+          // lotacao_id só é enviado se o usuário escolheu um override no form.
+          solicitante_id: row.solicitanteId || undefined,
+          lotacao_id: row.lotacao_id || undefined,
         })
       });
       if(!created || !created.id) return;
@@ -4391,6 +4407,8 @@ function syncManutOSIntoServicos(payload={}){
     ativo_id: payload.ativo_id || current.ativo_id || '',
     plano_id: payload.plano_id || current.plano_id || '',
     servico_id: payload.servico_id || current.servico_id || '',
+    // CON-02 (D-03) — override opcional da lotação; vazio => auto-fill pelo cargo do solicitante no backend
+    lotacao_id: payload.lotacao_id || current.lotacao_id || '',
     dataConclusao: normalizedStatus==='concluida' ? (payload.dataConclusao || current.dataConclusao || new Date().toISOString()) : (current.dataConclusao || ''),
   };
   if(idx>=0) data[idx]=next;
@@ -6450,6 +6468,7 @@ function novaOSManut(ativoId){
   document.getElementById('os-manut-edit-id').value='';
   document.getElementById('os-manut-abertura').value=new Date().toISOString().split('T')[0];
   populateAtivoSelect(ativoId);populateUserSelect('os-manut-resp');
+  populateLotacaoSelect('os-manut-lotacao','');
   // default responsável = usuário logado (se constar na lista de usuários)
   const respSel=document.getElementById('os-manut-resp');
   if(respSel && SESSION && !SESSION._visitante){
@@ -6465,7 +6484,9 @@ function criarOSManut(){
   const desc=document.getElementById('os-manut-desc').value.trim();
   if(!ativoId||!desc){toast('Selecione o ativo e informe a descrição','warning');return;}
   const a=getAtivos().find(a=>a.id===ativoId);
-  const os={id:'OSM-'+padZero(getOSManut().length+1,4),ativoId,ativoNome:a?a.nome:ativoId,tipo:document.getElementById('os-manut-tipo').value,responsavel:document.getElementById('os-manut-resp').value,descricao:desc,abertura:document.getElementById('os-manut-abertura').value,prazo:document.getElementById('os-manut-prazo').value,pecas:document.getElementById('os-manut-pecas').value,status:'aberta',criadoPor:SESSION.nome,dataCriacao:new Date().toISOString()};
+  // CON-02 (D-03) — override opcional da lotação; vazio => auto-fill pelo cargo do solicitante
+  const lotacaoId=(document.getElementById('os-manut-lotacao')||{}).value||'';
+  const os={id:'OSM-'+padZero(getOSManut().length+1,4),ativoId,ativoNome:a?a.nome:ativoId,tipo:document.getElementById('os-manut-tipo').value,responsavel:document.getElementById('os-manut-resp').value,descricao:desc,abertura:document.getElementById('os-manut-abertura').value,prazo:document.getElementById('os-manut-prazo').value,pecas:document.getElementById('os-manut-pecas').value,status:'aberta',criadoPor:SESSION.nome,dataCriacao:new Date().toISOString(),lotacao_id:lotacaoId};
   if(a&&os.tipo!=='preventiva'){
     const data=getAtivos();const idx=data.findIndex(ax=>ax.id===ativoId);
     if(idx>=0){data[idx].status='MANUT';saveAtivos(data);}
@@ -6486,6 +6507,7 @@ function criarOSManut(){
     criadoPor: os.criadoPor,
     origem: 'manutencao',
     modulo_origem: 'manutencao',
+    lotacao_id: os.lotacao_id || '',
   });
   closeModal(document.getElementById('modal-nova-os-manut'));renderOSManut();renderAtivos();renderKpiServicos();renderOS();renderKanban();initDashboard();toast(`${os.id} criada`);
 }
