@@ -538,9 +538,33 @@ async def executar_plano(plano_id: str, body: PlanoExecIn):
 
 # ── Máquinas ──────────────────────────────────────────────────────────────────
 
+# CON-04/D-01 — grama_maquinas foi aposentada como cadastro-mestre; identidade e
+# horas (uso_atual, fonte única — Rules.md §3) agora vêm de ativos (categoria
+# maquinas_corte). grama_maquinas continua viva como satélite de metadados
+# (fabricante/modelo/numero_serie/ano_fabricacao/combustível), ligada por
+# ativos.grama_maquina_id. O shape devolvido preserva exatamente o que
+# normalizeVegMaq (cmasm_erp.html) espera: id, nome, tipo, fabricante, modelo,
+# numero_serie, ano_fabricacao, status, horas_uso, observacoes.
+#
+# Nota (Pitfall 2, aceito nesta fase): `status` deixa de ter os 4 estados de
+# grama_maquinas (operacional/em_manutencao/inativo/aposentada) e passa a ser
+# derivado de ativos.ativo (1/0) em apenas 2 estados (operacional/inativo).
+# Perda de granularidade aceita e fora do escopo de CON-04 — ver RESEARCH §1.4.
+_SQL_MAQUINAS_BASE = """
+    SELECT a.id, a.nome, a.tipo, a.uso_atual AS horas_uso,
+           gm.fabricante, gm.modelo, gm.numero_serie, gm.ano_fabricacao,
+           gm.combustivel_tipo, gm.combustivel_capacidade, gm.combustivel_atual,
+           a.obs AS observacoes,
+           CASE WHEN a.ativo=1 THEN 'operacional' ELSE 'inativo' END AS status
+    FROM ativos a
+    LEFT JOIN grama_maquinas gm ON gm.id = a.grama_maquina_id
+    WHERE a.categoria='maquinas_corte'
+"""
+
+
 @router.get("/maquinas")
 async def list_maquinas(status: Optional[str] = None, tipo: Optional[str] = None):
-    sql = "SELECT * FROM grama_maquinas WHERE 1=1"
+    sql = f"SELECT * FROM ({_SQL_MAQUINAS_BASE}) WHERE 1=1"
     params: list = []
     if status:
         sql += " AND status=?"; params.append(status)
@@ -552,7 +576,9 @@ async def list_maquinas(status: Optional[str] = None, tipo: Optional[str] = None
 
 @router.get("/maquinas/{maq_id}")
 async def get_maquina(maq_id: str):
-    row = await _get_db().fetch_one("SELECT * FROM grama_maquinas WHERE id=?", (maq_id,))
+    row = await _get_db().fetch_one(
+        f"SELECT * FROM ({_SQL_MAQUINAS_BASE} AND a.id=?) LIMIT 1", (maq_id,)
+    )
     if not row:
         raise HTTPException(404, "Máquina não encontrada")
     return row
@@ -742,13 +768,24 @@ async def update_operacao_status(op_id: str, body: OperacaoStatusIn):
          body.observacoes, *extra_val, op_id),
     )
     if body.status == "concluido" and body.horas_utilizadas:
+        # CON-04/D-01/Rules.md §3 — ativos.uso_atual é a fonte única de horas;
+        # a escrita de horímetro repontou de grama_maquinas.horas_uso para cá.
         await db.execute(
-            """UPDATE grama_maquinas
-               SET horas_uso=horas_uso+?,
-                   combustivel_atual=MAX(0,combustivel_atual-?)
+            """UPDATE ativos SET uso_atual = uso_atual + ?
                WHERE id=(SELECT maquina_id FROM grama_operacoes_servico WHERE id=?)""",
-            (body.horas_utilizadas, body.combustivel_utilizado or 0, op_id),
+            (body.horas_utilizadas, op_id),
         )
+        # Combustível continua em grama_maquinas (satélite) via o link legado
+        # ativos.grama_maquina_id — não migra para ativos (fora do escopo de
+        # "uso_atual fonte única"; ver RESEARCH §1.5, Pitfall 3).
+        if body.combustivel_utilizado:
+            await db.execute(
+                """UPDATE grama_maquinas
+                   SET combustivel_atual=MAX(0,combustivel_atual-?)
+                   WHERE id=(SELECT a.grama_maquina_id FROM ativos a
+                             WHERE a.id=(SELECT maquina_id FROM grama_operacoes_servico WHERE id=?))""",
+                (body.combustivel_utilizado, op_id),
+            )
     return await db.fetch_one("SELECT * FROM grama_operacoes_servico WHERE id=?", (op_id,))
 
 
