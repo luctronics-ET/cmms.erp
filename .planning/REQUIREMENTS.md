@@ -83,4 +83,34 @@
 
 ## Traceability
 
-*(Preenchido pelo roadmapper — mapeia cada REQ-ID à sua fase.)*
+Mapeamento REQ-ID → Fase (v2.0, Phases 10-15). Cobertura: 27/27 requisitos mapeados, sem órfãos.
+
+| Requirement | Frente | Phase | Status |
+|-------------|--------|-------|--------|
+| CON-01 | F10 | Phase 10 — Dados & Conectividade | Pending |
+| CON-02 | F10 | Phase 10 — Dados & Conectividade | Pending |
+| CON-03 | F10 | Phase 10 — Dados & Conectividade | Pending |
+| CON-04 | F10 | Phase 10 — Dados & Conectividade | Pending |
+| CON-05 | F10 | Phase 10 — Dados & Conectividade | Pending |
+| CON-06 | F10 | Phase 10 — Dados & Conectividade | Pending |
+| RES-06 | F11 | Phase 11 — Residuais Funcionais | Pending |
+| RES-07 | F11 | Phase 11 — Residuais Funcionais | Pending |
+| RES-08 | F11 | Phase 11 — Residuais Funcionais | Pending |
+| RES-09 | F11 | Phase 11 — Residuais Funcionais | Pending |
+| RES-10 | F11 | Phase 11 — Residuais Funcionais | Pending |
+| DOC-04 | F13 | Phase 12 — Documentos — Vínculo & População | Pending |
+| DOC-05 | F13 | Phase 12 — Documentos — Vínculo & População | Pending |
+| DOC-06 | F13 | Phase 12 — Documentos — Vínculo & População | Pending |
+| DEP-01 | F12 | Phase 13 — Portabilidade & Deploy | Pending |
+| DEP-02 | F12 | Phase 13 — Portabilidade & Deploy | Pending |
+| DEP-03 | F12 | Phase 13 — Portabilidade & Deploy | Pending |
+| DEP-04 | F12 | Phase 13 — Portabilidade & Deploy | Pending |
+| DEP-05 | F12 | Phase 13 — Portabilidade & Deploy | Pending |
+| FEA-01 | F14 | Phase 14 — Import de Features | Pending |
+| FEA-02 | F14 | Phase 14 — Import de Features | Pending |
+| FEA-03 | F14 | Phase 14 — Import de Features | Pending |
+| PUB-01 | F15 | Phase 15 — Consulta Pública QR + Manual & Demo | Pending |
+| PUB-02 | F15 | Phase 15 — Consulta Pública QR + Manual & Demo | Pending |
+| PUB-03 | F15 | Phase 15 — Consulta Pública QR + Manual & Demo | Pending |
+| MAN-01 | F16 | Phase 15 — Consulta Pública QR + Manual & Demo | Pending |
+| MAN-02 | F16 | Phase 15 — Consulta Pública QR + Manual & Demo | Pending |
