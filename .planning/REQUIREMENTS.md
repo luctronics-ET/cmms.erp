@@ -16,12 +16,12 @@
 
 ### F10 — Dados & Conectividade (CON)
 
-- [ ] **CON-01**: `locais.estrutura_id` é populado por backfill (`locais.codigo → estrutura.id`) e as consultas de organização passam a resolver por FK, não por colisão de string `codigo` (`main.py:1967-1988`).
-- [ ] **CON-02**: OS grava a lotação como FK — nova coluna aditiva `os.lotacao_id → estrutura(id)`, preenchida na criação a partir da unidade do solicitante ou de seletor explícito; `os.departamento` fica só como rótulo denormalizado.
-- [ ] **CON-03**: Categoria `fonoclama` é registrada em `modulos_registrados` (`categorias_atend='["fonoclama"]'`), de modo que os 10 ativos + 5 planos aparecem em `GET /api/sync/manifest`.
-- [ ] **CON-04**: As máquinas de corte deixam de ter cadastro duplo — `grama_maquinas` passa a referenciar `ativos` (FK + backfill por modelo/série) com `uso_atual` como fonte única, ou a tabela paralela é aposentada.
-- [ ] **CON-05**: Dados órfãos são limpos/parkados — plano `climatizacao` com `aplicavel_tipos='[]'` arquivado; `planos_manutencao` (0 rows, APOSENTADO) documentado como legado intencional em `Rules.md`.
-- [ ] **CON-06**: Um relatório de integridade (script ou endpoint) sinaliza inconsistências de conectividade (ex.: `loc` preenchido com `local_id` nulo, FK esperada não populada) para auditoria contínua.
+- [x] **CON-01**: `locais.estrutura_id` é populado por backfill (`locais.codigo → estrutura.id`) e as consultas de organização passam a resolver por FK, não por colisão de string `codigo` (`main.py:1967-1988`).
+- [x] **CON-02**: OS grava a lotação como FK — nova coluna aditiva `os.lotacao_id → estrutura(id)`, preenchida na criação a partir da unidade do solicitante ou de seletor explícito; `os.departamento` fica só como rótulo denormalizado.
+- [x] **CON-03**: Categoria `fonoclama` é registrada em `modulos_registrados` (`categorias_atend='["fonoclama"]'`), de modo que os 10 ativos + 5 planos aparecem em `GET /api/sync/manifest`.
+- [x] **CON-04**: As máquinas de corte deixam de ter cadastro duplo — `grama_maquinas` passa a referenciar `ativos` (FK + backfill por modelo/série) com `uso_atual` como fonte única, ou a tabela paralela é aposentada.
+- [x] **CON-05**: Dados órfãos são limpos/parkados — plano `climatizacao` com `aplicavel_tipos='[]'` arquivado; `planos_manutencao` (0 rows, APOSENTADO) documentado como legado intencional em `Rules.md`.
+- [x] **CON-06**: Um relatório de integridade (script ou endpoint) sinaliza inconsistências de conectividade (ex.: `loc` preenchido com `local_id` nulo, FK esperada não populada) para auditoria contínua.
 
 ### F11 — Residuais Funcionais (RES, continua v1.0)
 
@@ -87,12 +87,12 @@ Mapeamento REQ-ID → Fase (v2.0, Phases 10-15). Cobertura: 27/27 requisitos map
 
 | Requirement | Frente | Phase | Status |
 |-------------|--------|-------|--------|
-| CON-01 | F10 | Phase 10 — Dados & Conectividade | Pending |
-| CON-02 | F10 | Phase 10 — Dados & Conectividade | Pending |
-| CON-03 | F10 | Phase 10 — Dados & Conectividade | Pending |
-| CON-04 | F10 | Phase 10 — Dados & Conectividade | Pending |
-| CON-05 | F10 | Phase 10 — Dados & Conectividade | Pending |
-| CON-06 | F10 | Phase 10 — Dados & Conectividade | Pending |
+| CON-01 | F10 | Phase 10 — Dados & Conectividade | Complete |
+| CON-02 | F10 | Phase 10 — Dados & Conectividade | Complete |
+| CON-03 | F10 | Phase 10 — Dados & Conectividade | Complete |
+| CON-04 | F10 | Phase 10 — Dados & Conectividade | Complete |
+| CON-05 | F10 | Phase 10 — Dados & Conectividade | Complete |
+| CON-06 | F10 | Phase 10 — Dados & Conectividade | Complete |
 | RES-06 | F11 | Phase 11 — Residuais Funcionais | Pending |
 | RES-07 | F11 | Phase 11 — Residuais Funcionais | Pending |
 | RES-08 | F11 | Phase 11 — Residuais Funcionais | Pending |
