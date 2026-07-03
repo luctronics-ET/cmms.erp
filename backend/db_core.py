@@ -35,6 +35,8 @@ class CoreDB:
                 ("janela_default",    "ALTER TABLE ativos ADD COLUMN janela_default TEXT"),
                 # RES-03 — local onde o ativo está instalado (backfill via tools/backfill_local_id.py)
                 ("local_id", "ALTER TABLE ativos ADD COLUMN local_id INTEGER REFERENCES locais(id)"),
+                # CON-04 (D-01) — link satélite p/ grama_maquinas (fabricante/série/combustível ficam lá; uso_atual é fonte única)
+                ("grama_maquina_id", "ALTER TABLE ativos ADD COLUMN grama_maquina_id TEXT REFERENCES grama_maquinas(id)"),
             ]:
                 if col not in existing:
                     await db.execute(ddl)
@@ -69,6 +71,8 @@ class CoreDB:
                 ("veiculos",                "ALTER TABLE ordens_servico ADD COLUMN veiculos TEXT"),
                 # RES-02 — lotação/departamento da OS (opcional; clientes antigos não precisam enviar)
                 ("departamento",            "ALTER TABLE ordens_servico ADD COLUMN departamento TEXT"),
+                # CON-02 (D-03) — lotação da OS como FK para estrutura (auto-fill + override no form)
+                ("lotacao_id",              "ALTER TABLE ordens_servico ADD COLUMN lotacao_id TEXT REFERENCES estrutura(id)"),
             ]:
                 if col not in os_existing:
                     await db.execute(ddl)
@@ -87,6 +91,13 @@ class CoreDB:
                 ("pasta_id", "ALTER TABLE docs_documentos ADD COLUMN pasta_id INTEGER REFERENCES docs_pastas(id)"),
             ]:
                 if col not in ddoc_existing:
+                    await db.execute(ddl)
+            # CON-05 (D-07) — flag de arquivamento dedicado p/ planos órfãos (nunca DROP; ativo=0 + motivo documentado)
+            catalogo_planos_existing = {row[1] async for row in await db.execute("PRAGMA table_info(catalogo_planos)")}
+            for col, ddl in [
+                ("arquivado_motivo", "ALTER TABLE catalogo_planos ADD COLUMN arquivado_motivo TEXT"),
+            ]:
+                if col not in catalogo_planos_existing:
                     await db.execute(ddl)
             await db.commit()
 
