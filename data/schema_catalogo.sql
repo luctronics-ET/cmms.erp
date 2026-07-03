@@ -219,7 +219,9 @@ INSERT OR IGNORE INTO modulos_registrados (nome, descricao, categorias_atend) VA
   ('pmoc_paiois',       'Paiois e inventário militar',            '["paiois_item"]'),
   ('pmoc_transportes',  'Viaturas e embarcações',                 '["viaturas","embarcacoes"]'),
   ('pmoc_grama',        'Controle vegetal / máquinas de corte',   '["maquinas_corte"]'),
-  ('pmoc_calibracao',   'Instrumentos calibrados',                '["instrumentos"]');
+  ('pmoc_calibracao',   'Instrumentos calibrados',                '["instrumentos"]'),
+  -- CON-03 (D-06) — registra fonoclama para o manifest incluir os 10 ativos + 5 planos
+  ('fonoclama',         'Sistema de aviso sonoro (fonoclama)',    '["fonoclama"]');
 
 INSERT OR IGNORE INTO qualificacoes_catalogo (codigo, nome, descricao, requer_validade) VALUES
   ('tec_refrig',        'Técnico em Refrigeração',           'NR-34 + curso técnico em refrigeração',         1),
