@@ -45,7 +45,13 @@ Full detail: `.planning/milestones/v1.0-ROADMAP.md`
   3. `GET /api/sync/manifest?modulo=fonoclama` retorna os 10 ativos + 5 planos de fonoclama (categoria registrada em `modulos_registrados`).
   4. As máquinas de corte deixam de ter cadastro duplo — `grama_maquinas` referencia `ativos` (FK + backfill por modelo/série) com `uso_atual` como fonte única, ou a tabela paralela está aposentada e documentada.
   5. Um relatório de integridade (script ou endpoint) lista inconsistências de conectividade (FK esperada não populada, `loc` sem `local_id`), e os dados órfãos (plano `climatizacao` `aplicavel_tipos='[]'` arquivado, `planos_manutencao` APOSENTADO) estão documentados como legado em `Rules.md`.
-**Plans**: TBD
+**Plans**: 6 plans
+- [ ] 10-01-PLAN.md — Fundação de schema: 3 colunas aditivas (lotacao_id, grama_maquina_id, arquivado_motivo) + seed fonoclama (CON-02/03/04/05)
+- [ ] 10-02-PLAN.md — CON-01: backfill idempotente locais.estrutura_id + verificação do cutover por FK (COALESCE)
+- [ ] 10-03-PLAN.md — CON-02: os.lotacao_id auto-fill do cargo do solicitante + seletor opcional no form da OS
+- [ ] 10-04-PLAN.md — CON-04: repoint de horas para ativos.uso_atual + maquinas por JOIN + backfill de link 1:1 (MS650/SOL)
+- [ ] 10-05-PLAN.md — CON-05: arquivar plano órfão via flag + documentar planos_manutencao aposentado em Rules.md
+- [ ] 10-06-PLAN.md — CON-06: GET /api/admin/integridade (role admin) + painel de integridade na aba admin
 
 ### Phase 11: Residuais Funcionais
 **Goal**: Completar os dados e disparos que ficaram pela metade na v1.0 para que térmico, vencimentos por tempo e prefills de SR funcionem com dados reais.
@@ -121,7 +127,7 @@ Full detail: `.planning/milestones/v1.0-ROADMAP.md`
 | 7. Auth Hardening | v1.0 | 3/3 | Complete | 2026-06-29 |
 | 8. Ajuda e Documentação | v1.0 | 3/3 | Complete | 2026-06-29 |
 | 9. Limpeza Final | v1.0 | 1/1 | Complete | 2026-06-29 |
-| 10. Dados & Conectividade | v2.0 | 0/? | Not started | - |
+| 10. Dados & Conectividade | v2.0 | 0/6 | Not started | - |
 | 11. Residuais Funcionais | v2.0 | 0/? | Not started | - |
 | 12. Documentos — Vínculo & População | v2.0 | 0/? | Not started | - |
 | 13. Portabilidade & Deploy | v2.0 | 0/? | Not started | - |
