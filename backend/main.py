@@ -797,6 +797,104 @@ async def list_modulos():
     return rows
 
 
+@app.get("/api/admin/integridade")
+async def relatorio_integridade(authorization: str | None = Header(None)):
+    """CON-06 (D-05): auditoria contínua de conectividade — substitui scripts pontuais.
+    Gated por role='admin' (_require_admin). Todas as queries usam apenas literais
+    fixas/parâmetros validados — nenhuma interpolação de input de usuário (T-10-15).
+    Agrupa inconsistências de FK/órfãos por categoria para o painel admin consumir."""
+    user = await _require_auth(authorization)
+    _require_admin(user)
+
+    categorias: list[dict] = []
+
+    # 1. Locais sem estrutura_id (órfãos do backfill CON-01 — D-04)
+    locais_itens = await db.fetch_all(
+        "SELECT id, codigo, nome FROM locais WHERE estrutura_id IS NULL ORDER BY codigo"
+    )
+    categorias.append({
+        "chave": "locais_sem_estrutura",
+        "titulo": "Locais sem estrutura_id",
+        "total": len(locais_itens),
+        "itens": locais_itens,
+    })
+
+    # 2. Itens de estoque sem local_id
+    estoque_itens = await db.fetch_all(
+        "SELECT id, codigo, nome FROM estoque WHERE local_id IS NULL ORDER BY codigo"
+    )
+    categorias.append({
+        "chave": "estoque_sem_local",
+        "titulo": "Itens de estoque sem local_id",
+        "total": len(estoque_itens),
+        "itens": estoque_itens,
+    })
+
+    # 3. Ativos "meio migrados" — loc (texto legado) preenchido mas local_id nulo
+    ativos_loc_itens = await db.fetch_all(
+        "SELECT id, nome, loc FROM ativos WHERE loc IS NOT NULL AND loc != '' AND local_id IS NULL ORDER BY id"
+    )
+    categorias.append({
+        "chave": "ativos_loc_sem_local_id",
+        "titulo": "Ativos com localização em texto (loc) sem local_id",
+        "total": len(ativos_loc_itens),
+        "itens": ativos_loc_itens,
+    })
+
+    # 4. OS com ativo_id não resolvido
+    os_ativo_itens = await db.fetch_all(
+        "SELECT id, codigo FROM ordens_servico WHERE ativo_id IS NOT NULL "
+        "AND ativo_id NOT IN (SELECT id FROM ativos) ORDER BY codigo"
+    )
+    categorias.append({
+        "chave": "os_ativo_nao_resolvido",
+        "titulo": "OS com ativo_id inválido",
+        "total": len(os_ativo_itens),
+        "itens": os_ativo_itens,
+    })
+
+    # 5. OS com servico_id não resolvido
+    os_servico_itens = await db.fetch_all(
+        "SELECT id, codigo FROM ordens_servico WHERE servico_id IS NOT NULL "
+        "AND servico_id NOT IN (SELECT id FROM catalogo_servicos) ORDER BY codigo"
+    )
+    categorias.append({
+        "chave": "os_servico_nao_resolvido",
+        "titulo": "OS com servico_id inválido",
+        "total": len(os_servico_itens),
+        "itens": os_servico_itens,
+    })
+
+    # 6. Planos órfãos (CON-05) — sem tipo aplicável, ainda marcados ativos
+    planos_itens = await db.fetch_all(
+        "SELECT id, codigo, nome FROM catalogo_planos "
+        "WHERE (aplicavel_tipos IS NULL OR aplicavel_tipos = '[]') AND ativo = 1 ORDER BY codigo"
+    )
+    categorias.append({
+        "chave": "planos_orfaos",
+        "titulo": "Planos sem tipo aplicável",
+        "total": len(planos_itens),
+        "itens": planos_itens,
+    })
+
+    # 7. Máquinas de corte (CON-04) sem link a grama_maquinas (metadados legados)
+    maquinas_itens = await db.fetch_all(
+        "SELECT id, nome, tipo FROM ativos WHERE categoria='maquinas_corte' "
+        "AND grama_maquina_id IS NULL ORDER BY id"
+    )
+    categorias.append({
+        "chave": "maquinas_corte_sem_grama_maquina_id",
+        "titulo": "Máquinas de corte sem vínculo a grama_maquinas",
+        "total": len(maquinas_itens),
+        "itens": maquinas_itens,
+    })
+
+    return {
+        "gerado_em": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "categorias": categorias,
+    }
+
+
 @app.on_event("startup")
 async def startup():
     await db.init()
@@ -861,6 +959,13 @@ def _require_escrita(user: dict) -> None:
     Padrão espelhado de backend/manutencao.py:724-726."""
     if user.get("role") == "visualizador":
         raise HTTPException(403, "Visualizadores não têm permissão de escrita")
+
+
+def _require_admin(user: dict) -> None:
+    """CON-06 (D-05): só role='admin' acessa rotas administrativas (ex.: relatório
+    de integridade). Chamar APÓS _require_auth, espelhando o padrão de _require_escrita."""
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Acesso restrito a administradores")
 
 
 # ── Models ────────────────────────────────────────────────────────────────────
