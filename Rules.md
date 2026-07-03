@@ -318,6 +318,10 @@ planos_manutencao
   └─ criado_por_modulo, criado_em
 ```
 
+> **`planos_manutencao` — APOSENTADO.** Esta tabela nunca foi populada em produção (0 linhas). O modelo de planos efetivamente vivo é `catalogo_planos` + `catalogo_plano_itens` (ver §10). `planos_manutencao` permanece no schema apenas por compatibilidade retroativa — **nunca DROP** (Princípio de migração, §9).
+>
+> **CON-05 — arquivamento do plano órfão.** O plano de climatização `plano-3c349c22f4` (`aplicavel_tipos='[]'` — aplicável a nenhum tipo de ativo) foi arquivado via flag: `ativo=0` + `arquivado_motivo` preenchido (coluna aditiva em `catalogo_planos`, D-07). Nenhuma linha foi deletada. Isso é diferente de `aplicavel_tipos IS NULL` (ex.: `plano-clima-g1..g12`), que significa "não restringido" — não deve ser confundido nem tocado por essa limpeza.
+
 ### Resolução por criticidade
 
 Cada ativo tem `criticidade ∈ {admin | operacional | critico_24x7}` (campo do ativo). O plano pode definir frequências diferentes por criticidade:
