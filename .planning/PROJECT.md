@@ -8,6 +8,21 @@ Plataforma modular de gestão de ativos e serviços do CMASM (Centro de Mísseis
 
 A gestão de manutenção (ativos → planos → OS → estoque) tem que funcionar de ponta a ponta com os dados reais já cadastrados; nada deste milestone pode quebrar o que já roda em produção.
 
+## Current Milestone: v2.0 Conectividade, Deploy & Conteúdo
+
+**Goal:** Fechar as conexões de dados que ficaram frouxas na v1.0 (FKs mortas, colunas soltas, cadastros duplicados), tornar o sistema portável para fora de localhost, popular o módulo Documentos com o acervo de referência, e importar features maduras dos apps irmãos — sem quebrar produção.
+
+**Target features:**
+- **F10 — Dados & conectividade:** ligar FKs mortas (`locais.estrutura_id`, `estoque.local_id`), transformar `os.departamento` TEXT em FK `estrutura`, registrar módulo `fonoclama` no sync, unificar `grama_maquinas`↔`ativos`, limpar planos/dados órfãos.
+- **F11 — Residuais funcionais:** térmico real (`locais.area_m2`/`altura_m`), disparo `por_tempo` no vencimento, `proxima_execucao` na 1ª manutenção, backfill de `local_id` dos ~50 ativos não-climatização, SR pré-preencher ativo+item.
+- **F12 — Portabilidade / deploy:** eliminar fallbacks `http://localhost:8010` (usar same-origin), URLs de satélites derivadas de `location`, Leaflet vendored local, porta proxy-friendly, `.env.example` CORS de produção.
+- **F13 — Documentos: vínculo + população:** colunas `vinculo_tipo`/`vinculo_id` em `docs_documentos`; seed de ~45 arquivos de referência (NBR 5674, guias PMOC, planos, regimento, cargos/TMFT, normas CFTV) via script.
+- **F14 — Import de features:** export CSV/XLSX em todas as tabelas, matriz de priorização GUT, charts Chart.js no dashboard.
+- **F15 — Consulta pública QR + etiquetas:** página pública read-only sem login (consulta de ativo/OS por QR via endpoint dedicado), impressão de etiquetas QR.
+- **F16 — Manual + Demo:** manual do sistema (documento) + demo HTML consolidada e atualizada.
+
+**Key context:** Escopo derivado de auditoria por 4 investigadores (conectividade via `core.db` real, páginas/portabilidade, acervo de docs, features de apps irmãos). Achados-chave: `locais.estrutura_id` 0/163, `os.departamento` 0/3, `grama_maquinas`×`ativos` duplo cadastro, `documentos`(0)×`docs_documentos`(3 sem vínculo), fonoclama fora do sync, fallback localhost dispara sempre (`XCMASM_API_BASE` nunca setado). Migrações aditivas; produção-first.
+
 ## Requirements
 
 ### Validated
@@ -38,9 +53,10 @@ A gestão de manutenção (ativos → planos → OS → estoque) tem que funcion
 
 ### Active
 
-<!-- Próximo milestone — candidatos (nada em execução agora). -->
+<!-- Milestone v2.0 em execução — requisitos detalhados em REQUIREMENTS.md. -->
 
-(Nenhum em execução — v1.0 entregue. Candidatos a v1.1 em "Out of Scope"/v2: paginação, cache de vencimentos, CSRF/cookies/rate-limit, audit trail.)
+- Milestone **v2.0 Conectividade, Deploy & Conteúdo** em planejamento — frentes F10–F16 (ver "Current Milestone" acima e `.planning/REQUIREMENTS.md`).
+- Candidatos ainda diferidos: paginação, cache de vencimentos, CSRF/cookies/rate-limit, audit trail.
 
 ### Out of Scope
 
@@ -96,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-29 after v1.0 milestone*
+*Last updated: 2026-07-03 — milestone v2.0 (Conectividade, Deploy & Conteúdo) iniciado*

@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-current_phase: 0
-status: Awaiting next milestone
-stopped_at: Roadmap criado; pronto para `/gsd-plan-phase 1`
-last_updated: "2026-06-29T07:37:47.767Z"
-last_activity: 2026-06-29
-last_activity_desc: Milestone v1.0 completed and archived
+milestone: v2.0
+milestone_name: Conectividade, Deploy & Conteúdo
+status: planning
+last_updated: "2026-07-03T19:52:59.356Z"
+last_activity: 2026-07-03
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 20
-  completed_plans: 20
-  percent: 100
-current_phase_name: Limpeza Final
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 
 ## Current Position
 
-Phase: Milestone v1.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-29 — Milestone v1.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-07-03 — Milestone v2.0 started
 
 ## Performance Metrics
 
