@@ -935,6 +935,9 @@ class OSIn(BaseModel):
     observacoes: Optional[str] = None
     # RES-02 — lotação/departamento; opcional; GET auto-retorna via SELECT o.*
     departamento: Optional[str] = None
+    # CON-02 (D-03) — override opcional da lotação (estrutura); se ausente,
+    # create_os auto-deriva via cargos.usuario_id -> cargos.unidade_id do solicitante.
+    lotacao_id: Optional[str] = None
 
 
 class OSStatusIn(BaseModel):
@@ -2133,16 +2136,25 @@ async def create_os(body: OSIn, authorization: str | None = Header(None)):
         _require_escrita(user)
     oid = str(uuid.uuid4())
     codigo = await _gen_os_codigo()
+    # CON-02 (D-03): lotação = override explícito do corpo; se ausente, deriva
+    # da unidade do cargo do solicitante (cargos.usuario_id -> cargos.unidade_id),
+    # espelhando o padrão já usado em list_unidades (main.py:1130-1137).
+    lotacao_id = body.lotacao_id
+    if not lotacao_id and body.solicitante_id:
+        cargo = await db.fetch_one(
+            "SELECT unidade_id FROM cargos WHERE usuario_id = ?", (body.solicitante_id,)
+        )
+        lotacao_id = cargo["unidade_id"] if cargo else None
     await db.execute(
         """INSERT INTO ordens_servico
            (id, codigo, titulo, descricao, tipo, prioridade, modulo_origem,
             solicitante_id, responsavel_id, local_id, data_prevista, custo_estimado, observacoes,
-            departamento)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            departamento, lotacao_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (oid, codigo, body.titulo, body.descricao, body.tipo, body.prioridade,
          body.modulo_origem, body.solicitante_id, body.responsavel_id,
          body.local_id, body.data_prevista, body.custo_estimado, body.observacoes,
-         body.departamento),
+         body.departamento, lotacao_id),
     )
     await db.execute(
         "INSERT INTO os_historico (os_id, status_de, status_para, obs) VALUES (?,?,?,?)",
