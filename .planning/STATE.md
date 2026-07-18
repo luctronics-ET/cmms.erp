@@ -1,43 +1,43 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: — Conectividade, Deploy & Conteúdo
-current_phase: 10
-current_phase_name: dados-conectividade
-status: executing
+milestone_name: Conectividade, Deploy & Conteúdo
+current_phase: 16
+current_phase_name: "incorporar xPredial: rotas FastAPI, frontend, migracao de dados"
+status: planning
 stopped_at: Phase 10 executed + verified (6/6 plans, VERIFICATION passed)
-last_updated: "2026-07-03T22:44:04.932Z"
-last_activity: 2026-07-03
-last_activity_desc: Phase 10 execution started
+last_updated: "2026-07-18T23:14:54.234Z"
+last_activity: 2026-07-18
+last_activity_desc: Phase 10 complete, transitioned to Phase 16
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 1
   total_plans: 6
   completed_plans: 6
-  percent: 17
+  percent: 14
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-03)
+See: .planning/PROJECT.md (updated 2026-07-18)
 
 **Core value:** A gestão de manutenção (ativos → planos → OS → estoque) funciona de ponta a ponta com os dados reais já cadastrados; nada deste milestone quebra o que já roda em produção.
-**Current focus:** Phase 10 — dados-conectividade
+**Current focus:** Phase 16 — Modulo Predial (incorporar xPredial)
 
 ## Current Position
 
-Phase: 10 (dados-conectividade) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 10
-Last activity: 2026-07-03 — Phase 10 execution started
+Phase: 16 — Modulo Predial (incorporar xPredial: rotas FastAPI, frontend, migracao de dados)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-07-18 — Phase 10 complete, transitioned to Phase 16
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 20 (v1.0)
+- Total plans completed: 26 (v1.0)
 - Average duration: -
 - Total execution time: -
 
@@ -54,6 +54,7 @@ Last activity: 2026-07-03 — Phase 10 execution started
 | 07 | 3 | - | - |
 | 08 | 3 | - | - |
 | 09 | 1 | - | - |
+| 10 | 6 | - | - |
 
 *Updated after each plan completion*
 
@@ -82,8 +83,6 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Pre-Phase 10 (CON-02):** Confirmar de onde a lotação da OS é derivada na criação (unidade do solicitante vs. seletor explícito) antes de adicionar `os.lotacao_id` — não quebrar o contrato `POST /api/os` que PMOC + satélites consomem.
-- **Pre-Phase 10 (CON-04):** Decidir entre FK `grama_maquinas → ativos` (com backfill por modelo/série) vs. aposentar a tabela paralela — checar quem lê `grama_maquinas` hoje (`/api/grama/*`).
 - **Pre-Phase 11 (RES-07):** Localizar a planilha-fonte de `area_m2`/`altura_m` dos locais antes do import; `altura_m` já foi adicionada como coluna na v1.0 (Phase 6).
 - **Pre-Phase 13 (DEP-02):** Enumerar os satélites e suas portas atuais (predial, aguada, paiol, calibração, segurança) para derivar URLs de `location`/`GET /api/satellites`.
 - **Invariante (todas as fases):** migrações aditivas (`PRAGMA table_info` antes de `ALTER`, nunca `DROP`); backfills idempotentes; não quebrar `/api/usuarios`, `/api/os`, `/api/sync/*`.
@@ -99,10 +98,10 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-03T22:44:04.901Z
-Stopped at: Phase 10 executed + verified (6/6 plans, VERIFICATION passed)
-Resume file: .planning/phases/10-dados-conectividade/10-VERIFICATION.md
+Last session: 2026-07-18T23:20:00Z
+Stopped at: Phase 10 complete (UAT 25/25, security threats_open: 0), ready to plan next phase
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan the first v2.0 phase with /gsd-plan-phase 10
+- Plan Phase 16 (Modulo Predial) with /gsd-plan-phase 16, or Phase 11 (Residuais) with /gsd-discuss-phase 11

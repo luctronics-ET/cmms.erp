@@ -51,11 +51,14 @@ A gestão de manutenção (ativos → planos → OS → estoque) tem que funcion
 - ✓ Módulo Ajuda & Documentação: ajuda contextual + repositório de documentos versionado por categoria (storage local seguro fora da árvore web) — **v1.0**
 - ✓ Limpeza: HTMLs legados de referência removidos, código limpo (tag `milestone-import-verificado`) — **v1.0**
 
+- ✓ Dados & Conectividade (F10): `os.lotacao_id` com auto-fill do solicitante, backfill `locais.estrutura_id` (FK + fallback COALESCE), horas de grama repontadas para `ativos.uso_atual` (fonte única), plano órfão arquivado via flag, fonoclama registrado no sync, relatório de integridade admin (`GET /api/admin/integridade` + painel na aba admin) — **v2.0 Phase 10**
+
 ### Active
 
 <!-- Milestone v2.0 em execução — requisitos detalhados em REQUIREMENTS.md. -->
 
-- Milestone **v2.0 Conectividade, Deploy & Conteúdo** em planejamento — frentes F10–F16 (ver "Current Milestone" acima e `.planning/REQUIREMENTS.md`).
+- Milestone **v2.0 Conectividade, Deploy & Conteúdo** em execução — Phase 10 entregue; restam F11–F15 + Phase 16 (Modulo Predial).
+- Phase 16 (2026-07-18): incorporar xPredial como módulo nativo do núcleo (rotas FastAPI, frontend, migração de schema+dados do predial.db).
 - Candidatos ainda diferidos: paginação, cache de vencimentos, CSRF/cookies/rate-limit, audit trail.
 
 ### Out of Scope
@@ -93,6 +96,9 @@ A gestão de manutenção (ativos → planos → OS → estoque) tem que funcion
 | Migração de banco fora de escopo | Escala atual (SQLite) suficiente; migração dominaria o milestone | ✓ Good |
 | Segurança mínima (Argon2id + sem default) | Rede interna; CSRF/cookies/rate-limit fora de escopo | ✓ Good — usou Argon2id (não bcrypt); upgrade lazy sem lockout |
 | Preservar dados de produção; migrações aditivas | Sistema já em uso com dados reais | ✓ Good — todas migrações aditivas, db.init() idempotente |
+| Phase 10: lotação da OS derivada da unidade do solicitante com override opcional | Resolve CON-02 sem quebrar `POST /api/os` (PMOC/satélites) | ✓ Good — contrato externo preservado (UAT #14) |
+| Phase 10: `grama_maquinas` vira satélite de metadados linkado por `ativos.grama_maquina_id` | Resolve CON-04; `uso_atual` como fonte única de horas (Rules.md §3) | ✓ Good — só links 1:1 determinísticos |
+| Incorporar xPredial como módulo nativo (Phase 16) em vez de satélite via proxy | Mesmo stack (FastAPI+aiosqlite+vanilla JS); elimina servidor separado; dados migram para o núcleo | — Pending |
 
 ## Evolution
 
@@ -112,4 +118,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 — milestone v2.0 (Conectividade, Deploy & Conteúdo) iniciado*
+*Last updated: 2026-07-18 after Phase 10 (Dados & Conectividade)*

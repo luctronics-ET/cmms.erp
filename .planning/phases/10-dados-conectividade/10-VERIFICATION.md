@@ -1,14 +1,16 @@
 ---
 phase: 10-dados-conectividade
 verified: 2026-07-03T22:45:00Z
-status: human_needed
+status: passed
 score: 6/6 must-haves verified (mecanismo/comportamento); 1 item de UAT visual pendente
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
+
   - test: "Logar no ERP (cmasm_erp.html) como usuário role=admin, abrir a aba Admin e conferir visualmente o card 'Integridade de Dados' — se ele renderiza as 7 categorias com badges de contagem (verde/âmbar/vermelho) e se cada categoria expande ao clicar, listando os itens."
     expected: "Card visível, badges coloridos corretos (ex.: locais_sem_estrutura=163 em vermelho/âmbar), expansão funcional sem erro no console do browser."
     why_human: "Renderização visual e interação de clique/expansão não são verificáveis por grep/curl — o endpoint e o fetch já foram confirmados via curl (200/401/403 corretos, JSON com 7 categorias e contagens reais), mas a experiência visual no DOM real requer navegador."
+
   - test: "Logar como usuário NÃO-admin (ex.: role=gestor) e abrir a aba Admin — confirmar que o card de integridade não é populado (mensagem 'Acesso restrito a administradores')."
     expected: "Card mostra a mensagem de acesso restrito, sem vazar dados de integridade no DOM."
     why_human: "O gate client-side (SESSION.role!=='admin') foi confirmado por leitura de código (cmasm_erp.html:6928) e o gate server-side por curl (403 confirmado), mas a ausência de vazamento visual/requisição indevida no browser real é melhor confirmada por inspeção humana."

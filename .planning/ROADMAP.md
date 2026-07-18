@@ -146,7 +146,7 @@ Full detail: `.planning/milestones/v1.0-ROADMAP.md`
 | 7. Auth Hardening | v1.0 | 3/3 | Complete | 2026-06-29 |
 | 8. Ajuda e Documentação | v1.0 | 3/3 | Complete | 2026-06-29 |
 | 9. Limpeza Final | v1.0 | 1/1 | Complete | 2026-06-29 |
-| 10. Dados & Conectividade | v2.0 | 6/6 | Complete   | 2026-07-03 |
+| 10. Dados & Conectividade | v2.0 | 6/6 | Complete    | 2026-07-03 |
 | 11. Residuais Funcionais | v2.0 | 0/? | Not started | - |
 | 12. Documentos — Vínculo & População | v2.0 | 0/? | Not started | - |
 | 13. Portabilidade & Deploy | v2.0 | 0/? | Not started | - |
