@@ -72,6 +72,10 @@ Recent roadmap decisions affecting current work:
 - Roadmap v2.0: PUB-01 (endpoint público) precede PUB-02/03 (página + etiquetas) dentro da Phase 15.
 - Roadmap v2.0: DEP-* (portabilidade) é independente — sequenciado no meio (Phase 13), pode rodar em paralelo às fases de dados.
 
+### Roadmap Evolution
+
+- Phase 16 added (2026-07-18): Modulo Predial — incorporar xPredial como módulo nativo do núcleo (portar rotas FastAPI + frontend para os padrões do cmasm.erp, migrar schema + dados reais do predial.db, migração aditiva). Decisões: módulo nativo (não satélite proxy), migrar todos os dados, xPredial vira código incorporado. Mapa do codebase do xPredial disponível em `/home/luc/DEV_ERP/xPredial/.planning/codebase/`.
+
 ### Pending Todos
 
 None yet.

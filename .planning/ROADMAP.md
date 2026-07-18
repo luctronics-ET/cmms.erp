@@ -152,3 +152,14 @@ Full detail: `.planning/milestones/v1.0-ROADMAP.md`
 | 13. Portabilidade & Deploy | v2.0 | 0/? | Not started | - |
 | 14. Import de Features | v2.0 | 0/? | Not started | - |
 | 15. Consulta Pública QR + Manual & Demo | v2.0 | 0/? | Not started | - |
+
+### Phase 16: Modulo Predial (incorporar xPredial: rotas FastAPI, frontend, migracao de dados)
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 15
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 16 to break down)
