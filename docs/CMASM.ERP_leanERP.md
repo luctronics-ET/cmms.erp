@@ -28,15 +28,19 @@ Cada um é um HTML autônomo que usa `ativo-template.html` como base. Navegaçã
 
 | Arquivo | Setor |
 |---------|-------|
-| PMOC | `Transportes` | Viaturas e Embarcacoes |
-| PMOC | `predial` | Locais e inspeção predial |
-| PMOC | `grama` | Controle vegetal / xGrama |
-| PMOC | `eletrica.html` | Elétrica |
-| PMOC | `aguada.html` | hidraulica |
+
+| PMOC | `predial`           | Edificacoes  |
+| PMOC | `eletrica.html`     | Elétrica     |
+| PMOC | `aguada.html`       | hidraulica   |
 | PMOC | `refrigeracao.html` | Refrigeração |
-| PMOC | `maq-corte` | Máquinas e Equipamentos de Corte |
-| PMOC | `maq-peso` | Controle Vegetal (xGrama) |
-| PMOC | `paiois` | Paiois / munição |
+
+| PMOC | `Embarcacoes`       | Embarcacoes |
+| PMOC | `Transportes`       | Viaturas    |
+| PMOC | `grama`             | maq Controle vegetal |
+| PMOC | `maq-peso`          | Guindastes, empilhadeiras |
+
+
+| PMOC | `paiois` | Paiois |
 | PMOC | `eletronica.html` | eletronicos | fonoclama | sensores |
 | PMOC | `calibracao` | Controle de calibração |
 
